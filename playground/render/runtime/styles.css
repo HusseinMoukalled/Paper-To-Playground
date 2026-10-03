@@ -4,3 +4,4 @@
 @media(max-width:380px){.outputs{grid-template-columns:1fr}dl.symbols{gap:6px 12px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 .visual .cell{fill:#8dcdc2}.equation math{font-size:1.2rem;max-width:100%}
+.equation{overflow-x:auto;max-width:100%}.equation-panel{min-width:0;max-width:100%}dl.symbols dd{min-width:0;overflow-wrap:anywhere}

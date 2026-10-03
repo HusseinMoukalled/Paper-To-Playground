@@ -130,6 +130,35 @@ def load_ir(content: str) -> ExplanationIR:
     return decode(ExplanationIR, parse_json(content))
 
 
+def restore_structural_defaults(cls, value):
+    """Normalize null optional containers to their declared empty defaults.
+
+    No prose, science, IDs or required fields are invented. Strict decoding and
+    all semantic gates still run after this bounded structural transformation.
+    """
+    origin, args = get_origin(cls), get_args(cls)
+    if isinstance(cls, type) and issubclass(cls, Enum) and isinstance(value, str):
+        matches = [member.value for member in cls if str(member.value).casefold() == value.casefold()]
+        return matches[0] if len(matches) == 1 else value
+    if is_dataclass(cls) and isinstance(value, dict):
+        result = dict(value)
+        hints = get_type_hints(cls)
+        for f in fields(cls):
+            if f.name not in result:
+                continue
+            if result[f.name] is None:
+                default = f.default if f.default is not MISSING else f.default_factory() if f.default_factory is not MISSING else MISSING
+                if isinstance(default, (tuple, list, dict)) and not default:
+                    result[f.name] = to_mapping(default)
+            result[f.name] = restore_structural_defaults(hints[f.name], result[f.name])
+        return result
+    if origin is tuple and isinstance(value, list):
+        return [restore_structural_defaults(args[0], x) for x in value]
+    if origin is dict and isinstance(value, dict):
+        return {k: restore_structural_defaults(args[1], v) for k, v in value.items()}
+    return value
+
+
 def schema_contract(cls):
     """Compact field/type contract derived from the actual shared dataclasses."""
     seen, result = set(), {}
@@ -145,3 +174,23 @@ def schema_contract(cls):
                 visit(arg)
     visit(cls)
     return result
+
+
+def json_schema(cls):
+    """JSON Schema for provider-constrained output, derived from shared types."""
+    origin, args = get_origin(cls), get_args(cls)
+    if cls is Any:
+        return {}
+    if origin in {Union, types.UnionType}:
+        return {'anyOf':[json_schema(t) for t in args]}
+    if origin is tuple:
+        return {'type':'array','items':json_schema(args[0])}
+    if origin is dict:
+        return {'type':'object','additionalProperties':json_schema(args[1])}
+    if isinstance(cls,type) and issubclass(cls,Enum):
+        return {'type':'string','enum':[member.value for member in cls]}
+    if is_dataclass(cls):
+        hints = get_type_hints(cls)
+        return {'type':'object','properties':{f.name:json_schema(hints[f.name]) for f in fields(cls)},
+                'required':[f.name for f in fields(cls)],'additionalProperties':False}
+    return {'type':{str:'string',int:'integer',float:'number',bool:'boolean',type(None):'null'}[cls]}

@@ -100,7 +100,7 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
         if any(v['component'] == 'process' for v in m['visuals']):
             toolbar += '<button class="secondary" data-role="step-next">Next step</button><span data-role="step-value"></span>'
         css = (RUNTIME / 'styles.css').read_text(encoding='utf-8')
-        js = '\n'.join((RUNTIME / name).read_text(encoding='utf-8') for name in ('evaluator.js', 'visuals.js', 'runtime.js'))
+        js = '\n'.join((RUNTIME / name).read_text(encoding='utf-8') for name in ('evaluator.js', 'canonical.js', 'visuals.js', 'runtime.js'))
         return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{escape(m['concept'])} · Paper to Playground</title><style>{css}</style></head>

@@ -1,5 +1,8 @@
 # Paper to Playground
 
+The three developer subsystems are integrated on `Hussein/Integration`.
+See [INTEGRATION.md](INTEGRATION.md) for current setup, CLI usage and verification.
+
 ## Master Architecture, Implementation Specification, and Coding-Agent Contract
 
 > **Purpose of this document**

@@ -6,7 +6,7 @@ from enum import StrEnum
 import time
 
 from playground.ir.models import ExplanationIR, ScientificModel
-from playground.ir.serialization import parse_json, decode, to_mapping
+from playground.ir.serialization import parse_json, decode, to_mapping, restore_structural_defaults, json_schema
 from playground.ir.validate import validate_ir
 from playground.computation.evaluator import compile_computations
 from playground.model.prompts import build_messages
@@ -44,13 +44,16 @@ def _normalize(content):
     if isinstance(value, dict) and isinstance(value.get("status"), str) and value["status"] in {"unsupported", "insufficient_evidence"}:
         _error(FailureCode.RETRIEVAL_INSUFFICIENT_EVIDENCE, "Model explicitly reported unsupported or insufficient evidence.",
                {"status": value["status"]})
+    if isinstance(value,dict) and value.get('status') in ('ok','success','supported') and value.get('scientific_model') is not None and value.get('lesson_spec') is not None:
+        value = {key:item for key,item in value.items() if key != 'status'}
     return value
 
 
 class SemanticEngine:
-    def __init__(self, client, *, strategy=GenerationStrategy.COMBINED):
+    def __init__(self, client, *, strategy=GenerationStrategy.COMBINED, enable_repairs=False):
         self.client = client
         self.strategy = GenerationStrategy(strategy)
+        self.enable_repairs = enable_repairs
 
     def generate(self, evidence) -> GenerationResult:
         if not evidence.evidence_blocks:
@@ -66,17 +69,55 @@ class SemanticEngine:
             except ValueError:
                 _error(FailureCode.IR_INVALID, "ScientificModel schema validation failed.")
         stage = "combined" if scientific is None else "lesson"
+        schema = json_schema(ExplanationIR)
+        schema['properties']['metadata'] = {'type':'object','properties':{
+            'audience':{'type':'string','const':evidence.audience},
+            'audience_adaptation':{'type':'string'},
+            'defaults':{'type':'object','additionalProperties':{}},
+            'invariant_bindings':{'type':'object','additionalProperties':{'type':'string'}},
+            'control_test_values':{'type':'object','additionalProperties':{'type':'array','items':{}}},
+            'equation_scope':{'type':'object','additionalProperties':{'type':'string','enum':['context_only']}},
+        },'required':['audience','audience_adaptation','defaults','invariant_bindings','control_test_values','equation_scope'],
+            'additionalProperties':True}
         raw = self.client.complete(build_messages(evidence, stage=stage, scientific_model=scientific),
-                                   max_tokens=7500, purpose="semantic" if scientific is None else "lesson")
+                                   max_tokens=12000, purpose="semantic" if scientific is None else "lesson",response_schema=schema)
         try:
-            ir = decode(ExplanationIR, _normalize(raw))
-        except ValueError:
-            _error(FailureCode.IR_INVALID, "ExplanationIR schema validation failed.")
+            ir = decode(ExplanationIR, restore_structural_defaults(ExplanationIR, _normalize(raw)))
+        except ValueError as exc:
+            _error(FailureCode.IR_INVALID, "ExplanationIR schema validation failed.", {'schema_error': str(exc)})
         if scientific is not None and to_mapping(ir.scientific_model) != to_mapping(scientific):
             _error(FailureCode.IR_INVALID, "Lesson stage changed the fixed ScientificModel.")
+        from playground.model.structural_repair import normalize_declared_inputs, normalize_wire_conventions
+        ir, wire_changes = normalize_wire_conventions(ir)
+        if wire_changes:
+            self.client._event('deterministic_wire_repair','pass',details={'changed_paths':wire_changes})
+        ir, changes = normalize_declared_inputs(ir)
+        if changes:
+            self.client._event('deterministic_input_repair', 'pass', details={'changed_setups':changes})
         report = validate_ir(ir, evidence, budget=self.client.budget)
+        failed = [f for f in report.findings if f.status == ValidationStatus.FAIL]
+        if self.enable_repairs and failed and all(f.code in {'CLAIM_UNCLASSIFIED','EVIDENCE_LINEAGE_MISMATCH'} for f in failed):
+            from playground.model.grounding_repair import complete_missing_grounding
+            try:
+                ir = complete_missing_grounding(self.client,ir,evidence,targets={f.target for f in failed})
+                report = validate_ir(ir,evidence,budget=self.client.budget)
+                self.client._event('grounding_revalidation',report.status.value)
+            except (ValueError,TypeError,KeyError):
+                _error(FailureCode.IR_INVALID, 'Targeted provenance repair failed; scientific prose preserved.')
+        if self.enable_repairs and report.status == ValidationStatus.FAIL:
+            from playground.model.repair import request_repair, repair_paths
+            paths = repair_paths(ir,report)
+            if paths:
+                failure = Failure(FailureCode.IR_INVALID, 'IR_VALIDATION', FailureSeverity.MAJOR, True,
+                                  'Small executable fragment failed validation.', details={'findings':[
+                                      {'code':f.code,'target':f.target,'message':f.message} for f in report.findings]})
+                try:
+                    ir, report = request_repair(self.client,ir,evidence,failure,allowed_paths=paths,
+                                               evidence_refs=ir.scientific_model.provenance)
+                except (ValueError,TypeError,KeyError):
+                    _error(FailureCode.IR_INVALID,'Targeted executable repair failed; original IR preserved.')
         self.client._event("validate_ir", report.status.value,
-                           details={"findings": [{"code": f.code, "stage": f.stage, "status": f.status.value} for f in report.findings]})
+                           details={"findings": [{"code": f.code, "stage": f.stage, "status": f.status.value, "target": f.target, "message": f.message} for f in report.findings]})
         if report.status == ValidationStatus.FAIL:
             _error(FailureCode.IR_INVALID, "Generated IR failed deterministic validation.",
                    {"findings": [{"code": f.code, "stage": f.stage} for f in report.findings]})

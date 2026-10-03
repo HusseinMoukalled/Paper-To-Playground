@@ -1,5 +1,5 @@
 {
-  "source_url": "./examples/paper.pdf",
-  "focus": "the update mechanism described in Equation 6",
+  "source_url": "https://arxiv.org/html/1706.03762",
+  "focus": "scaled dot-product attention in Section 3.2.1",
   "audience": "second-year engineering undergraduate"
 }

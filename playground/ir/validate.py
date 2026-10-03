@@ -80,7 +80,10 @@ def validate_ir(ir, evidence, *, execute_science=True, budget=None):
         if not equation.expression or not equation.meaning:
             fail("EQUATION_INCOMPLETE", "science", "Equation expression and meaning required", equation.id)
     for relation in science.relationships + science.mechanism_steps:
-        refs(relation.input_refs + relation.output_refs, variables, relation.id)
+        # An abstract mechanism step may read and update the same state. Only
+        # repetitions within each reference list are duplicates.
+        refs(relation.input_refs, variables, relation.id)
+        refs(relation.output_refs, variables, relation.id)
         refs(relation.equation_refs, equations, relation.id)
     if len({s.order for s in science.mechanism_steps}) != len(science.mechanism_steps):
         fail("MECHANISM_ORDER_INVALID", "science", "Mechanism step order must be unique")

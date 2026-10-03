@@ -83,7 +83,11 @@ def validate_setup(m: dict, setup: dict, *, defaults: bool = False) -> None:
         if key not in by_var:
             raise ValueError('Preset references uncontrolled input')
         c = by_var[key]
-        shape = [proposed.get(dimension) if isinstance(dimension, str) else dimension for dimension in variables[key]['shape']]
+        actual_shape = _shape(value)
+        shape = [proposed.get(dimension, actual_shape[i] if m.get('canonical_runtime') and i < len(actual_shape) else None) if isinstance(dimension, str) else dimension
+                 for i, dimension in enumerate(variables[key]['shape'])]
+        if m.get('canonical_runtime') and not variables[key]['shape']:
+            shape = actual_shape
         if not all(isinstance(d, (int, float)) and not isinstance(d, bool) and math.isfinite(d) and d > 0 and d == int(d) for d in shape):
             raise ValueError('Shape dimensions must resolve to positive integers')
         if not _finite(value) or _shape(value) != shape:
@@ -104,8 +108,12 @@ def validate_setup(m: dict, setup: dict, *, defaults: bool = False) -> None:
                 elif c['minimum'] is not None and x < c['minimum'] or c['maximum'] is not None and x > c['maximum']:
                     raise ValueError('Default or preset outside domain')
             check(value)
-            if c['validation_rule'] == 'normalize' and (not isinstance(value, list) or any(x < 0 for x in value) or abs(sum(value) - 1) > m['numeric_tolerance']):
-                raise ValueError('Validated setups must already be normalized')
+            if c['validation_rule'] == 'normalize':
+                if not isinstance(value,list) or any(isinstance(x,list) for x in value):
+                    raise ValueError('Normalization requires a vector')
+                normalized = math.hypot(*value) if m.get('canonical_runtime') and variables[key]['type'] != 'distribution' else sum(value)
+                if (variables[key]['type'] == 'distribution' and any(x < 0 for x in value)) or abs(normalized - 1) > m['numeric_tolerance']:
+                    raise ValueError('Validated setups must already be normalized')
 
 
 def validate_manifest(m: dict) -> None:
@@ -135,16 +143,21 @@ def validate_manifest(m: dict) -> None:
         raise ValueError('Duplicate runtime IDs or control variables')
     for c in computations:
         reads = validate_ast(c['ast'])
-        if reads != set(c['reads']) or reads != set(c['input_refs']) or len(c['output_refs']) != 1:
+        if reads != set(c['reads']) or reads != set(c['input_refs']) or not c['output_refs']:
             raise ValueError('Computation dependencies disagree with AST')
         if c['output_type'] != by_id[c['output_refs'][0]]['type']:
             raise ValueError('Computation and scientific output types disagree')
+        if any(c['output_type'] != by_id[ref]['type'] for ref in c['output_refs']):
+            raise ValueError('Computation outputs must share the result type')
+    for invariant in m.get('invariant_programs', []):
+        if invariant.get('output_type') != 'boolean' or validate_ast(invariant) - ids:
+            raise ValueError('Invalid invariant program')
     if computation_order(computations, set(m['initial_state'])) != computations:
         raise ValueError('Manifest computations are not dependency ordered')
     if m['dependencies'] != {c['id']: c['reads'] for c in computations}:
         raise ValueError('Manifest dependency map differs from AST')
     produced = {r for c in computations for r in c['output_refs']}
-    if len(produced) != len(computations) or produced != set(m['outputs']) or produced & set(m['initial_state']) or produced | set(m['initial_state']) != ids:
+    if len(produced) != sum(len(c['output_refs']) for c in computations) or produced != set(m['outputs']) or produced & set(m['initial_state']) or produced | set(m['initial_state']) != ids:
         raise ValueError('Scientific state coverage mismatch')
     validate_setup(m, {c['scientific_variable']: c['default'] for c in m['controls']}, defaults=True)
     if any(m['initial_state'][c['scientific_variable']] != c['default'] for c in m['controls']):

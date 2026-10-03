@@ -24,6 +24,41 @@ MAX_AST_DEPTH = 64
 
 def validate_ast(node: Any) -> set[str]:
     """Validate the data-only wire tree and return its exact variable reads."""
+    if isinstance(node, dict) and node.get('type') == 'Canonical':
+        from playground.computation.evaluator import computation_references
+        from playground.ir.models import ComputationSpec
+        from playground.computation.ast import Node
+        if set(node) != {'type', 'metadata', 'output_type'}:
+            raise ValueError('Invalid canonical computation wrapper')
+        meta = node['metadata']
+        kind = meta.get('kind', 'expression')
+        if kind not in {'expression', 'iteration', 'state_transition'}:
+            raise ValueError('Unsupported canonical program')
+        if kind != 'state_transition':
+            Node.from_dict(meta['canonical_ast'])
+        if kind == 'iteration':
+            if type(meta.get('steps')) is not int or not 1 <= meta['steps'] <= 100:
+                raise ValueError('Iteration bound invalid')
+            if not meta['initial_ast'] or set(meta['initial_ast']) != set(meta['update_ast']):
+                raise ValueError('Iteration state keys disagree')
+            for tree in list(meta['initial_ast'].values()) + list(meta['update_ast'].values()) + meta.get('state_invariant_ast', []):
+                Node.from_dict(tree)
+        if kind == 'state_transition':
+            if type(meta.get('steps', 1)) is not int or not 1 <= meta.get('steps', 1) <= 100:
+                raise ValueError('State transition bound invalid')
+            if meta['initial_state'] not in meta['states']:
+                raise ValueError('Unknown initial state')
+            for transition in meta['transition_ast']:
+                if transition['from'] not in meta['states'] or transition['to'] not in meta['states']:
+                    raise ValueError('Unknown transition state')
+                Node.from_dict(transition['condition_ast'])
+        refs = computation_references(ComputationSpec('wire', '', node['output_type'], metadata=meta))
+        if set(meta.get('bindings', {})) != refs:
+            raise ValueError('Canonical bindings disagree with AST reads')
+        reads = set(meta['bindings'].values())
+        if any(not isinstance(i, str) or not i or i in FORBIDDEN_IDS for i in reads):
+            raise ValueError('Unsafe canonical binding')
+        return reads
     reads: set[str] = set()
     count = 0
 

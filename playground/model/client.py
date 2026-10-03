@@ -74,7 +74,9 @@ class OpenRouterClient:
         self._event("usage", "warn", details={"purpose": purpose, "usage_known": False,
                                                "completion_budget_estimated": True})
 
-    def complete(self, messages, *, max_tokens=6000, purpose="semantic", optional=False):
+    def complete(self, messages, *, max_tokens=6000, purpose="semantic", optional=False, max_retries=MAX_TRANSIENT_RETRIES, response_schema=None):
+        if type(max_retries) is not int or not 0 <= max_retries <= MAX_TRANSIENT_RETRIES:
+            raise ValueError("Invalid retry limit")
         if type(max_tokens) is not int or max_tokens <= 0:
             raise ValueError("Completion cap must be a positive integer")
         if purpose not in {"semantic", "science", "lesson", "semantic_verification", "semantic_repair", "retrieval_rerank"}:
@@ -94,7 +96,7 @@ class OpenRouterClient:
                 return {redact(k): redact(v) for k, v in value.items()}
             return value
         clean_messages = redact(messages)
-        for attempt in range(MAX_TRANSIENT_RETRIES + 1):
+        for attempt in range(max_retries + 1):
             remaining_tokens = self.budget.max_completion_tokens - self.budget.completion_tokens
             allocation = min(max_tokens, remaining_tokens)
             if allocation <= 0:
@@ -106,7 +108,16 @@ class OpenRouterClient:
                 self.budget._raise_budget_failure("No model time remains before finalization.")
             timeout = min(MODEL_TIMEOUT_SECONDS, usable_seconds)
             payload = {"model": self.model_id, "messages": clean_messages, "max_tokens": allocation,
-                       "temperature": 0, "response_format": {"type": "json_object"}}
+                       "temperature": 0, "response_format": {"type": "json_object"},
+                       "provider": {"sort": "throughput"}}
+            if response_schema is not None:
+                payload['response_format'] = {'type':'json_schema','json_schema':{
+                    'name':'explanation_ir','strict':True,'schema':redact(response_schema)}}
+            # This permitted DeepSeek model enables high reasoning by default;
+            # explicit non-thinking JSON generation keeps the 90-second contract.
+            # Other supplied model IDs retain their own supported defaults.
+            if self.model_id == 'deepseek/deepseek-v4.1-flash':
+                payload['reasoning'] = {'enabled': False, 'exclude': True}
             # Count attempts BEFORE transport, including timeout/HTTP failures.
             self.budget.record_model_call()
             self._event("request", "started", details={"purpose": purpose, "attempt": attempt + 1})
@@ -159,8 +170,8 @@ class OpenRouterClient:
                 return content
             # Failed responses may have consumed tokens without usable usage information.
             self._reserve_unknown_usage(allocation, purpose)
-            self._event("request", "retry" if retry and attempt < MAX_TRANSIENT_RETRIES else "fail",
+            self._event("request", "retry" if retry and attempt < max_retries else "fail",
                         details={"purpose": purpose, "reason": reason, "completion_budget_estimated": True})
-            if not retry or attempt == MAX_TRANSIENT_RETRIES:
+            if not retry or attempt == max_retries:
                 self._fail(reason, recoverable=retry)
         raise AssertionError("Unreachable retry state")

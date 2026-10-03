@@ -10,7 +10,7 @@
   const outputs = Array.from(document.querySelectorAll('[data-output-id]'));
   const visualElements = new Map(Array.from(document.querySelectorAll('[data-visual-id]')).map(el => [el.dataset.visualId, el]));
   const status = document.querySelector('[data-role="status"]');
-  let state = {}, ui = {step: 0, comparison: null, exploration: null}, error = null;
+  let state = {}, histories = {}, ui = {step: 0, comparison: null, exploration: null}, error = null;
   const fail = message => { throw new Error(message); };
   function checkValue(control, raw) {
     let value = raw, warning = '';
@@ -36,15 +36,17 @@
       const invalid = (lo !== null && x < lo) || (hi !== null && x > hi);
       if (invalid) {
         if (control.validation_rule === 'clamp') { warning = 'Input clamped to the allowed range.'; return Math.max(lo ?? -Infinity, Math.min(hi ?? Infinity, x)); }
+        if (manifest.canonical_runtime && control.validation_rule === 'warn') { warning = 'Input is outside the teaching range.'; return x; }
         fail('Input is outside the allowed domain.');
       }
       return x;
     };
     if (control.validation_rule === 'normalize') {
-      if (!Array.isArray(value) || value.some(x => typeof x !== 'number' || !Number.isFinite(x) || x < 0)) fail('Normalization requires a nonnegative finite vector.');
-      const total = value.reduce((a, b) => a + b, 0);
+      const euclidean = manifest.canonical_runtime && manifest.variables.find(v => v.id === control.scientific_variable).type !== 'distribution';
+      if (!Array.isArray(value) || value.some(x => typeof x !== 'number' || !Number.isFinite(x) || (!euclidean && x < 0))) fail('Normalization requires a valid finite vector.');
+      const total = euclidean ? Math.hypot(...value) : value.reduce((a, b) => a + b, 0);
       if (!(total > 0) || !Number.isFinite(total)) fail('Normalization requires positive finite total mass.');
-      value = value.map(x => x / total); warning = 'Input normalized to unit sum.';
+      value = value.map(x => x / total); warning = euclidean ? 'Input normalized to unit length.' : 'Input normalized to unit sum.';
     }
     const walk = x => Array.isArray(x) ? x.map(walk) : validNumber(x);
     value = walk(value);
@@ -58,20 +60,35 @@
     return [value.length, ...child];
   }
   function compute(inputs) {
-    const next = clone(inputs);
+    const next = clone(inputs), nextHistories = {}, dimensions = {};
+    const resolveDimensions = variable => {
+      if (!manifest.canonical_runtime || !own(next, variable.id)) return;
+      const actual = valueShape(next[variable.id]);
+      variable.shape.forEach((d, i) => { if (typeof d === 'string' && !own(next, d)) {
+        if (own(dimensions, d) && dimensions[d] !== actual[i]) fail('Inconsistent symbolic shape.');
+        dimensions[d] = actual[i];
+      }});
+    };
+    manifest.variables.forEach(resolveDimensions);
     const expectedShape = variable => variable.shape.map(dimension => {
-      const size = typeof dimension === 'string' ? next[dimension] : dimension;
+      const size = typeof dimension === 'string' ? (next[dimension] ?? dimensions[dimension]) : dimension;
       if (!Number.isInteger(size) || size < 1) fail('Scientific shape dimension must resolve to a positive integer.');
       return size;
     });
     for (const variable of manifest.variables) {
-      if (own(next, variable.id) && JSON.stringify(valueShape(next[variable.id])) !== JSON.stringify(expectedShape(variable))) fail('Input shape differs from the scientific variable.');
+      if (own(next, variable.id) && (!manifest.canonical_runtime || variable.shape.length) && JSON.stringify(valueShape(next[variable.id])) !== JSON.stringify(expectedShape(variable))) fail('Input shape differs from the scientific variable.');
     }
-    for (const c of manifest.computations) next[c.output_refs[0]] = AST.evaluate(c.ast, next);
+    for (const c of manifest.computations) {
+      const result = c.ast.type === 'Canonical' ? globalThis.ScientificCanonical.execute(c.ast, next) : {value: AST.evaluate(c.ast, next), history: []};
+      for (const id of c.output_refs) next[id] = clone(result.value);
+      nextHistories[c.id] = result.history;
+    }
+    manifest.variables.forEach(resolveDimensions);
     for (const variable of manifest.variables) {
       const value = next[variable.id];
       if (!AST.finite(value)) fail('Scientific state must be finite and defined.');
-      if (JSON.stringify(valueShape(value)) !== JSON.stringify(expectedShape(variable))) fail('Computed shape mismatch.');
+      if ((!manifest.canonical_runtime || variable.shape.length) && JSON.stringify(valueShape(value)) !== JSON.stringify(expectedShape(variable))) fail('Computed shape mismatch.');
+      if (manifest.canonical_runtime) globalThis.ScientificCanonical.validateValue(value, variable.type, variable.shape, variable.domain);
       if (variable.type === 'scalar' && typeof value !== 'number') fail('Scalar output required.');
       if (variable.type === 'boolean' && typeof value !== 'boolean') fail('Boolean output required.');
       if (variable.type === 'categorical' && typeof value !== 'string') fail('Categorical output required.');
@@ -82,6 +99,8 @@
         if (value.some(x => x < 0) || Math.abs(sum - 1) > manifest.numeric_tolerance) fail('Probability distribution outside domain.');
       }
     }
+    for (const invariant of manifest.invariant_programs || []) if (AST.evaluate(invariant, next) !== true) fail('Scientific invariant failed.');
+    histories = nextHistories;
     return next;
   }
   function refresh() {
@@ -101,7 +120,7 @@
       panel.querySelector('[data-role="substitution"]').textContent = AST.equation(computation.ast, symbols, state) + ' = ' + AST.format(state[target]);
       panel.dataset.value = JSON.stringify(state[target]);
     }
-    manifest.visuals.forEach(v => globalThis.ScientificVisuals.render(visualElements.get(v.id), v, state, {...ui, symbols}));
+    manifest.visuals.forEach(v => globalThis.ScientificVisuals.render(visualElements.get(v.id), v, state, {...ui, symbols, histories}));
     document.querySelectorAll('[data-exploration-id]').forEach(el => { el.dataset.active = String(el.dataset.explorationId === ui.exploration); });
     const step = document.querySelector('[data-role="step-value"]');
     if (step) step.textContent = 'Step ' + (ui.step + 1);
@@ -146,22 +165,22 @@
   document.querySelectorAll('[data-role="apply-setup"]').forEach(button => button.addEventListener('click', () => guarded(() => {
     const exploration = manifest.explorations.find(e => e.id === button.dataset.setupId);
     // Presets start from defaults for deterministic behavior independent of history.
-    const previous = clone(state), previousUi = clone(ui);
+    const previous = clone(state), previousUi = clone(ui), previousHistories = clone(histories);
     try { reset(); apply(exploration.runtime_setup, exploration.id); }
-    catch (e) { state = previous; ui = previousUi; throw e; }
+    catch (e) { state = previous; ui = previousUi; histories = previousHistories; throw e; }
   })));
   const save = document.querySelector('[data-role="save-comparison"]');
   if (save) save.addEventListener('click', () => guarded(() => { ui.comparison = clone(state); refresh(); }));
   const step = document.querySelector('[data-role="step-next"]');
   if (step) step.addEventListener('click', () => guarded(() => {
-    const sequences = manifest.visuals.filter(v => v.component === 'process').map(v => state[v.data_refs[0]]);
+    const sequences = manifest.visuals.filter(v => v.component === 'process').map(v => histories[v.metadata.history_ref] || state[v.data_refs[0]]);
     const max = Math.max(...sequences.map(x => Array.isArray(x) ? x.length : 1));
     ui.step = Math.min(ui.step + 1, max - 1); refresh();
   }));
   rootAPI();
   function rootAPI() {
     globalThis.PlaygroundRuntime = Object.freeze({
-      snapshot: () => ({state: clone(state), ui: clone(ui), error}),
+      snapshot: () => ({state: clone(state), histories: clone(histories), ui: clone(ui), error}),
       apply, reset, evaluate: AST.evaluate, equation: AST.equation,
     });
   }

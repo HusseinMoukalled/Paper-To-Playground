@@ -127,7 +127,7 @@ def set_native_control(page, control: dict, value) -> None:
     elif kind == 'select':
         locator.select_option(value)
     elif kind in {'slider', 'range'}:
-        locator.fill(str(value))
+        locator.evaluate('(el,value)=>{el.value=String(value)}', value)
         locator.dispatch_event('input')
     else:
         locator.fill(json.dumps(value) if isinstance(value, list) else str(value))

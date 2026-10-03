@@ -67,6 +67,7 @@
       if (i) line(scene, x - 12, 138, x, 138, {class: 'curve', 'marker-end': 'url(#flow-arrow)'});
       scene.append(svg('rect', {x, y: 74, width: Math.max(20, width - 15), height: 128, rx: 8,
         class: active === i ? 'active-cell' : 'flow-cell', 'data-mark-value': JSON.stringify(v)}));
+      scene.append(svg('title', {}, root.ScientificAST.format(v)));
       text(scene, x + 8, 98, labels[i] || 'Step ' + (i + 1));
       // Scientific values remain available as text even for long tensors.
       text(scene, x + 8, 131, root.ScientificAST.format(v).slice(0, 26));
@@ -95,8 +96,11 @@
         case 'matrix': heatmap(scene, values); break;
         case 'flow': flow(scene, values, labels); break;
         case 'process': {
-          const steps = Array.isArray(values[0]) ? values[0] : values;
-          flow(scene, steps, [], Math.min(ui.step || 0, steps.length - 1)); break;
+          const steps = ui.histories?.[spec.metadata.history_ref] || (Array.isArray(values[0]) ? values[0] : values);
+          const selected = Math.min(ui.step || 0, steps.length - 1), start = Math.max(0, Math.min(selected - 3, steps.length - 8));
+          const window = steps.slice(start, start + 8);
+          flow(scene, window, window.map((_,i)=>'Step '+(start+i+1)), selected-start);
+          text(scene, 35, 35, 'Step '+(selected+1)+' of '+steps.length+': '+root.ScientificAST.format(steps[selected])); break;
         }
         case 'state_graph': {
           const nodes = spec.metadata.nodes;

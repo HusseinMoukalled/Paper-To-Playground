@@ -37,16 +37,25 @@ def check_equation_consistency(ir):
                 if not IDENTIFIER.fullmatch(lhs.strip()) or "=" in rhs:
                     raise ValueError("Unsupported equation notation")
                 expression = rhs.strip()
-                output_symbols = {variables[v].source_symbol or variables[v].display_symbol for v in spec.output_refs}
+                output_symbols = {symbol for v in spec.output_refs for symbol in
+                                  (variables[v].source_symbol, variables[v].display_symbol) if symbol}
                 if lhs.strip() not in output_symbols:
                     raise ValueError("Equation left-hand side does not match computation output")
             symbols = {}
             for var_id in equation.variable_refs:
                 var = variables[var_id]
-                symbol = var.source_symbol or var.display_symbol
-                if symbol in symbols and symbols[symbol] != var_id:
-                    raise ValueError("Ambiguous source symbols")
-                symbols[symbol] = var_id
+                for symbol in (var.source_symbol, var.display_symbol):
+                    if symbol:
+                        if symbol in symbols and symbols[symbol] != var_id:
+                            raise ValueError("Ambiguous source symbols")
+                        symbols[symbol] = var_id
+            # Explicit compiler bindings also name safe DSL aliases for source
+            # notation such as d_k. They must resolve to declared equation vars.
+            for symbol, var_id in spec.metadata.get('bindings', {}).items():
+                if var_id in equation.variable_refs:
+                    if symbol in symbols and symbols[symbol] != var_id:
+                        raise ValueError('Ambiguous equation binding alias')
+                    symbols[symbol] = var_id
             expected = _bind(parse(expression), symbols)
             if expected != actual:
                 raise ValueError("Scientific equation differs from executable canonical AST")

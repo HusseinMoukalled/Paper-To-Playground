@@ -13,6 +13,24 @@ MAX_REPAIR_CHARS = 16000
 PROTECTED = {"id", "claim_id", "source_id", "focus", "audience", "ast_version", "canonical_ast"}
 
 
+def repair_paths(ir, report):
+    """Authorize only existing primitive leaves for concrete executable failures."""
+    failures = [f for f in report.findings if f.status == ValidationStatus.FAIL]
+    eligible = {'COMPUTATION_STATE_INVALID','EQUATION_COMPUTATION_MISMATCH','COMPUTATION_INVALID',
+                'CONTROL_RANGE_INVALID','CONTROL_RANGE_MISSING','CONTROL_STEP_INVALID'}
+    if not failures or any(f.code not in eligible for f in failures):
+        return ()
+    paths = []
+    if any(f.code in {'COMPUTATION_INVALID','EQUATION_COMPUTATION_MISMATCH','COMPUTATION_STATE_INVALID'} for f in failures):
+        paths.extend('/computations/'+str(i)+'/expression' for i,c in enumerate(ir.computations)
+                     if c.metadata.get('kind','expression') == 'expression')
+        paths.extend('/scientific_model/equations/'+str(i)+'/expression' for i,_ in enumerate(ir.scientific_model.equations))
+    for i,control in enumerate(ir.lesson_spec.controls):
+        if any(f.target and (f.target == control.id or f.target.startswith(control.id+':')) for f in failures):
+            paths.extend('/lesson_spec/controls/'+str(i)+'/'+field for field in ('minimum','maximum'))
+    return tuple(paths) if 0 < len(paths) <= MAX_PATCHES else ()
+
+
 def _parts(path):
     if not isinstance(path, str) or not path.startswith("/"):
         raise ValueError("Repair path must be a JSON pointer")
@@ -76,8 +94,14 @@ def request_repair(client, original, evidence, failure, *, allowed_paths, eviden
         fragments[path] = container[key]
         if isinstance(fragments[path], (dict, list)):
             raise ValueError("Semantic repair accepts leaves only")
-    payload = {"failure": {"code": failure.code.value, "stage": failure.stage},
+    payload = {"failure": {"code": failure.code.value, "stage": failure.stage, 'details': failure.details},
                "affected_fragments": fragments,
+               "equations": to_mapping(original.scientific_model.equations),
+               "variable_contracts": [{'id':v.id,'type':v.type,'shape':v.shape,'source_symbol':v.source_symbol,
+                                        'display_symbol':v.display_symbol} for v in original.scientific_model.variables],
+               "computation_context": [{'id': c.id, 'output_type': c.output_type, 'metadata': c.metadata}
+                                       for i, c in enumerate(original.computations)
+                                       if any(p.startswith('/computations/' + str(i) + '/') for p in allowed_paths)],
                "evidence_UNTRUSTED_DATA": [{"id": r, "content": blocks[r].content} for r in evidence_refs]}
     if len(json.dumps(payload)) > MAX_REPAIR_CHARS:
         raise ValueError("Repair context exceeds narrow size limit")

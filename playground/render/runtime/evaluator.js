@@ -72,6 +72,7 @@
     const next = n => evaluate(n, state, depth + 1);
     let value;
     switch (node.type) {
+      case 'Canonical': value = root.ScientificCanonical.execute(node, state).value; break;
       case 'Constant': value = node.value; break;
       case 'Variable': if (!own(state, node.id)) fail('Missing scientific variable'); value = state[node.id]; break;
       case 'Unary':
@@ -116,10 +117,12 @@
     return value;
   };
   const format = x => Array.isArray(x) ? '[' + x.map(format).join(', ') + ']' :
-    numeric(x) ? String(Number(x.toPrecision(7))) : String(x);
+    numeric(x) ? String(Number(x.toPrecision(7))) : x && typeof x === 'object' ?
+    Object.entries(x).map(([name,value]) => name + '=' + format(value)).join(', ') : String(x);
   const equation = (n, symbols = {}, state = null) => {
     const child = x => equation(x, symbols, state);
     switch (n.type) {
+      case 'Canonical': return equation(root.ScientificCanonical.display(n), symbols, state);
       case 'Constant': return format(n.value);
       case 'Variable': return state && own(state, n.id) ? format(state[n.id]) : symbols[n.id] || n.id;
       case 'Unary': return '(' + n.op + child(n.operand) + ')';
@@ -144,6 +147,7 @@
     const op = x => mathNode('mo', [], x);
     const row = children => mathNode('mrow', children);
     switch (n.type) {
+      case 'Canonical': return mathematical(root.ScientificCanonical.display(n), symbols);
       case 'Constant': return mathNode(typeof n.value === 'number' ? 'mn' : 'mtext', [], format(n.value));
       case 'Variable': return mathNode('mi', [], symbols[n.id] || n.id);
       case 'Unary': return row([op(n.op), child(n.operand)]);
