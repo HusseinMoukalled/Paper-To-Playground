@@ -1,0 +1,11 @@
+{
+  "source_id": "fixture-linear-system",
+  "paper_metadata": {"title": "Synthetic linear response oracle"},
+  "focus": "how gain and offset affect the response",
+  "audience": "second-year engineering undergraduate",
+  "evidence_blocks": [
+    {"evidence_id": "E1", "evidence_type": "equation", "content": "The response is y = a*x + b. The gain a scales the input x and b offsets the response.", "source_element_ids": ["SRC-1"], "rank": 0, "page": 1},
+    {"evidence_id": "E2", "evidence_type": "paragraph", "content": "This idealized mechanism does not include saturation or measurement noise.", "source_element_ids": ["SRC-2"], "rank": 1, "page": 1}
+  ],
+  "retrieval_confidence": "HIGH"
+}
