@@ -108,8 +108,14 @@ class TeamPipelineTests(unittest.TestCase):
         ir = compile_computations(explanation())
         visual = replace(ir.visuals[0], visual_type='waveform', data_refs=('var-y','compute-response'))
         manifest = build_manifest(replace(ir,visuals=(visual,)))
-        self.assertEqual(manifest['visuals'][0]['component'],'scene')
-        self.assertIn('No sampled series',manifest['visuals'][0]['fallback_reason'])
+        self.assertEqual(manifest['visuals'][0]['component'],'curve')
+        sweep = manifest['visuals'][0]['sweep']
+        self.assertEqual(sweep['output_ref'],'var-y')
+        self.assertEqual(sweep['input_ref'],'var-a')
+        self.assertEqual(sweep['sample_values'][0],0)
+        self.assertEqual(sweep['sample_values'][-1],4)
+        self.assertNotIn('fallback_reason',manifest['visuals'][0])
+        self.assertEqual(manifest['presentation']['output_refs'],['var-y'])
 
 
 if __name__ == '__main__':

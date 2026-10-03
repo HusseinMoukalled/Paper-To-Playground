@@ -85,10 +85,32 @@
   }
   function equation(wire,symbols={},state=null){
     const m=wire.spec.metadata,b=m.bindings||{};
-    function text(n){const a=n.args.map(text);if(n.kind==='literal')return JSON.stringify(n.value);if(n.kind==='variable'){const id=b[n.value];return state&&own(state,id)?root.ScientificAST.format(state[id]):symbols[id]||n.value;}if(n.kind==='array')return '['+a.join(', ')+']';if(n.kind==='index')return a[0]+'['+n.value+']';if(n.kind==='call')return n.value+'('+a.join(', ')+')';if(n.kind==='compare')return '('+a[0]+' '+n.value+' '+a[1]+')';return n.kind+'('+a.join(', ')+')';}
+    function text(n){const a=n.args.map(text);if(n.kind==='literal')return JSON.stringify(n.value);if(n.kind==='variable'){const id=b[n.value];return state&&own(state,id)?root.ScientificAST.format(state[id]):symbols[id]||n.value;}if(n.kind==='array')return '['+a.join(', ')+']';if(n.kind==='index')return a[0]+'['+n.value+']';if(n.kind==='call'){const operators={add:'+',subtract:'−',multiply:'×',divide:'÷',power:'^'};if(own(operators,n.value))return '('+a[0]+' '+operators[n.value]+' '+a[1]+')';if(n.value==='negate')return '−'+a[0];return n.value+'('+a.join(', ')+')';}if(n.kind==='compare')return '('+a[0]+' '+({lt:'<',le:'≤',gt:'>',ge:'≥',eq:'=',ne:'≠'}[n.value])+' '+a[1]+')';return n.kind+'('+a.join(', ')+')';}
     if(m.kind==='state_transition')return 'State transition ('+(m.steps??1)+' steps from '+m.initial_state+')';
     if(m.kind==='iteration')return 'Iterate '+m.steps+' steps: '+Object.entries(m.update_ast).map(([k,v])=>k+' ← '+text(v)).join('; ')+'; return '+text(m.canonical_ast);
     return text(m.canonical_ast);
   }
-  root.CanonicalScience=Object.freeze({evaluate,execute,validate,shape,operations:Object.keys(ops),equation});
+  function mathTree(wire,symbols,make){
+    const m=wire.spec.metadata,b=m.bindings||{},op=x=>make('mo',[],x),row=a=>make('mrow',a);
+    const symbol=x=>{const parts=String(x).split('_');return parts.length===2?make('msub',[make('mi',[],parts[0]),make('mtext',[],parts[1])]):make('mi',[],String(x));};
+    function tree(n){
+      const a=n.args.map(tree);
+      if(n.kind==='literal')return make(typeof n.value==='number'?'mn':'mtext',[],String(n.value));
+      if(n.kind==='variable')return symbol(symbols[b[n.value]]||n.value);
+      if(n.kind==='call'){
+        if(n.value==='divide')return make('mfrac',a);
+        if(n.value==='power')return make('msup',[row([op('('),a[0],op(')')]),a[1]]);
+        if(n.value==='sqrt')return make('msqrt',a);
+        if(n.value==='negate')return row([op('−'),a[0]]);
+        if(['add','subtract','multiply'].includes(n.value))return row([op('('),a[0],op({add:'+',subtract:'−',multiply:'·'}[n.value]),a[1],op(')')]);
+        return row([make('mi',[],n.value),op('('),...a.flatMap((x,i)=>i?[op(','),x]:[x]),op(')')]);
+      }
+      if(n.kind==='array')return row([op('['),...a.flatMap((x,i)=>i?[op(','),x]:[x]),op(']')]);
+      if(n.kind==='index')return make('msub',[a[0],make('mn',[],String(n.value))]);
+      if(n.kind==='compare')return row([a[0],op({lt:'<',le:'≤',gt:'>',ge:'≥',eq:'=',ne:'≠'}[n.value]),a[1]]);
+      return make('mtext',[],equation(wire,symbols));
+    }
+    return m.kind&&m.kind!=='expression'?make('mtext',[],equation(wire,symbols)):tree(m.canonical_ast);
+  }
+  root.CanonicalScience=Object.freeze({evaluate,execute,validate,shape,operations:Object.keys(ops),equation,mathTree});
 })(globalThis);

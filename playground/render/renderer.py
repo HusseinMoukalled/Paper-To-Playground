@@ -14,6 +14,22 @@ from playground.render.manifest import build_manifest, safe_json
 RUNTIME = Path(__file__).with_name('runtime')
 
 
+def learner_symbol(variable):
+    symbol = variable['display_symbol']
+    if len(symbol) > 24 or '^' in symbol or '/' in symbol:
+        return variable.get('source_symbol') or symbol
+    return symbol
+
+
+def lesson_title(manifest):
+    """Use the explicit focus when a concept field is a full scientific claim."""
+    concept = manifest['scientific_model']['concept'].strip()
+    focus = manifest['focus_coverage']['focus'].strip()
+    if len(concept) > 100 and focus and len(focus) <= 100:
+        return focus[0].upper() + focus[1:]
+    return concept
+
+
 def escape(value: object) -> str:
     return html.escape(str(value), quote=True)
 
@@ -52,8 +68,8 @@ def _control(control: dict, index: int) -> str:
     units = (' (' + escape(control['units']) + ')') if control['units'] else ''
     return (f'<div class="control"><label for="{key}">{escape(control["label"])}{units}</label>'
             f'<output id="{value_id}" class="current-value">{escape(control["default"])}</output>{input_html}'
-            f'<p id="{hint_id}" class="hint">{escape(control["learning_purpose"])} '
-            f'{escape(control["safe_range_reason"])}</p></div>')
+            + (f'<div class="range-labels"><span>{escape(control["minimum"])}</span><span>{escape(control["maximum"])}</span></div>' if kind=='slider' else '')
+            + f'<p id="{hint_id}" class="hint">{escape(control["learning_purpose"])}</p></div>')
 
 
 def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) -> str:
@@ -61,20 +77,21 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
         m = build_manifest(ir, asts=asts)
         lesson, science = m['lesson_spec'], m['scientific_model']
         controls = ''.join(_control(c, i) for i, c in enumerate(m['controls']))
-        symbols = ''.join(f'<dt data-variable-id="{escape(v["id"])}">{escape(v["display_symbol"])}</dt><dd>{escape(v["meaning"])}'
+        symbols = ''.join(f'<div class="symbol-card"><dt data-variable-id="{escape(v["id"])}">{escape(learner_symbol(v))}</dt><dd>{escape(v["meaning"])}'
                           + (f' · {escape(v["units"])}' if v['units'] else '')
-                          + f' <span class="badge">{escape(v["knowledge_class"])}</span></dd>' for v in m['variables'])
+                          + '</dd></div>' for v in science['variables'])
         objectives = ''.join(f'<li data-objective-id="{i}">{escape(value)}</li>' for i, value in enumerate(lesson['learning_objectives']))
         steps = ''.join(f'<li data-mechanism-id="{escape(s["id"])}">{escape(s["description"])}</li>' for s in sorted(science['mechanism_steps'], key=lambda s: s['order']))
         equations = ''.join(f'<div class="equation-panel" id="equation-{escape(c["id"])}" data-computation-id="{escape(c["id"])}" '
                             f'data-depends-on="{escape(" ".join(c["reads"]))}"><p class="equation" data-role="equation"></p>'
                             f'<p class="substitution" data-role="substitution"></p></div>' for c in m['computations'])
-        visuals = ''.join(f'<article class="panel"><h3>{escape(v["question"])}</h3><p>{escape(v.get("fallback_reason") or lesson["visual_intent"])}</p>'
+        visuals = ''.join(f'<article class="panel chart-panel"><div class="eyebrow">Live model</div><h3>{escape(v["question"])}</h3>'
                          f'<div class="visual" data-visual-id="{escape(v["id"])}" data-depends-on="{escape(" ".join(v["data_refs"]))}"></div>'
-                         '<p class="hint">Teaching visualization generated from the current calculations.</p></article>' for v in m['visuals'])
-        output_ids = list(dict.fromkeys(m['outputs'] + lesson['important_intermediates']))
+                         + ('<p class="hint">Move the controls to explore the model. The highlighted point is your current setup.</p>' if v.get('sweep') else '<p class="hint">Values computed for your current setup.</p>')
+                         + '</article>' for v in m['visuals'])
+        output_ids = m.get('presentation',{}).get('output_refs',list(dict.fromkeys(m['outputs'] + lesson['important_intermediates'])))
         variable_by_id = {v['id']: v for v in m['variables']}
-        values = ''.join(f'<div class="output"><span>{escape(variable_by_id[ref]["display_symbol"])}</span>'
+        values = ''.join(f'<div class="output"><span class="value-symbol">{escape(learner_symbol(variable_by_id[ref]))}</span>'
                         f'<output data-output-id="{escape(ref)}" data-variable-id="{escape(ref)}" data-depends-on="{escape(ref)}" aria-live="polite"></output>'
                         f'<p class="hint">{escape(variable_by_id[ref]["meaning"])}</p></div>' for ref in output_ids)
         explorations = ''.join(f'<article class="panel exploration" data-exploration-id="{escape(e["id"])}"><span class="eyebrow">Exploration {i + 1}</span>'
@@ -82,10 +99,6 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
                               f'<p><strong>Observe:</strong> {escape(e["observe"])}</p><p><strong>Why:</strong> {escape(e["why"])}</p>'
                               f'<button data-role="apply-setup" data-setup-id="{escape(e["id"])}">Apply Setup</button></article>'
                               for i, e in enumerate(m['explorations']))
-        grounding = ''.join(f'<p data-claim-id="{escape(r["claim_id"])}"><span class="badge">{escape(r["knowledge_class"])}</span>'
-                           f'{escape(r["claim"])} <span class="hint">[{escape(r["status"])}; '
-                           f'{escape(", ".join(r["evidence_refs"] + r["computation_refs"]))}]</span></p>' for r in m['grounding_records'])
-        sources = ''.join(f'<li>{source_link(ref)}</li>' for ref in m['source_references'])
         paper_metadata = m['metadata'].get('paper_metadata', {})
         paper_details = ''
         if isinstance(paper_metadata, dict):
@@ -93,11 +106,6 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
                 paper_details += f'<p><strong>Paper:</strong> {escape(paper_metadata["title"])}</p>'
             if isinstance(paper_metadata.get('source_url'), str):
                 paper_details += '<p>' + source_link(paper_metadata['source_url']) + '</p>'
-        ground_plan = ''.join(f'<li>{escape(x)}</li>' for x in lesson['source_grounding_plan'])
-        source_validation = m['metadata'].get('source_validation', {})
-        source_warning = ('<p class="callout">Source extraction or retrieval has limitations: '
-                          + escape(', '.join(source_validation.get('finding_codes', []))) + '. '
-                          'Consult the cited source before interpreting results.</p>') if source_validation.get('status') == 'WARN' else ''
         toolbar = '<button class="secondary" data-role="reset">Reset</button>'
         if any(v['component'] == 'comparison' for v in m['visuals']):
             toolbar += '<button class="secondary" data-role="save-comparison">Save comparison</button><span data-role="comparison-status"></span>'
@@ -107,22 +115,22 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
         js = '\n'.join((RUNTIME / name).read_text(encoding='utf-8') for name in ('canonical.js', 'evaluator.js', 'visuals.js', 'runtime.js'))
         return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{escape(m['concept'])} · Paper to Playground</title><style>{css}</style></head>
-<body><main><header data-role="central-question"><div class="eyebrow">Paper to Playground · Interactive scientific lesson</div>
-<h1>{escape(lesson['central_learning_question'])}</h1><p class="lede">{escape(science['purpose'])}</p><ul>{objectives}</ul></header>
-<section data-role="intuition"><h2>Build an intuition</h2><p class="lede">{escape(lesson['intuition'])}</p></section>
-<section data-role="symbols"><h2>The parts and symbols</h2><dl class="symbols">{symbols}</dl></section>
-<section data-role="mechanism"><h2>Follow the mechanism</h2><ol>{steps}</ol>{equations}</section>
-<section data-role="playground"><h2>Predict, change, observe</h2><div class="playground-grid"><div class="panel controls">{controls}</div><div>{visuals}</div></div>
-<div class="toolbar">{toolbar}</div><p class="status" role="status" aria-live="polite" data-role="status"></p></section>
-<section data-role="intermediates"><h2>Follow the numbers</h2><div class="outputs">{values}</div></section>
-<section data-role="explorations"><h2>Two ways to explore</h2><div class="explorations">{explorations}</div></section>
-<section data-role="limitation" class="callout"><h2>Where this demonstration stops</h2><p>{escape(lesson['limitation_or_assumption'])}</p>
+<title>{escape(lesson_title(m))} · Paper to Playground</title><style>{css}</style></head>
+<body><main><nav class="topbar"><a class="brand" href="#top"><span class="brand-mark">P</span>Paper to Playground</a><div><a href="#playground">Play</a><a href="#mechanism">Understand</a><a href="#explorations">Explore</a></div></nav>
+<header id="top" data-role="central-question"><div class="hero-copy"><div class="eyebrow">An interactive lesson</div>
+<h1>{escape(lesson_title(m))}</h1><p class="lede">{escape(lesson['central_learning_question'])}</p><a class="start-link" href="#playground">Try it yourself <span aria-hidden="true">↗</span></a></div>
+<aside class="learning-card"><span class="eyebrow">What you’ll discover</span><ul>{objectives}</ul></aside></header>
+<section data-role="intuition" class="intuition"><span class="section-number">01</span><div><h2>The idea</h2><p>{escape(lesson['intuition'])}</p></div></section>
+<section id="playground" data-role="playground"><div class="section-heading"><div><span class="eyebrow">Learn by changing</span><h2>Your playground</h2></div><span class="section-tag">Computed live · works offline</span></div><div class="playground-grid"><div class="panel controls"><h3>Set your inputs</h3>{controls}<div class="toolbar">{toolbar}</div><p class="status" role="status" aria-live="polite" data-role="status"></p></div><div>{visuals}</div></div></section>
+<section data-role="intermediates"><div class="section-heading"><h2>Your current values</h2><p class="hint">One setup. Every step connected.</p></div><div class="outputs">{values}</div></section>
+<section id="mechanism" data-role="mechanism"><div class="section-heading"><div><span class="eyebrow">From inputs to result</span><h2>How it works</h2></div></div><ol class="mechanism-steps">{steps}</ol><div class="equations">{equations}</div></section>
+<section id="explorations" data-role="explorations"><div class="section-heading"><div><span class="eyebrow">Two guided experiments</span><h2>Try these next</h2></div></div><div class="explorations">{explorations}</div></section>
+<section data-role="symbols"><details class="glossary"><summary>Know your symbols <span>Definitions & units</span></summary><dl class="symbols">{symbols}</dl></details></section>
+<section data-role="limitation" class="callout"><div class="eyebrow">Keep in mind</div><h2>What this lesson does—and doesn’t—show</h2><p>{escape(lesson['limitation_or_assumption'])}</p>
 <p>{escape(lesson['misconception'])}</p><p>{escape(science['demonstration_scope'])}</p>
 <ul>{''.join('<li>' + escape(x) + '</li>' for x in science['limitations'] + science['assumptions'])}</ul></section>
-<section data-role="source-grounding" class="grounding"><h2>What supports this lesson</h2>{paper_details}{source_warning}<details><summary>Claim-level grounding audit ({len(m['grounding_records'])} claims)</summary>{grounding}</details><ul>{sources}</ul><ul>{ground_plan}</ul>
-<p>Paper-supported claims cite evidence IDs. Derived values use the executable mechanism. Teaching choices and ranges are pedagogical simplifications.</p></section>
-<footer>Explore the mechanism with small inputs. Generated diagrams are teaching representations; they are not original paper figures.</footer>
+<section data-role="source-grounding" class="grounding"><h2>Based on the paper</h2>{paper_details}<p>This lesson explores the paper mechanism. Values and curves are computed from the model; input ranges and guided examples are teaching choices, not experimental results.</p></section>
+<footer><span class="brand">Paper to Playground</span><span>Understand it. Change it. See what happens.</span></footer>
 </main><script type="application/json" id="playground-manifest">{safe_json(m)}</script><script>{js}</script></body></html>'''
     except (ValueError, TypeError, KeyError, OSError) as exc:
         raise PlaygroundError(Failure(code=FailureCode.RENDER_FAILED, stage='render', severity=FailureSeverity.MAJOR,

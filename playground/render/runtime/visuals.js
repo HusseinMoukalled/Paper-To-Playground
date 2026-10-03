@@ -78,6 +78,29 @@
     values.forEach((v, i) => text(scene, 30, 40 + i * 32,
       (labels[i] || 'Value') + ' = ' + root.ScientificAST.format(v)));
   };
+  const modelCurve = (scene,spec,state,points) => {
+    if(!points||points.length<2)throw new Error('Curve domain unavailable');
+    const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);
+    const xlo=Math.min(...xs),xhi=Math.max(...xs),lo=Math.min(0,...ys),hi=Math.max(0,...ys);
+    const padding=Math.max((hi-lo)*.12,1e-6),ylo=lo-padding,yhi=hi+padding;
+    const sx=x=>64+(x-xlo)/(xhi-xlo)*404,sy=y=>236-(y-ylo)/(yhi-ylo)*192;
+    for(let i=0;i<=4;i++){
+      const y=ylo+(yhi-ylo)*i/4;
+      line(scene,64,sy(y),468,sy(y),{class:'grid-line'});
+      text(scene,54,sy(y)+4,String(Number(y.toPrecision(3))),{'text-anchor':'end',class:'tick'});
+      const x=xlo+(xhi-xlo)*i/4;
+      text(scene,sx(x),258,root.ScientificAST.format(x),{'text-anchor':'middle',class:'tick'});
+    }
+    scene.append(svg('polyline',{points:points.map(([x,y])=>sx(x)+','+sy(y)).join(' '),class:'model-curve'}));
+    if(points.length<=25)points.forEach(([x,y])=>scene.append(svg('circle',{cx:sx(x),cy:sy(y),r:2.5,fill:'var(--accent)'})));
+    const current=[state[spec.sweep.input_ref],state[spec.sweep.output_ref]],cx=sx(current[0]),cy=sy(current[1]);
+    line(scene,cx,cy,cx,236,{class:'current-guide'});
+    scene.append(svg('circle',{cx,cy,r:10,class:'current-halo'}));
+    scene.append(svg('circle',{cx,cy,r:5,class:'current-point','data-mark-value':JSON.stringify(current)}));
+    text(scene,Math.min(380,Math.max(90,cx+12)),Math.max(28,cy-15),'Value '+root.ScientificAST.format(current[1]),{class:'point-label'});
+    text(scene,64,22,String(spec.sweep.y_label).slice(0,48),{class:'axis-label'});
+    text(scene,266,288,String(spec.sweep.x_label).slice(0,48),{'text-anchor':'middle',class:'axis-label'});
+  };
   const render = (container, spec, state, ui = {}) => {
     const values = spec.data_refs.map(ref => state[ref]);
     const labels = spec.data_refs.map(ref => ui.symbols?.[ref] || ref);
@@ -88,6 +111,7 @@
     let component = spec.component;
     try {
       switch (component) {
+        case 'curve': modelCurve(scene,spec,state,ui.curve); break;
         case 'bars': case 'distribution': bars(scene, values); break;
         case 'line': case 'trajectory': case 'waveform': plot(scene, values); break;
         case 'scatter': plot(scene, values, true); break;
@@ -126,6 +150,7 @@
     }
     container.replaceChildren(scene);
     container.dataset.values = JSON.stringify(values);
+    container.dataset.curve = JSON.stringify(ui.curve||null);
     container.dataset.component = component;
     container.dataset.visualState = JSON.stringify({values, step: ui.step || 0, comparison: ui.comparison || null});
   };

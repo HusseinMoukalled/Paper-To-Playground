@@ -142,7 +142,7 @@
     return node;
   };
   const mathematical = (n, symbols = {}) => {
-    if (n.type === 'Canonical') return mathNode('mtext', [], root.CanonicalScience.equation(n, symbols));
+    if (n.type === 'Canonical') return root.CanonicalScience.mathTree(n,symbols,mathNode);
     const child = x => mathematical(x, symbols);
     const op = x => mathNode('mo', [], x);
     const row = children => mathNode('mrow', children);
@@ -165,6 +165,6 @@
       default: return fail('Unsupported equation AST');
     }
   };
-  const math = (ast, symbols, output) => mathNode('math', output ? [mathNode('mi', [], output), mathNode('mo', [], '='), mathematical(ast, symbols)] : [mathematical(ast, symbols)]);
+  const math = (ast, symbols, output) => mathNode('math', [mathNode('mrow',output ? [mathNode('mi', [], output), mathNode('mo', [], '='), mathematical(ast, symbols)] : [mathematical(ast, symbols)])]);
   root.ScientificAST = Object.freeze({evaluate, equation, math, format, finite, operations: Object.keys(ops)});
 })(globalThis);

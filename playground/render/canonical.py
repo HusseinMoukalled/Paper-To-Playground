@@ -59,13 +59,21 @@ def build_canonical_manifest(ir):
     for exploration in explorations:
         exploration["runtime_setup"] = {by_control[k]: v for k, v in exploration["setup"].items()}
     family = data["metadata"].get("mechanism_family", "scalar_relationship")
-    return {**data, "generator_version": "scientific-ui-1.1", "config_version": "render-1.1",
+    from playground.render.presentation import plan_sweep, display_projection
+    visuals = [plan_visual(v,family,runtime_variables) for v in data['visuals']]
+    for visual in visuals:
+        if visual.get('fallback_reason'):
+            sweep = plan_sweep(ir,visual,ordered,runtime_variables)
+            if sweep:
+                visual.update(component='curve',sweep=sweep,planning_level='validated_parameter_sweep')
+                visual.pop('fallback_reason',None)
+    manifest = {**data, "generator_version": "scientific-ui-2.0", "config_version": "render-2.0",
             "canonical_ast_version": 1, "numeric_tolerance": NUMERIC_TOLERANCE,
             "concept": ir.scientific_model.concept, "mechanism_family": family,
             "variables": runtime_variables, "controls": controls, "computations": ordered,
             "dependencies": {c["id"]: c["reads"] for c in ordered},
             "outputs": sorted(set(baseline) - set(initial)),
-            "visuals": [plan_visual(v, family, runtime_variables) for v in data["visuals"]],
+            "visuals": visuals,
             "explorations": explorations, "initial_state": initial,
             "invariants": {"bindings": ir.metadata.get('invariant_bindings', {}),
                            "asts": [parse(text).to_dict() for text in ir.scientific_model.invariants]},
@@ -73,3 +81,5 @@ def build_canonical_manifest(ir):
             "knowledge_classes": sorted({r["knowledge_class"] for r in data["grounding_records"]}),
             "simplifications": [r for r in data["grounding_records"] if r["knowledge_class"] == "PEDAGOGICAL"],
             "limitations": data["scientific_model"]["limitations"]}
+    manifest['presentation'] = display_projection(manifest)
+    return manifest

@@ -5,7 +5,9 @@
   const clone = x => JSON.parse(JSON.stringify(x));
   const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   const controls = new Map(manifest.controls.map(c => [c.scientific_variable, c]));
-  const symbols = Object.fromEntries(manifest.variables.map(v => [v.id, v.display_symbol]));
+  const symbols = Object.fromEntries(manifest.variables.map(v => [v.id,
+    v.display_symbol.length>24||/[\^/]/.test(v.display_symbol)?v.source_symbol||v.display_symbol:v.display_symbol]));
+  for(const [id,ref]of Object.entries(manifest.presentation?.output_aliases||{}))symbols[id]=symbols[ref]||symbols[id];
   const elements = new Map(Array.from(document.querySelectorAll('[data-control-id]')).map(el => [el.dataset.variableId, el]));
   const outputs = Array.from(document.querySelectorAll('[data-output-id]'));
   const visualElements = new Map(Array.from(document.querySelectorAll('[data-visual-id]')).map(el => [el.dataset.visualId, el]));
@@ -125,7 +127,15 @@
       panel.querySelector('[data-role="substitution"]').textContent = AST.equation(computation.ast, symbols, state) + ' = ' + AST.format(state[target]);
       panel.dataset.value = JSON.stringify(state[target]);
     }
-    manifest.visuals.forEach(v => globalThis.ScientificVisuals.render(visualElements.get(v.id), v, state, {...ui, symbols}));
+    manifest.visuals.forEach(v => {
+      let curve=null;
+      if(v.sweep){
+        const inputs=Object.fromEntries(Object.keys(manifest.initial_state).map(id=>[id,state[id]]));
+        try { curve=v.sweep.sample_values.map(x=>{const sampled=compute({...inputs,[v.sweep.input_ref]:x});return [x,sampled[v.sweep.output_ref]];}); }
+        catch (_) { curve=null; } // Never bridge an invalid scientific domain with a fabricated line.
+      }
+      globalThis.ScientificVisuals.render(visualElements.get(v.id),v,state,{...ui,symbols,curve});
+    });
     document.querySelectorAll('[data-exploration-id]').forEach(el => { el.dataset.active = String(el.dataset.explorationId === ui.exploration); });
     const step = document.querySelector('[data-role="step-value"]');
     if (step) step.textContent = 'Step ' + (ui.step + 1);
@@ -144,7 +154,7 @@
     }
     const next = compute(inputs); // Transaction: invalid math never partially updates state.
     state = next; ui.exploration = exploration; ui.step = 0;
-    refresh(); status.textContent = warning || (exploration ? 'Setup applied. Observe the values and visual.' : 'Scientific state updated.');
+    refresh(); status.textContent = warning || (exploration ? 'Preset applied. Try changing an input.' : '');
     return clone(state);
   }
   function reset() {
@@ -154,7 +164,7 @@
       if (JSON.stringify(checked.value) !== JSON.stringify(inputs[id])) fail('Default requires normalization or clamping.');
     }
     state = compute(inputs); ui = {step: 0, comparison: null, exploration: null};
-    refresh(); status.textContent = 'Default setup restored.';
+    refresh(); status.textContent = '';
   }
   function guarded(action, el = null) {
     try { action(); }

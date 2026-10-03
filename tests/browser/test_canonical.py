@@ -59,6 +59,21 @@ class CanonicalBrowserTests(unittest.TestCase):
         self.assertEqual(set(OPERATIONS), {s.split('(')[0] for s in samples[:24]})
         self.verify(explanation(), samples)
 
+    def test_sampled_curve_parity_controls_presets_and_clean_lesson(self):
+        from playground.ir.serialization import to_mapping
+        from tests.browser.verify_artifact import verify_output
+        ir = explanation()
+        computation = replace(ir.computations[0],expression='a**2/(x+b)',metadata={'bindings':{'a':'var-a','b':'var-b','x':'var-x'},'equation_refs':[]})
+        ir = compile_computations(replace(ir,computations=(computation,),
+            scientific_model=replace(ir.scientific_model,invariants=()),
+            visuals=(replace(ir.visuals[0],visual_type='waveform',data_refs=('var-y','compute-response')),)))
+        with tempfile.TemporaryDirectory() as folder:
+            render_candidate(ir,folder)
+            (Path(folder)/'explanation_ir.json').write_text(json.dumps(to_mapping(ir)),encoding='utf-8')
+            result = verify_output(folder)
+            self.assertEqual(result['status'],'PASS')
+            self.assertEqual(result['presets'],2)
+
     def test_declarative_iteration_in_browser(self):
         ir = explanation()
         computation = replace(ir.computations[0], expression='s', metadata={

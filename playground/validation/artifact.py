@@ -133,6 +133,9 @@ def validate_manifest(m: dict) -> None:
     if len(ids) != len(m['variables']):
         raise ValueError('Duplicate variable IDs')
     if m.get('canonical_ast_version'):
+        from playground.render.presentation import display_projection
+        if m.get('presentation') != display_projection(m):
+            raise ValueError('Learner projection does not preserve scientific outputs')
         from playground.computation.parser import parse
         expected_invariants = {'bindings':m['metadata'].get('invariant_bindings',{}),
                                'asts':[parse(text).to_dict() for text in m['scientific_model']['invariants']]}
@@ -171,6 +174,37 @@ def validate_manifest(m: dict) -> None:
     visual_refs = {r for v in m['visuals'] for r in v['data_refs']}
     if visual_refs - ids:
         raise ValueError('Unresolved visual data')
+    for visual in m['visuals']:
+        if 'sweep' not in visual:
+            if visual['component'] == 'curve':
+                raise ValueError('Curve requires a validated parameter sweep')
+            continue
+        sweep = visual['sweep']
+        if not m.get('canonical_ast_version') or visual['component'] != 'curve' or set(sweep) != {'input_ref','control_id','output_ref','sample_values','x_label','y_label'}:
+            raise ValueError('Invalid parameter sweep contract')
+        control = next((c for c in m['controls'] if c['id'] == sweep['control_id']),None)
+        output = by_id.get(sweep['output_ref'])
+        if not control or control['scientific_variable'] != sweep['input_ref'] or control['control_type'] not in {'slider','number'} or control['minimum'] is None or control['maximum'] is None:
+            raise ValueError('Sweep requires a bounded numeric control')
+        if not output or output['type'] != 'scalar' or sweep['output_ref'] not in produced or sweep['x_label'] != control['label'] or sweep['y_label'] != output['display_symbol']:
+            raise ValueError('Sweep output or axes disagree with the scientific model')
+        points = sweep['sample_values']
+        if not isinstance(points,list) or not 2 <= len(points) <= 81 or any(isinstance(x,bool) or not isinstance(x,(int,float)) or not math.isfinite(x) or x < control['minimum'] or x > control['maximum'] for x in points) or any(a >= b for a,b in zip(points,points[1:])):
+            raise ValueError('Sweep samples must be ordered and inside the input domain')
+        if by_id[sweep['input_ref']]['domain'] == 'integer' and any(x != int(x) for x in points):
+            raise ValueError('Sweep violates integer domain')
+        if control['step'] and any(abs((x-control['minimum'])/control['step']-round((x-control['minimum'])/control['step'])) > 1e-7 for x in points):
+            raise ValueError('Sweep violates the control step')
+        reached = {sweep['input_ref']}
+        for c in computations:
+            if c['ast']['spec']['metadata'].get('kind','expression') != 'expression':
+                raise ValueError('Parameter sweeps require pure computations')
+            if reached.intersection(c['reads']):
+                reached.update(c['output_refs'])
+                reached.add(c['id'])
+        aliases = m['presentation']['output_aliases']
+        if sweep['output_ref'] not in reached or sweep['output_ref'] not in {aliases.get(r,r) for r in visual['data_refs']}:
+            raise ValueError('Sweep lacks a scientific dependency path')
     target_ids = ids | {c['id'] for c in computations} | {v['id'] for v in m['visuals']}
     for control in m['controls']:
         if set(control['effect_targets']) - target_ids:
@@ -275,7 +309,7 @@ def validate_artifact(path: str | Path, ir: ExplanationIR | None = None, *, asts
         fail('ARTIFACT_DUPLICATE_DOM_ID', 'DOM IDs must be unique.')
     for attribute, expected, tags in [
         ('data-control-id', {c['id'] for c in m['controls']}, {'input', 'textarea', 'select'}),
-        ('data-output-id', set(m['outputs']) | set(m['lesson_spec']['important_intermediates']), {'output'}),
+        ('data-output-id', set(m['presentation']['output_refs']) if m.get('canonical_ast_version') else set(m['outputs']) | set(m['lesson_spec']['important_intermediates']), {'output'}),
         ('data-visual-id', {v['id'] for v in m['visuals']}, {'div'}),
         ('data-exploration-id', {e['id'] for e in m['explorations']}, {'article'}),
         ('data-computation-id', {c['id'] for c in m['computations']}, {'div'}),
