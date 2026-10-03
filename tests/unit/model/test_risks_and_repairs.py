@@ -49,6 +49,19 @@ class RiskRepairTests(unittest.TestCase):
         ir = replace(ir, scientific_model=replace(ir.scientific_model, equations=(equation,)))
         self.assertEqual(detect_risks(ir, replace(evidence_pack(),retrieval_confidence=RetrievalConfidence.AMBIGUOUS)), ())
 
+    def test_computed_rate_used_as_divisor_gets_narrow_semantic_check(self):
+        from playground.ir.models import ComputationSpec
+        ir = explanation()
+        variables = tuple(replace(v,meaning='Angular frequency',knowledge_class=KnowledgeClass.DERIVED)
+                          if v.id=='var-y' else v for v in ir.scientific_model.variables)
+        consumer = ComputationSpec('compute-period','1/y','scalar',input_refs=('var-y',),
+                                  dependencies=(ir.computations[0].id,),metadata={'bindings':{'y':'var-y'}})
+        ir = replace(ir,scientific_model=replace(ir.scientific_model,variables=variables),computations=(*ir.computations,consumer))
+        risks = detect_risks(ir,evidence_pack())
+        self.assertEqual(risks[0].target,'var-y')
+        self.assertEqual(risks[0].reason,'rate_reciprocal_ambiguity')
+        self.assertIn('declared_computations',json.loads(risks[0].statement))
+
     def test_verifier_cannot_invent_citations(self):
         unit = RiskUnit("claim_evidence", "science.concept", "A linear response.", ("E1",), "partial_support")
         for refs in (["E404"], []):

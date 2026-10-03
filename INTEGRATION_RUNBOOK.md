@@ -148,7 +148,7 @@ $env:NODE_PATH = 'C:\Users\User\.cache\codex-runtimes\codex-primary-runtime\depe
 ## Limits and experimental settings
 
 The normal path uses one combined semantic request. Ambiguous retrieval can add one narrow
-rerank; concrete science risks can add targeted verification and a bounded claim repair.
+rerank; concrete science risks can add targeted verification and a bounded repair of at most two claims.
 All requests, including retries, share the 10-request/30,000-completion-token/600-second budget.
 There is no mandatory critic and no generated JavaScript execution.
 

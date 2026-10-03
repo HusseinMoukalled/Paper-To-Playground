@@ -40,6 +40,8 @@ important_intermediates and visual.data_refs are variable/computation IDs, not d
 Invariants are boolean DSL with IR metadata.invariant_bindings using safe DSL names, NOT hyphenated IDs.
 Use approx_equal(left,right) for floating-point identities, NEVER exact == for real-valued arithmetic.
 Only declare invariants valid at ALL boundaries; toy index ranges must respect the source dimension limits.
+Labels and meanings must match executable quantities: distinguish rate from interval, a denominator from
+its reciprocal, and variance from standard deviation. Do not call a wavelength scale an angular frequency.
 Iteration metadata: kind=iteration, initial={local:DSL}, updates={same_local:DSL}, steps=1..100; expression
 selects final local state. Optional state_specs={local:{type,shape,domain}}, state_invariants=[boolean_DSL].
 State metadata: kind=state_transition, states=[strings], initial_state, steps=1..100, transitions=[{from,to,when}].

@@ -79,6 +79,8 @@ def request_repair(client, original, evidence, failure, *, allowed_paths, eviden
     payload = {"failure": {"code": failure.code.value, "stage": failure.stage},
                "affected_fragments": fragments,
                "evidence_UNTRUSTED_DATA": [{"id": r, "content": blocks[r].content} for r in evidence_refs]}
+    if failure.details.get('verification_findings'):
+        payload['failure']['verification_findings'] = failure.details['verification_findings']
     if len(json.dumps(payload)) > MAX_REPAIR_CHARS:
         raise ValueError("Repair context exceeds narrow size limit")
     client._event("targeted_repair", "started", details={"targets": len(allowed_paths)})

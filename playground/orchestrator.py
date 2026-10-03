@@ -173,20 +173,25 @@ class Orchestrator:
             trace.emit(stage='GROUNDING_AND_COVERAGE', action='targeted_semantic_verification',
                        result='fail' if failed else 'pass',
                        details={'units': len(verdicts), 'statuses': [v['status'] for v in verdicts]})
-            # One narrowly authorized claim-text repair, not an IR regeneration.
-            if len(failed) == 1 and failed[0].kind == 'claim_evidence':
-                unit = failed[0]
+            # At most two narrowly authorized claim-text repairs in one patch
+            # request. Mathematics, IDs, contracts and all other claims stay fixed.
+            if 1 <= len(failed) <= 2 and all(unit.kind == 'claim_evidence' for unit in failed):
                 locations = claim_locations(ir)
-                index = next((i for i,r in enumerate(ir.grounding_records) if r.claim_id == unit.target), None)
-                if index is not None and unit.target in locations and unit.evidence_refs:
+                indices = {r.claim_id:i for i,r in enumerate(ir.grounding_records)}
+                if all(unit.target in indices and unit.target in locations and unit.evidence_refs for unit in failed):
                     failure = Failure(FailureCode.GROUNDING_UNSUPPORTED, 'semantic_verification',
-                                      FailureSeverity.MAJOR, True, 'Claim/evidence mismatch.', unit.target)
-                    paths = {locations[unit.target], f'/grounding_records/{index}/claim'}
+                                      FailureSeverity.MAJOR, True, 'Claim/evidence mismatch.',
+                                      details={'verification_findings':[{**v,'reason':v['reason'][:500]}
+                                                for v in verdicts if v['status'] != 'SUPPORTED']})
+                    paths = {path for unit in failed for path in
+                             (locations[unit.target],f'/grounding_records/{indices[unit.target]}/claim')}
+                    evidence_refs = tuple(dict.fromkeys(ref for unit in failed for ref in unit.evidence_refs))
                     ir, _ = request_repair(client, ir, evidence, failure, allowed_paths=paths,
-                                            evidence_refs=unit.evidence_refs)
-                    updated = RiskUnit(unit.kind, unit.target, learner_claims(ir)[unit.target], unit.evidence_refs, 'repaired_claim')
-                    rechecked = verify_units(client, evidence, (updated,))
-                    if rechecked[0]['status'] == 'SUPPORTED':
+                                            evidence_refs=evidence_refs)
+                    updated = tuple(RiskUnit(unit.kind, unit.target, learner_claims(ir)[unit.target],
+                                             unit.evidence_refs,'repaired_claim') for unit in failed)
+                    rechecked = verify_units(client, evidence, updated)
+                    if all(verdict['status'] == 'SUPPORTED' for verdict in rechecked):
                         return ir
             if not failed:
                 return ir

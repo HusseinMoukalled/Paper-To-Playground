@@ -53,6 +53,9 @@ overwriting a previous valid HTML artifact.
   It does not assert arbitrary algebraic rewrites equivalent.
 - Narrow equation verification includes dependency definitions and existing adjacent evidence.
   Derived intermediates are checked through executable lineage, not treated as paper quotations.
+- Added concrete rate/reciprocal terminology risk detection after manual inspection caught a
+  mislabeled frequency denominator in a mechanically valid generated lesson. Narrow repairs
+  can address up to two failed claim-text units in one leaf-only patch, followed by revalidation.
 - Added source warnings, collapsed claim audit, mobile equation overflow handling, and a safe
   labeled-state visual fallback when a requested curve has no computed series/coordinates.
 - Kept secret redaction, bounded model requests, finalization reserve and atomic promotion.
@@ -60,7 +63,7 @@ overwriting a previous valid HTML artifact.
 
 ## Verification results
 
-Python 3.11 regression suite: **169 tests run, successful, 1 skipped**. The skipped item is
+Python 3.11 regression suite: **171 tests run, successful, 1 skipped**. The skipped item is
 the Python Playwright browser class; Windows Application Control blocks its greenlet extension.
 Four canonical browser tests ran successfully using an existing Node Playwright installation
 and real Chrome. Application Control was not changed or bypassed.
@@ -94,6 +97,16 @@ Model supplied unchanged: `deepseek/deepseek-v4.1-flash`.
   numbers/equations/visuals, Python parity, zero page errors, zero HTTP requests, and mobile widths.
 - The real-paper artifact was deterministically rerendered after the safe visual-fallback
   change and again passed the same Chrome verification. Desktop/mobile screenshots were inspected.
+- Manual review found an incorrect quantity label in that earlier mechanically passing lesson.
+  A later stricter run rejected two unsupported claims and promoted no artifact. Therefore the
+  earlier real-paper result proves pipeline/browser connectivity, not full scientific quality.
+- Final stricter paper run: **success**, **4 requests**, **4,344 completion tokens**,
+  **68.422 seconds**, with one semantic request and three narrow supported verdicts.
+  Manual inspection confirmed the frequency denominator is labeled as a denominator,
+  not as angular frequency. The bounded lesson demonstrates the even sine branch and
+  explicitly excludes the full embedding vector, cosine branch and downstream performance.
+  Its actual artifact passed **8 control probes**, two presets, reset, offline Chrome,
+  Python/browser numerical parity and mobile widths. Source/browser WARN findings remain.
 - Two-stage live comparison on the synthetic source: **failed ScientificModel schema validation**
   on its first request, **2,261 completion tokens**, approximately **11.047 seconds**. The option
   remains experimental; the combined strategy is the working default.
@@ -112,8 +125,8 @@ The render manifest now explicitly carries `canonical_ast_version=1` and canonic
 envelopes. The legacy fixture path is retained for existing tests, not used as generated science.
 
 Default semantic strategy: one combined request with separate science/lesson structures.
-Optional reranking and concrete-risk verification are bounded. A single failed claim/evidence
-unit can receive a leaf-only repair and revalidation; equations are not silently rewritten.
+Optional reranking and concrete-risk verification are bounded. Up to two failed claim/evidence
+units can receive one leaf-only repair request and revalidation; equations are not silently rewritten.
 Retries and optional calls count against the same 10-request, 30,000-completion-token,
 600-second case budget. No agent swarm, separate critic, fallback model, embeddings or VLM.
 
@@ -150,6 +163,7 @@ playground/model/client.py
 playground/model/generation.py
 playground/model/grounding_plan.py
 playground/model/prompts.py
+playground/model/repair.py
 playground/model/rerank.py
 playground/model/verification.py
 playground/model/wire.py
