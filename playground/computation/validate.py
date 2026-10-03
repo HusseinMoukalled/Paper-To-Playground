@@ -4,7 +4,7 @@ from __future__ import annotations
 from playground.computation.evaluator import execute, ExecutionGuard
 from playground.computation.invariants import check_invariants
 from playground.computation.operations import validate_value, normalize, approx_equal
-from playground.computation.operations import vector, total
+from playground.computation.operations import vector, total, apply
 from playground.validation.report import ValidationFinding, ValidationReport, ValidationStatus as S
 
 MAX_TEST_STATES = 128
@@ -25,23 +25,32 @@ def control_value(control, value, *, strict=False, scientific_type=None):
             value = [x / mass for x in value]
         else:
             value = normalize(value)
+    elif rule == 'normalize' and strict:
+        norm = total(vector(value)) if scientific_type == 'distribution' else apply('norm', [value])
+        if not approx_equal(norm, 1):
+            raise ValueError('Validated defaults and presets must already be normalized')
     if control.options and value not in control.options:
         raise ValueError("Unknown categorical option")
     if control.control_type == "toggle" and type(value) is not bool:
         raise ValueError("Toggle requires boolean")
-    if control.control_type in {"slider", "number"}:
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
+    if control.control_type in {"slider", "number", "vector", "matrix"}:
+        def check(entry):
+            if isinstance(entry, list):
+                return [check(x) for x in entry]
+            if isinstance(entry, bool) or not isinstance(entry, (int, float)):
+                raise ValueError("Numeric control requires a number")
+            outside = (control.minimum is not None and entry < control.minimum or
+                       control.maximum is not None and entry > control.maximum)
+            if outside:
+                if rule == "clamp" and not strict:
+                    if control.minimum is not None: entry = max(entry, control.minimum)
+                    if control.maximum is not None: entry = min(entry, control.maximum)
+                elif rule != "warn" or strict:
+                    raise ValueError("Control value outside declared range")
+            return entry
+        if control.control_type in {'slider', 'number'} and isinstance(value, list):
             raise ValueError("Numeric control requires a number")
-        outside = (control.minimum is not None and value < control.minimum or
-                   control.maximum is not None and value > control.maximum)
-        if outside:
-            if rule == "clamp" and not strict:
-                if control.minimum is not None:
-                    value = max(value, control.minimum)
-                if control.maximum is not None:
-                    value = min(value, control.maximum)
-            elif rule != "warn" or strict:
-                raise ValueError("Control value outside declared range")
+        value = check(value)
     return value
 
 
@@ -70,6 +79,10 @@ def prepare_inputs(ir, setup=None, *, strict=False):
 def representative_states(ir):
     states = [("default", {})]
     for c in ir.lesson_spec.controls:
+        if c.control_type in {'vector', 'matrix'}:
+            # Arrays need shape-preserving scientific probes, not scalar endpoints.
+            # Explicit test values also handle coupled constraints (unit mass/norm).
+            continue
         if c.minimum is not None:
             states.append((c.id + ":minimum", {c.id: c.minimum}))
         if c.maximum is not None:

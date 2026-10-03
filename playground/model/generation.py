@@ -8,9 +8,12 @@ import time
 from playground.ir.models import ExplanationIR, ScientificModel
 from playground.ir.serialization import parse_json, decode, to_mapping
 from playground.ir.validate import validate_ir
+from playground.ir.grounding import learner_claims, claim_aliases
 from playground.computation.evaluator import compile_computations
 from playground.model.prompts import build_messages
 from playground.model.verification import detect_risks
+from playground.model.grounding_plan import expand_grounding_plan
+from playground.model.wire import lower_wire
 from playground.failures import Failure, FailureCode, FailureSeverity, PlaygroundError
 from playground.validation.report import ValidationStatus
 
@@ -47,6 +50,53 @@ def _normalize(content):
     return value
 
 
+def _science_wire(value):
+    if not isinstance(value, dict):
+        return value
+    value = dict(value)
+    if isinstance(value.get('status'), str) and value['status'] in {'ok','success','supported'}:
+        value.pop('status')
+    if set(value) == {'scientific_model'}:
+        return value['scientific_model']
+    return value
+
+
+def expand_compact_grounding(value):
+    """Copy claim text only; never invent a class, citation, or support verdict."""
+    if not isinstance(value, dict) or not isinstance(value.get('grounding_records'), list):
+        return value
+    if not any(isinstance(r, dict) and ('claim' not in r or 'claim_ids' in r) for r in value['grounding_records']):
+        return value
+    partial = dict(value, grounding_records=[])
+    partial_ir = decode(ExplanationIR, partial)
+    claims = learner_claims(partial_ir)
+    aliases = claim_aliases(partial_ir)
+    records = []
+    for record in value['grounding_records']:
+        if not isinstance(record, dict):
+            raise ValueError('Invalid compact grounding')
+        if 'claim_ids' in record:
+            if set(record) != {'claim_ids', 'knowledge_class', 'status', 'evidence_refs', 'computation_refs'} or not isinstance(record['claim_ids'], list):
+                raise ValueError('Invalid grouped grounding fields')
+            for claim_id in record['claim_ids']:
+                if isinstance(claim_id, str):
+                    claim_id = aliases.get(claim_id, claim_id)
+                if not isinstance(claim_id, str) or claim_id not in claims:
+                    raise ValueError('Unknown grouped claim path: ' + str(claim_id)[:120])
+                records.append({**{k:v for k,v in record.items() if k != 'claim_ids'},
+                                'claim_id': claim_id, 'claim': claims[claim_id]})
+            continue
+        if 'claim' not in record:
+            if not isinstance(record.get('claim_id'), str):
+                raise ValueError('Invalid compact claim ID')
+            record = dict(record, claim_id=aliases.get(record.get('claim_id'), record.get('claim_id')))
+            if record.get('claim_id') not in claims:
+                raise ValueError('Unknown compact claim path')
+            record = dict(record, claim=claims[record['claim_id']])
+        records.append(record)
+    return dict(value, grounding_records=records)
+
+
 class SemanticEngine:
     def __init__(self, client, *, strategy=GenerationStrategy.COMBINED):
         self.client = client
@@ -62,16 +112,16 @@ class SemanticEngine:
         if self.strategy == GenerationStrategy.TWO_STAGE:
             raw = self.client.complete(build_messages(evidence, stage="science"), max_tokens=3500, purpose="science")
             try:
-                scientific = decode(ScientificModel, _normalize(raw))
+                scientific = decode(ScientificModel, _science_wire(_normalize(raw)))
             except ValueError:
                 _error(FailureCode.IR_INVALID, "ScientificModel schema validation failed.")
         stage = "combined" if scientific is None else "lesson"
         raw = self.client.complete(build_messages(evidence, stage=stage, scientific_model=scientific),
                                    max_tokens=7500, purpose="semantic" if scientific is None else "lesson")
         try:
-            ir = decode(ExplanationIR, _normalize(raw))
-        except ValueError:
-            _error(FailureCode.IR_INVALID, "ExplanationIR schema validation failed.")
+            ir = decode(ExplanationIR, expand_compact_grounding(expand_grounding_plan(lower_wire(_normalize(raw), evidence))))
+        except ValueError as exc:
+            _error(FailureCode.IR_INVALID, "ExplanationIR schema validation failed.", {'schema_error': str(exc)})
         if scientific is not None and to_mapping(ir.scientific_model) != to_mapping(scientific):
             _error(FailureCode.IR_INVALID, "Lesson stage changed the fixed ScientificModel.")
         report = validate_ir(ir, evidence, budget=self.client.budget)

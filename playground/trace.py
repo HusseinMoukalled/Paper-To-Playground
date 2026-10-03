@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, TextIO
+from playground.secrets import redact_secrets
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,7 +72,7 @@ class TraceWriter:
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
         )
-        self._stream.write(json.dumps(event.to_dict(), ensure_ascii=True, separators=(",", ":")))
+        self._stream.write(json.dumps(redact_secrets(event.to_dict()), ensure_ascii=True, separators=(",", ":")))
         self._stream.write("\n")
         self._stream.flush()
         return event

@@ -26,7 +26,7 @@ class ArtifactResult:
 
 def build_artifact(ir: ExplanationIR, output_directory: str | Path, *, asts: Mapping[str, dict] | None = None,
                    reference_evaluator: ReferenceEvaluator | None = None,
-                   trace: TraceWriter | None = None, browser: object | None = None) -> ArtifactResult:
+                   trace: TraceWriter | None = None, browser: object | None = None, budget=None) -> ArtifactResult:
     """Only a freshly verified candidate replaces index.html; WARN permits fallback.
 
     No model repair, scientific rewriting, or global recovery decisions occur
@@ -42,6 +42,8 @@ def build_artifact(ir: ExplanationIR, output_directory: str | Path, *, asts: Map
                        details={'codes': [f.code for f in validation.findings]})
 
     try:
+        if budget and budget.remaining_seconds <= budget.finalization_reserve_seconds:
+            budget._raise_budget_failure('Rendering reached the finalization reserve.')
         output.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='.playground-candidate-', dir=output) as staging:
             candidate = render_candidate(ir, staging, asts=asts)
@@ -51,7 +53,10 @@ def build_artifact(ir: ExplanationIR, output_directory: str | Path, *, asts: Map
             if static.status == ValidationStatus.FAIL:
                 emit('FINAL_QUALITY_GATE', 'candidate_rejected', static)
                 return ArtifactResult(destination if destination.is_file() else None, report(findings, 'render_pipeline'), False)
-            browser_report = validate_browser(candidate, reference_evaluator=reference_evaluator, browser=browser)
+            timeout = min(30, budget.remaining_seconds - budget.finalization_reserve_seconds) if budget else 30
+            if timeout <= 0:
+                budget._raise_budget_failure('No browser-validation time remains.')
+            browser_report = validate_browser(candidate, reference_evaluator=reference_evaluator, browser=browser, timeout_seconds=timeout)
             findings.extend(browser_report.findings)
             emit('BROWSER_VALIDATION', 'validate_candidate', browser_report)
             if browser_report.status == ValidationStatus.FAIL:
@@ -59,6 +64,9 @@ def build_artifact(ir: ExplanationIR, output_directory: str | Path, *, asts: Map
                 return ArtifactResult(destination if destination.is_file() else None, report(findings, 'render_pipeline'), False)
             # Candidate is on the same filesystem for atomic replacement. The
             # prior valid artifact remains intact if validation or replacement fails.
+            if budget and budget.remaining_seconds <= 0:
+                budget._raise_budget_failure('Global deadline exceeded before promotion.')
+            emit('FINAL_QUALITY_GATE', 'candidate_accepted', report(findings, 'render_pipeline'))
             os.replace(candidate, destination)
             result = report(findings, 'render_pipeline')
             emit('FINALIZE', 'promote_validated_candidate', result)

@@ -18,10 +18,21 @@ ALIASES = {'scalar relationship': 'scalar_relationship', 'probability/distributi
            'pipeline': 'information_flow'}
 
 
-def plan_visual(visual: dict, family: str) -> dict:
+def plan_visual(visual: dict, family: str, variables=None) -> dict:
     family = ALIASES.get(family, family.replace(' ', '_'))
     requested = visual['visual_type']
     component = requested if requested in COMPONENTS else FAMILIES.get(family, 'scene')
+    reason = None
+    if variables is not None and component in {'line', 'trajectory', 'waveform', 'scatter'}:
+        by_id = {v['id']:v for v in variables}
+        refs = visual['data_refs']
+        data = by_id.get(refs[0], {}) if len(refs) == 1 else {}
+        series = data.get('type') in {'vector','sequence'}
+        pairs = data.get('type') == 'matrix' and len(data.get('shape', [])) == 2 and data['shape'][1] == 2
+        if not series and not pairs:
+            component = 'scene'
+            reason = 'No sampled series or coordinate pairs are computed; show labeled current values instead.'
     return {**visual, 'component': component,
             'fallback_component': 'scene',
+            **({'fallback_reason':reason} if reason else {}),
             'planning_level': 'specialized' if component != 'scene' else 'generic_scene'}

@@ -9,7 +9,7 @@ from playground.model.client import OpenRouterClient
 from playground.model.verification import detect_risks, verify_units, RiskUnit
 from playground.model.generation import SemanticEngine, GenerationStrategy
 from playground.model.repair import apply_patches, request_repair
-from playground.ir.models import GroundingStatus
+from playground.ir.models import GroundingStatus, KnowledgeClass
 from playground.ir.serialization import to_mapping
 from playground.retrieval.evidence import RetrievalConfidence
 from playground.failures import PlaygroundError, Failure, FailureCode, FailureSeverity
@@ -42,6 +42,12 @@ class RiskRepairTests(unittest.TestCase):
         claim = replace(ir.grounding_records[0], claim="The method improves benchmark accuracy by 25%.")
         risks = detect_risks(replace(ir, grounding_records=(claim,) + ir.grounding_records[1:]), evidence_pack())
         self.assertEqual(risks[0].reason, "high_risk_paper_claim")
+
+    def test_derived_equations_are_not_pretended_source_quotes(self):
+        ir = explanation()
+        equation = replace(ir.scientific_model.equations[0], knowledge_class=KnowledgeClass.DERIVED)
+        ir = replace(ir, scientific_model=replace(ir.scientific_model, equations=(equation,)))
+        self.assertEqual(detect_risks(ir, replace(evidence_pack(),retrieval_confidence=RetrievalConfidence.AMBIGUOUS)), ())
 
     def test_verifier_cannot_invent_citations(self):
         unit = RiskUnit("claim_evidence", "science.concept", "A linear response.", ("E1",), "partial_support")

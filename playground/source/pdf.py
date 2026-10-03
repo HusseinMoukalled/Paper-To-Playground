@@ -17,6 +17,31 @@ from playground.source.support import check_budget, fail
 from playground.source.visual_evidence import enrich_figure, relevant_caption
 
 
+def line_text(line):
+    """Preserve PDF-marked superscript runs, without inferring missing math.
+
+    Plain concatenation turns an exponent into multiplication/one long number.
+    PyMuPDF's superscript bit supplies the source layout, not model knowledge.
+    Only mathematical lines are normalized; prose footnote markers stay literal.
+    """
+    spans = line.get("spans", [])
+    raw = "".join(span["text"] for span in spans)
+    if not any(symbol in raw for symbol in ("=", "∝", "≤", "≥")):
+        return raw
+    result, exponent = [], []
+    for span in spans:
+        if span.get("flags", 0) & 1:
+            exponent.append(span["text"])
+        else:
+            if exponent:
+                result.append("^(" + "".join(exponent) + ")")
+                exponent = []
+            result.append(span["text"])
+    if exponent:
+        result.append("^(" + "".join(exponent) + ")")
+    return "".join(result)
+
+
 def associate_equation_numbers(blocks, warnings):
     """Join uniquely aligned source blocks before column ordering separates them.
 
@@ -80,7 +105,7 @@ def parse_pdf(source, *, focus: str = "", settings: SourceSettings | None = None
                         side = "left" if x1 <= middle + page.rect.width * .04 else "right" if x0 >= middle - page.rect.width * .04 else "span"
                         groups.setdefault(side, []).append(line)
                     for lines in groups.values():
-                        text = "\n".join("".join(s["text"] for s in line["spans"]) for line in lines).strip()
+                        text = "\n".join(line_text(line) for line in lines).strip()
                         if not text:
                             continue
                         extracted_characters += len(text)

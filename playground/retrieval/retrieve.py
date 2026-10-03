@@ -171,6 +171,23 @@ def retrieve_evidence(document, focus: str, audience: str, *, settings: SourceSe
         neighbors = []
         selected_ids = {e.element_id for e in selected}
         by_id = {e.element_id: position for position, e in enumerate(document.elements)}
+        # A lexical hit in a results section must not hide the mechanism's
+        # equations. In the SAME bounded expansion, retain up to four typed
+        # anchors from the best focus-aligned section already represented in
+        # the ranked candidates. No second search, model call or recursive walk.
+        section_scores = {e.section_id: len(query & set(tokenize(e.section_title or "")))
+                          for e in selected if e.section_id}
+        best_overlap = max(section_scores.values(), default=0)
+        mechanism = [e for e in document.elements
+                     if best_overlap >= max(1, len(query) / 2)
+                     and section_scores.get(e.section_id) == best_overlap
+                     and e.element_type.value in ("equation", "algorithm", "pseudocode")
+                     and not e.metadata.get("noise")][:4]
+        for anchor in mechanism:
+            if anchor.element_id not in selected_ids:
+                neighbors.append(anchor)
+                selected_ids.add(anchor.element_id)
+        required_context |= explanatory_context(document, mechanism)
         for element in selected:
             pos = by_id[element.element_id]
             candidates = list(document.elements[max(0, pos - 1):pos + 2])
@@ -196,8 +213,9 @@ def retrieve_evidence(document, focus: str, audience: str, *, settings: SourceSe
             context = [e for e in selected + neighbors if e.element_id in required_context
                        and e.element_id not in primary_ids]
             context_ids = {e.element_id for e in context}
-            ordered = primary + context + [e for e in selected + neighbors
-                if e.element_id not in primary_ids | context_ids]
+            mechanism_ids = {e.element_id for e in mechanism}
+            ordered = primary + [e for e in mechanism if e.element_id not in primary_ids] + context + [e for e in selected + neighbors
+                if e.element_id not in primary_ids | context_ids | mechanism_ids]
             selected = list({e.element_id: e for e in ordered}.values())
     if trace:
         trace.emit(stage="retrieval", action="neighbor_expansion", result="pass",

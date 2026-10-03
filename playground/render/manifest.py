@@ -22,6 +22,9 @@ def safe_json(value: Any) -> str:
 
 
 def build_manifest(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) -> dict:
+    if ir.computations and all('canonical_ast' in c.metadata or c.metadata.get('kind') == 'state_transition' for c in ir.computations):
+        from playground.render.canonical import build_canonical_manifest
+        return json.loads(safe_json(build_canonical_manifest(ir)))
     data = asdict(ir)
     scientific = data['scientific_model']
     lesson = data['lesson_spec']

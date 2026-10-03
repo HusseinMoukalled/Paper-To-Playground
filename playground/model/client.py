@@ -94,7 +94,8 @@ class OpenRouterClient:
                 return {redact(k): redact(v) for k, v in value.items()}
             return value
         clean_messages = redact(messages)
-        for attempt in range(MAX_TRANSIENT_RETRIES + 1):
+        retries = 0 if purpose == 'retrieval_rerank' else MAX_TRANSIENT_RETRIES
+        for attempt in range(retries + 1):
             remaining_tokens = self.budget.max_completion_tokens - self.budget.completion_tokens
             allocation = min(max_tokens, remaining_tokens)
             if allocation <= 0:
@@ -106,7 +107,8 @@ class OpenRouterClient:
                 self.budget._raise_budget_failure("No model time remains before finalization.")
             timeout = min(MODEL_TIMEOUT_SECONDS, usable_seconds)
             payload = {"model": self.model_id, "messages": clean_messages, "max_tokens": allocation,
-                       "temperature": 0, "response_format": {"type": "json_object"}}
+                       "temperature": 0, "response_format": {"type": "json_object"},
+                       "reasoning": {"enabled": False, "exclude": True}}
             # Count attempts BEFORE transport, including timeout/HTTP failures.
             self.budget.record_model_call()
             self._event("request", "started", details={"purpose": purpose, "attempt": attempt + 1})
@@ -159,8 +161,8 @@ class OpenRouterClient:
                 return content
             # Failed responses may have consumed tokens without usable usage information.
             self._reserve_unknown_usage(allocation, purpose)
-            self._event("request", "retry" if retry and attempt < MAX_TRANSIENT_RETRIES else "fail",
+            self._event("request", "retry" if retry and attempt < retries else "fail",
                         details={"purpose": purpose, "reason": reason, "completion_budget_estimated": True})
-            if not retry or attempt == MAX_TRANSIENT_RETRIES:
+            if not retry or attempt == retries:
                 self._fail(reason, recoverable=retry)
         raise AssertionError("Unreachable retry state")

@@ -3,6 +3,52 @@ from playground.ir.models import KnowledgeClass as K, GroundingStatus as G
 from playground.validation.report import ValidationFinding, ValidationStatus as S
 
 
+def claim_locations(ir):
+    """Exact JSON-pointer locations, used only for format lowering/leaf repair."""
+    paths = {}
+    science, lesson = ir.scientific_model, ir.lesson_spec
+    for field in ('concept', 'purpose', 'focus_alignment', 'demonstration_scope'):
+        paths['science.' + field] = '/scientific_model/' + field
+    for field in ('assumptions', 'limitations', 'misconceptions', 'edge_cases'):
+        for i, _ in enumerate(getattr(science, field)):
+            paths[f'science.{field}.{i}'] = f'/scientific_model/{field}/{i}'
+    for field in ('intuition', 'limitation_or_assumption', 'misconception', 'central_learning_question', 'visual_question', 'visual_intent'):
+        paths['lesson.' + field] = '/lesson_spec/' + field
+    for field in ('teaching_sequence', 'source_grounding_plan', 'learning_objectives', 'audience_prerequisites'):
+        for i, _ in enumerate(getattr(lesson, field)):
+            paths[f'lesson.{field}.{i}'] = f'/lesson_spec/{field}/{i}'
+    for collection, field in (('variables','meaning'), ('equations','meaning'), ('relationships','description'), ('mechanism_steps','description')):
+        for i, item in enumerate(getattr(science, collection)):
+            paths[item.id] = f'/scientific_model/{collection}/{i}/{field}'
+    for var in lesson.symbol_explanations:
+        paths['symbol.' + var] = '/lesson_spec/symbol_explanations/' + var
+    for i, item in enumerate(lesson.controls):
+        for field in ('learning_purpose','safe_range_reason'):
+            paths[item.id + '.' + field] = f'/lesson_spec/controls/{i}/{field}'
+    for i, item in enumerate(lesson.guided_explorations):
+        for field in ('change','observe','why'):
+            paths[item.id + '.' + field] = f'/lesson_spec/guided_explorations/{i}/{field}'
+    for i, item in enumerate(ir.visuals):
+        paths[item.id + '.question'] = f'/visuals/{i}/question'
+    return paths
+
+
+def claim_aliases(ir):
+    """Only unambiguous pointers/field suffixes; never fuzzy semantic matching."""
+    aliases = {}
+    for canonical, pointer in claim_locations(ir).items():
+        aliases[pointer] = canonical
+        dotted = pointer[1:].replace('/', '.')
+        aliases[dotted] = canonical
+        aliases[dotted.replace('scientific_model.', 'science.', 1).replace('lesson_spec.', 'lesson.', 1)] = canonical
+        if canonical.startswith(('var-', 'eq-', 'rel-', 'step-')) and '.' not in canonical:
+            aliases[canonical + '.' + pointer.rsplit('/', 1)[-1]] = canonical
+            aliases[canonical.split('-', 1)[0] + '-' + canonical] = canonical
+        if canonical.startswith('symbol.var-'):
+            aliases['symbol-' + canonical.removeprefix('symbol.')] = canonical
+    return aliases
+
+
 def learner_claims(ir):
     """Canonical paths identify free-text scientific claims lacking their own IDs.
 

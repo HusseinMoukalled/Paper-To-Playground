@@ -32,7 +32,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"CLI_ARGUMENT_INVALID: {exc}", file=sys.stderr)
         return 2
     try:
-        return Orchestrator(config).run()
+        result = Orchestrator(config).run()
+        if result == 0:
+            print('Playground generated: open index.html in the output directory. See validation_report.json for validation warnings.')
+        return result
     except PlaygroundError as exc:
         print(f"{exc.failure.code.value}: {exc.failure.message}", file=sys.stderr)
         return 2

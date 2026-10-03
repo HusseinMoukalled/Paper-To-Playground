@@ -76,7 +76,9 @@ class StructureBuilder:
             kind = SourceElementType.PARAGRAPH
             if caption:
                 kind = SourceElementType.TABLE if caption.group(1).lower() == "table" else SourceElementType.FIGURE_CONTEXT
-            elif equation:
+            elif equation or (len(text) <= 240 and "\n" not in text
+                              and re.fullmatch(r"[\w(),\[\].^+*/\-]+\s*=\s*[^=]+", text)
+                              and not re.search(r"[A-Za-z]{3,}\s+[A-Za-z]{3,}", text)):
                 kind = SourceElementType.EQUATION
             elif ALGORITHM.match(text):
                 kind = SourceElementType.ALGORITHM

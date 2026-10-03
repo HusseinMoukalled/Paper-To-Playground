@@ -68,6 +68,7 @@
   const unaryOps = new Set(['sqrt', 'exp', 'log', 'abs', 'min', 'max', 'sum', 'mean', 'variance',
     'normalize', 'softmax', 'sigmoid', 'transpose', 'norm', 'argmax']);
   const evaluate = (node, state, depth = 0) => {
+    if (node.type === 'Canonical') return root.CanonicalScience.execute(node.spec, state).result;
     if (depth > 64 || !node || typeof node !== 'object') fail('Invalid AST');
     const next = n => evaluate(n, state, depth + 1);
     let value;
@@ -118,6 +119,7 @@
   const format = x => Array.isArray(x) ? '[' + x.map(format).join(', ') + ']' :
     numeric(x) ? String(Number(x.toPrecision(7))) : String(x);
   const equation = (n, symbols = {}, state = null) => {
+    if (n.type === 'Canonical') return root.CanonicalScience.equation(n, symbols, state);
     const child = x => equation(x, symbols, state);
     switch (n.type) {
       case 'Constant': return format(n.value);
@@ -140,6 +142,7 @@
     return node;
   };
   const mathematical = (n, symbols = {}) => {
+    if (n.type === 'Canonical') return mathNode('mtext', [], root.CanonicalScience.equation(n, symbols));
     const child = x => mathematical(x, symbols);
     const op = x => mathNode('mo', [], x);
     const row = children => mathNode('mrow', children);

@@ -61,7 +61,7 @@ class CliTests(unittest.TestCase):
             self.assertEqual(event["details"]["code"], "INPUT_SCHEMA_INVALID")
             self.assertFalse((output_path / "index.html").exists())
 
-    def test_valid_case_stops_without_claiming_generation_success(self) -> None:
+    def test_missing_source_fails_without_claiming_generation_success(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             case_path = root / "case.json"
@@ -93,10 +93,10 @@ class CliTests(unittest.TestCase):
                 check=False,
             )
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn("PIPELINE_NOT_IMPLEMENTED", result.stderr)
+            self.assertIn("SOURCE_ACQUISITION_FAILED", result.stderr)
             self.assertFalse((output_path / "index.html").exists())
             event = json.loads((output_path / "trace.jsonl").read_text(encoding="utf-8").splitlines()[-1])
-            self.assertEqual(event["details"]["code"], "PIPELINE_NOT_IMPLEMENTED")
+            self.assertEqual(event["details"]["code"], "SOURCE_ACQUISITION_FAILED")
 
 
 if __name__ == "__main__":

@@ -1,12 +1,29 @@
-"""Bounded top-level pipeline state machine for the foundation milestone."""
+"""Bounded orchestration of the three independently owned subsystems."""
 
 from __future__ import annotations
 
 from enum import StrEnum
+from dataclasses import replace
+import json
+import os
 
 from playground.config import RunConfig, CaseInput
 from playground.failures import Failure, FailureCode, FailureSeverity, PlaygroundError
 from playground.trace import TraceWriter
+from playground.budget import RunBudget
+from playground.source.pipeline import build_evidence
+from playground.model.client import OpenRouterClient
+from playground.model.generation import SemanticEngine
+from playground.model.rerank import DeepSeekReranker
+from playground.model.verification import verify_units
+from playground.model.verification import RiskUnit
+from playground.model.repair import request_repair
+from playground.ir.grounding import claim_locations, learner_claims
+from playground.ir.serialization import to_mapping
+from playground.computation.evaluator import execute, ExecutionGuard
+from playground.render.pipeline import build_artifact
+from playground.secrets import redact_secrets
+from playground.validation.artifact import report as validation_report
 
 
 class PipelineStage(StrEnum):
@@ -29,10 +46,13 @@ class PipelineStage(StrEnum):
 
 
 class Orchestrator:
-    """Owns global stage transitions; subsystem work is intentionally absent."""
+    """One budget, one trace, atomic artifact promotion; never substitutes science."""
 
-    def __init__(self, config: RunConfig) -> None:
+    def __init__(self, config: RunConfig, *, transport=None, budget=None, browser=None) -> None:
         self.config = config
+        self.transport = transport
+        self.budget = budget or RunBudget()
+        self.browser = browser
 
     def run(self) -> int:
         try:
@@ -65,18 +85,7 @@ class Orchestrator:
                         result="pass",
                         details={"case_fields": ["source_url", "focus", "audience"]},
                     )
-                    failure = Failure(
-                        code=FailureCode.PIPELINE_NOT_IMPLEMENTED,
-                        stage=PipelineStage.START.value,
-                        severity=FailureSeverity.CRITICAL,
-                        recoverable=False,
-                        message=(
-                            "The repository foundation is ready, but the generation pipeline "
-                            "is intentionally not implemented in Milestone 0."
-                        ),
-                        details={"source_url_present": bool(case.source_url)},
-                    )
-                    raise PlaygroundError(failure)
+                    return self._generate(case, trace)
                 except PlaygroundError as exc:
                     self._trace_failure(trace, exc.failure)
                     raise
@@ -86,7 +95,7 @@ class Orchestrator:
                         stage=PipelineStage.START.value,
                         severity=FailureSeverity.CRITICAL,
                         recoverable=False,
-                        message="An unexpected foundation error occurred; details were omitted.",
+                        message="An unexpected pipeline error occurred; unsafe details were omitted.",
                     )
                     self._trace_failure(trace, failure)
                     raise PlaygroundError(failure) from exc
@@ -100,6 +109,92 @@ class Orchestrator:
                     message=f"Cannot write execution trace: {trace_path}.",
                 )
             ) from exc
+
+    def _generate(self, case, trace):
+        client = OpenRouterClient(self.config.model_id, self.budget, trace, transport=self.transport)
+        source = build_evidence(case, base_dir=self.config.input_path.resolve().parent,
+                                budget=self.budget, trace=trace, model_id=self.config.model_id,
+                                reranker=DeepSeekReranker(client))
+        engine = SemanticEngine(client, strategy=os.environ.get('PLAYGROUND_SEMANTIC_STRATEGY', 'combined'))
+        generated = engine.generate(source.evidence_pack)
+        ir = generated.ir
+        trace.emit(stage='SEMANTIC_CORE', action='formalize_and_teach', result='pass',
+                   details={'strategy': generated.strategy.value, 'calls': generated.calls})
+        trace.emit(stage='IR_VALIDATION', action='progressive_contract_validation',
+                   result=generated.validation.status.value.lower(),
+                   details={'finding_codes':[f.code for f in generated.validation.findings]})
+        trace.emit(stage='COMPUTATION_VALIDATION', action='execute_representative_scientific_states',
+                   result='pass', details={'ast_version':1,'computations':len(ir.computations)})
+        trace.emit(stage='GROUNDING_AND_COVERAGE', action='validate_claim_lineage_and_focus_paths',
+                   result=generated.validation.status.value.lower(),
+                   details={'claims':len(ir.grounding_records),'focus_preserved':ir.focus_coverage.focus==case.focus})
+        ir = self._verify_risks(ir, source.evidence_pack, generated.risk_units, client, trace)
+        metadata = {**ir.metadata, 'paper_metadata': redact_secrets({**source.evidence_pack.paper_metadata,
+                                                    'source_url': case.source_url}),
+                    'source_validation': {'status': source.validation_report.status.value,
+                                          'finding_codes': [f.code for f in source.validation_report.findings],
+                                          'retrieval_confidence': source.evidence_pack.retrieval_confidence.value}}
+        ir = replace(ir, metadata=metadata)
+        def reference(inputs):
+            return execute(ir, inputs, guard=ExecutionGuard(self.budget))[0]
+        result = build_artifact(ir, self.config.output_path, reference_evaluator=reference,
+                                trace=trace, browser=self.browser, budget=self.budget)
+        if not result.promoted:
+            raise PlaygroundError(Failure(FailureCode.ARTIFACT_INVALID, 'final_quality_gate',
+                                           FailureSeverity.MAJOR, True,
+                                           'Candidate failed artifact validation; any previous index.html was preserved.',
+                                           details={'finding_codes': [f.code for f in result.report.findings]}))
+        # Diagnostic IR and report are data only. The final HTML needs neither file.
+        combined_report = validation_report(list(source.validation_report.findings) +
+                                            list(generated.validation.findings) + list(result.report.findings),
+                                            'integration')
+        report = {'status': combined_report.status.value,
+                  'source_status': source.validation_report.status.value,
+                  'ir_status': generated.validation.status.value,
+                  'findings': [to_mapping(f) for f in combined_report.findings],
+                  'calls': self.budget.calls_used, 'completion_tokens': self.budget.completion_tokens,
+                  'elapsed_seconds': self.budget.elapsed_seconds}
+        for name, value in (('explanation_ir.json', to_mapping(ir)), ('validation_report.json', report)):
+            try:
+                (self.config.output_path / name).write_text(json.dumps(value, ensure_ascii=True, indent=2), encoding='utf-8')
+            except OSError:
+                trace.emit(stage='FINALIZE', action='write_optional_diagnostics', result='warn', details={'file': name})
+        trace.emit(stage='EXIT', action='complete', result=combined_report.status.value.lower(),
+                   details={'artifact': 'index.html', 'calls': self.budget.calls_used,
+                            'completion_tokens': self.budget.completion_tokens})
+        return 0
+
+    def _verify_risks(self, ir, evidence, units, client, trace):
+        if not units:
+            return ir
+        try:
+            verdicts = verify_units(client, evidence, units)
+            failed = [unit for unit, verdict in zip(units, verdicts) if verdict['status'] != 'SUPPORTED']
+            trace.emit(stage='GROUNDING_AND_COVERAGE', action='targeted_semantic_verification',
+                       result='fail' if failed else 'pass',
+                       details={'units': len(verdicts), 'statuses': [v['status'] for v in verdicts]})
+            # One narrowly authorized claim-text repair, not an IR regeneration.
+            if len(failed) == 1 and failed[0].kind == 'claim_evidence':
+                unit = failed[0]
+                locations = claim_locations(ir)
+                index = next((i for i,r in enumerate(ir.grounding_records) if r.claim_id == unit.target), None)
+                if index is not None and unit.target in locations and unit.evidence_refs:
+                    failure = Failure(FailureCode.GROUNDING_UNSUPPORTED, 'semantic_verification',
+                                      FailureSeverity.MAJOR, True, 'Claim/evidence mismatch.', unit.target)
+                    paths = {locations[unit.target], f'/grounding_records/{index}/claim'}
+                    ir, _ = request_repair(client, ir, evidence, failure, allowed_paths=paths,
+                                            evidence_refs=unit.evidence_refs)
+                    updated = RiskUnit(unit.kind, unit.target, learner_claims(ir)[unit.target], unit.evidence_refs, 'repaired_claim')
+                    rechecked = verify_units(client, evidence, (updated,))
+                    if rechecked[0]['status'] == 'SUPPORTED':
+                        return ir
+            if not failed:
+                return ir
+        except (ValueError, TypeError, KeyError, StopIteration):
+            pass
+        raise PlaygroundError(Failure(FailureCode.GROUNDING_UNSUPPORTED, 'semantic_verification',
+                                       FailureSeverity.MAJOR, True,
+                                       'A risky scientific unit could not be verified; no artifact was promoted.'))
 
     @staticmethod
     def _trace_failure(trace: TraceWriter, failure: Failure) -> None:

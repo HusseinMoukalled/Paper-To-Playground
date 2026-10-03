@@ -36,15 +36,22 @@
       const invalid = (lo !== null && x < lo) || (hi !== null && x > hi);
       if (invalid) {
         if (control.validation_rule === 'clamp') { warning = 'Input clamped to the allowed range.'; return Math.max(lo ?? -Infinity, Math.min(hi ?? Infinity, x)); }
+        if (control.validation_rule === 'warn' && manifest.canonical_ast_version) { warning = 'Input is outside the teaching range.'; return x; }
         fail('Input is outside the allowed domain.');
       }
       return x;
     };
     if (control.validation_rule === 'normalize') {
+      const variable = manifest.variables.find(v => v.id === control.scientific_variable);
+      if (manifest.canonical_ast_version && variable.type !== 'distribution') {
+        value = CanonicalScience.evaluate({kind:'call',value:'normalize',args:[{kind:'variable',value:'input',args:[]}]},{input:value});
+        warning = 'Input normalized to unit Euclidean norm.';
+      } else {
       if (!Array.isArray(value) || value.some(x => typeof x !== 'number' || !Number.isFinite(x) || x < 0)) fail('Normalization requires a nonnegative finite vector.');
       const total = value.reduce((a, b) => a + b, 0);
       if (!(total > 0) || !Number.isFinite(total)) fail('Normalization requires positive finite total mass.');
       value = value.map(x => x / total); warning = 'Input normalized to unit sum.';
+      }
     }
     const walk = x => Array.isArray(x) ? x.map(walk) : validNumber(x);
     value = walk(value);
@@ -59,6 +66,23 @@
   }
   function compute(inputs) {
     const next = clone(inputs);
+    if (manifest.canonical_ast_version) {
+      const dimensions = {};
+      const validate = variable => CanonicalScience.validate(next[variable.id], variable.type,
+        variable.shape, variable.domain, dimensions);
+      manifest.variables.filter(v => own(next, v.id)).forEach(validate);
+      for (const c of manifest.computations) {
+        const result = CanonicalScience.execute(c.ast.spec, next);
+        next[c.id] = result.result;
+        c.output_refs.forEach(id => { next[id] = result.result; });
+      }
+      manifest.variables.forEach(validate);
+      const invariantEnvironment = Object.fromEntries(Object.entries(manifest.invariants.bindings).map(([name,id]) => [name,next[id]]));
+      for (const ast of manifest.invariants.asts) {
+        if (CanonicalScience.evaluate(ast, invariantEnvironment) !== true) fail('Scientific invariant failed.');
+      }
+      return next;
+    }
     const expectedShape = variable => variable.shape.map(dimension => {
       const size = typeof dimension === 'string' ? next[dimension] : dimension;
       if (!Number.isInteger(size) || size < 1) fail('Scientific shape dimension must resolve to a positive integer.');
@@ -96,7 +120,7 @@
     outputs.forEach(el => { const value = state[el.dataset.outputId]; el.textContent = AST.format(value); el.dataset.value = JSON.stringify(value); });
     for (const computation of manifest.computations) {
       const panel = document.getElementById('equation-' + computation.id);
-      const target = computation.output_refs[0];
+      const target = computation.output_refs[0] || computation.id;
       panel.querySelector('[data-role="equation"]').replaceChildren(AST.math(computation.ast, symbols, symbols[target]));
       panel.querySelector('[data-role="substitution"]').textContent = AST.equation(computation.ast, symbols, state) + ' = ' + AST.format(state[target]);
       panel.dataset.value = JSON.stringify(state[target]);

@@ -64,6 +64,9 @@ def evaluate(node: Node, environment: dict, _depth=0, *, guard=None):
         left, right = [run(x) for x in node.args]
         if isinstance(left, list) or isinstance(right, list):
             raise ValueError("Comparison requires scalars; use approx_equal for arrays")
+        numeric_pair = type(left) in {int,float} and type(right) in {int,float}
+        if not numeric_pair and type(left) is not type(right):
+            raise ValueError('Comparison requires compatible scientific scalar types')
         return COMPARISONS[node.value](left, right)
     if node.kind in {"and", "or", "not", "if"}:
         if node.kind == "if" and len(node.args) == 3:

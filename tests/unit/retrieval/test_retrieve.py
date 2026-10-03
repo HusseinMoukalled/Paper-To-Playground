@@ -18,6 +18,22 @@ from tests.unit.source.test_parsers import source
 
 
 class RetrievalTests(unittest.TestCase):
+    def test_focus_section_math_survives_exact_experimental_hit(self):
+        data = b'''<html><h1>1 Positional Encoding</h1>
+        <p>We use sine and cosine functions of different frequencies.</p>
+        <p>y = sin(pos/10000^(2*i/d))</p><p>z = cos(pos/10000^(2*i/d))</p>
+        <p>Here pos is position and i is the dimension index.</p>
+        <h1>2 Results</h1><p>Sinusoidal positional encoding was compared experimentally.</p></html>'''
+        doc = parse_html(source(data, DocumentFormat.HTML))
+        pack = retrieve_evidence(doc, 'sinusoidal positional encoding', 'student')
+        # Locked exact-match ranking remains; expansion adds actual equations.
+        self.assertIn('experimentally', pack.evidence_blocks[0].content)
+        self.assertTrue(any('sin(pos/' in b.content for b in pack.evidence_blocks))
+        self.assertTrue(any('cos(pos/' in b.content for b in pack.evidence_blocks))
+        self.assertTrue(any('dimension index' in b.content for b in pack.evidence_blocks))
+        self.assertEqual(pack.retrieval_metadata['neighbor_expansions'], 1)
+        self.assertLessEqual(estimate_tokens(asdict(pack)), 8000)
+
     def setUp(self):
         self.document = parse_html(source(HTML_PAPER, DocumentFormat.HTML), focus="Figure 2")
 

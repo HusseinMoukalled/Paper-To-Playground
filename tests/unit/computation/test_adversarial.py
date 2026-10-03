@@ -19,6 +19,11 @@ from tests.fixtures.dev2_factory import explanation, evidence_pack
 
 
 class AdversarialTests(unittest.TestCase):
+    def test_comparisons_do_not_coerce_boolean_categorical_and_numeric_types(self):
+        for expression in ('True == 1','True < 1','\"1\" < 2'):
+            with self.assertRaises(ValueError): evaluate(parse(expression), {})
+        self.assertTrue(evaluate(parse('1 == 1.0'), {}))
+
     def test_unknown_and_forged_ast_rejected(self):
         for data in ({"kind": "system", "value": "x", "args": []},
                      {"kind": "variable", "value": "__class__", "args": []},
@@ -85,6 +90,20 @@ class AdversarialTests(unittest.TestCase):
         bad = replace(ir.computations[0], expression="a*x-b")
         with self.assertRaises(ValueError):
             check_equation_consistency(replace(ir, computations=(bad,)))
+
+    def test_equation_consistency_follows_only_declared_expression_dependencies(self):
+        ir = explanation()
+        intermediate = ComputationSpec('compute-intermediate', 'a*x', 'scalar',
+            input_refs=('var-a','var-x'), output_refs=('var-product',),
+            metadata={'bindings':{'a':'var-a','x':'var-x'}, 'equation_refs':[]})
+        output = replace(ir.computations[0], expression='product+b',
+            input_refs=('var-product','var-b'), dependencies=('compute-intermediate',),
+            metadata={'bindings':{'product':'var-product','b':'var-b'},'equation_refs':['eq-response']})
+        check_equation_consistency(replace(ir, computations=(intermediate,output)))
+        with self.assertRaises(ValueError):
+            check_equation_consistency(replace(ir, computations=(intermediate,replace(output,dependencies=()))))
+        with self.assertRaises(ValueError):
+            check_equation_consistency(replace(ir, computations=(replace(intermediate,expression='a+x'),output)))
 
     def test_state_ambiguity_and_iteration_initialization(self):
         ir = explanation()

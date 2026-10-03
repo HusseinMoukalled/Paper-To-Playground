@@ -192,8 +192,8 @@ def validate_browser(path: str | Path, *, reference_evaluator: ReferenceEvaluato
                     require('<svg' in item['html'] and ('<rect' in item['html'] or '<circle' in item['html'] or '<text' in item['html']), 'BROWSER_DEAD_VISUAL', 'Visual has no scientific marks.', visual['id'])
                 equation_values = page.locator('[data-computation-id]').evaluate_all('(els)=>els.map(el=>({id:el.dataset.computationId,value:JSON.parse(el.dataset.value),text:el.querySelector("[data-role=substitution]").textContent}))')
                 for item, comp in zip(equation_values, m['computations']):
-                    expected_substitution = page.evaluate('(c)=>ScientificAST.equation(c.ast,{},PlaygroundRuntime.snapshot().state)+" = "+ScientificAST.format(PlaygroundRuntime.snapshot().state[c.output_refs[0]])', comp)
-                    require(close_enough(item['value'], state[comp['output_refs'][0]], tolerance) and item['text'] == expected_substitution, 'BROWSER_REPRESENTATION_MISMATCH', 'Equation substitution differs from scientific state.', comp['id'])
+                    expected_substitution = page.evaluate('(c)=>ScientificAST.equation(c.ast,{},PlaygroundRuntime.snapshot().state)+" = "+ScientificAST.format(PlaygroundRuntime.snapshot().state[c.output_refs[0]||c.id])', comp)
+                    require(close_enough(item['value'], state[comp['output_refs'][0] if comp['output_refs'] else comp['id']], tolerance) and item['text'] == expected_substitution, 'BROWSER_REPRESENTATION_MISMATCH', 'Equation substitution differs from scientific state.', comp['id'])
                 if reference_evaluator:
                     expected = reference_evaluator({k: state[k] for k in m['initial_state']})
                     for key in m['outputs']:

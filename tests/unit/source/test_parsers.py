@@ -7,7 +7,7 @@ from playground.failures import PlaygroundError
 from playground.source.acquire import AcquiredSource
 from playground.source.document import DocumentFormat, SourceElementType
 from playground.source.html import parse_html
-from playground.source.pdf import parse_pdf
+from playground.source.pdf import parse_pdf, line_text
 from playground.source.settings import SourceSettings
 from playground.source.structure import reference_keys
 from playground.retrieval.retrieve import retrieve_evidence
@@ -19,6 +19,18 @@ def source(data, fmt=DocumentFormat.PDF):
 
 
 class ParserTests(unittest.TestCase):
+    def test_source_superscripts_preserved_and_unnumbered_math_typed(self):
+        from playground.source.structure import StructureBuilder
+        line = {'spans': [{'text':'y = 10', 'flags':4}, {'text':'2', 'flags':5},
+                          {'text':'i/d', 'flags':7}, {'text':'model', 'flags':5},
+                          {'text':' + x', 'flags':4}]}
+        self.assertEqual(line_text(line), 'y = 10^(2i/dmodel) + x')
+        element = StructureBuilder().add(line_text(line))
+        self.assertEqual(element.element_type, SourceElementType.EQUATION)
+        self.assertIsNone(element.equation_number)
+        self.assertEqual(line_text({'spans':[{'text':'Reference', 'flags':0}, {'text':'2', 'flags':1}]}), 'Reference2')
+        self.assertEqual(StructureBuilder().add('The output = the average response.').element_type, SourceElementType.PARAGRAPH)
+
     def test_pdf_extracts_sections_equation_algorithm_and_provenance(self):
         doc = parse_pdf(source(paper_pdf()), focus="Equation 6")
         self.assertEqual(doc.title, "Generic Feedback Mechanism")

@@ -83,7 +83,10 @@ def validate_setup(m: dict, setup: dict, *, defaults: bool = False) -> None:
         if key not in by_var:
             raise ValueError('Preset references uncontrolled input')
         c = by_var[key]
-        shape = [proposed.get(dimension) if isinstance(dimension, str) else dimension for dimension in variables[key]['shape']]
+        actual = _shape(value)
+        shape = [actual[i] if m.get('canonical_ast_version') and isinstance(dimension, str) and i < len(actual)
+                 else proposed.get(dimension) if isinstance(dimension, str) else dimension
+                 for i, dimension in enumerate(variables[key]['shape'])]
         if not all(isinstance(d, (int, float)) and not isinstance(d, bool) and math.isfinite(d) and d > 0 and d == int(d) for d in shape):
             raise ValueError('Shape dimensions must resolve to positive integers')
         if not _finite(value) or _shape(value) != shape:
@@ -104,7 +107,9 @@ def validate_setup(m: dict, setup: dict, *, defaults: bool = False) -> None:
                 elif c['minimum'] is not None and x < c['minimum'] or c['maximum'] is not None and x > c['maximum']:
                     raise ValueError('Default or preset outside domain')
             check(value)
-            if c['validation_rule'] == 'normalize' and (not isinstance(value, list) or any(x < 0 for x in value) or abs(sum(value) - 1) > m['numeric_tolerance']):
+            distribution = variables[key]['type'] == 'distribution' or not m.get('canonical_ast_version')
+            norm = sum(value) if isinstance(value, list) and distribution else math.hypot(*value) if isinstance(value, list) else 0
+            if c['validation_rule'] == 'normalize' and (not isinstance(value, list) or distribution and any(x < 0 for x in value) or abs(norm - 1) > m['numeric_tolerance']):
                 raise ValueError('Validated setups must already be normalized')
 
 
@@ -127,6 +132,12 @@ def validate_manifest(m: dict) -> None:
     by_id = {v['id']: v for v in m['variables']}
     if len(ids) != len(m['variables']):
         raise ValueError('Duplicate variable IDs')
+    if m.get('canonical_ast_version'):
+        from playground.computation.parser import parse
+        expected_invariants = {'bindings':m['metadata'].get('invariant_bindings',{}),
+                               'asts':[parse(text).to_dict() for text in m['scientific_model']['invariants']]}
+        if m.get('invariants') != expected_invariants:
+            raise ValueError('Runtime invariants differ from the scientific model')
     if len(m['controls']) < 2 or len(m['explorations']) != 2 or not m['visuals'] or not m['computations']:
         raise ValueError('Missing interactive lesson components')
     computations = m['computations']
@@ -135,16 +146,20 @@ def validate_manifest(m: dict) -> None:
         raise ValueError('Duplicate runtime IDs or control variables')
     for c in computations:
         reads = validate_ast(c['ast'])
-        if reads != set(c['reads']) or reads != set(c['input_refs']) or len(c['output_refs']) != 1:
+        canonical = c['ast'].get('type') == 'Canonical'
+        declared = set(c['input_refs']) | set(c['dependencies']) if canonical else set(c['input_refs'])
+        if reads != set(c['reads']) or not reads <= declared or not canonical and reads != declared or not canonical and len(c['output_refs']) != 1:
             raise ValueError('Computation dependencies disagree with AST')
-        if c['output_type'] != by_id[c['output_refs'][0]]['type']:
+        if any(c['output_type'] != by_id[r]['type'] for r in c['output_refs']):
             raise ValueError('Computation and scientific output types disagree')
     if computation_order(computations, set(m['initial_state'])) != computations:
         raise ValueError('Manifest computations are not dependency ordered')
     if m['dependencies'] != {c['id']: c['reads'] for c in computations}:
         raise ValueError('Manifest dependency map differs from AST')
     produced = {r for c in computations for r in c['output_refs']}
-    if len(produced) != len(computations) or produced != set(m['outputs']) or produced & set(m['initial_state']) or produced | set(m['initial_state']) != ids:
+    if m.get('canonical_ast_version'):
+        produced.update(c['id'] for c in computations)
+    if (not m.get('canonical_ast_version') and len(produced) != len(computations)) or produced != set(m['outputs']) or produced & set(m['initial_state']) or produced | set(m['initial_state']) != ids:
         raise ValueError('Scientific state coverage mismatch')
     validate_setup(m, {c['scientific_variable']: c['default'] for c in m['controls']}, defaults=True)
     if any(m['initial_state'][c['scientific_variable']] != c['default'] for c in m['controls']):
@@ -164,6 +179,8 @@ def validate_manifest(m: dict) -> None:
         for c in computations:
             if reached & set(c['reads']):
                 reached.update(c['output_refs'])
+                if m.get('canonical_ast_version'):
+                    reached.add(c['id'])
         if not reached & produced or not reached & visual_refs:
             raise ValueError('Dead control: no computation and visualization path')
         for target in control['effect_targets']:

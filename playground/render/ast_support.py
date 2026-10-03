@@ -24,6 +24,9 @@ MAX_AST_DEPTH = 64
 
 def validate_ast(node: Any) -> set[str]:
     """Validate the data-only wire tree and return its exact variable reads."""
+    if isinstance(node, dict) and node.get('type') == 'Canonical':
+        from playground.render.canonical import validate_wire
+        return validate_wire(node)
     reads: set[str] = set()
     count = 0
 
@@ -112,4 +115,6 @@ def computation_order(computations: list[dict], initial_ids: set[str]) -> list[d
             ordered.append(computation)
             done.add(computation['id'])
             available.update(computation['output_refs'])
+            if computation['ast'].get('type') == 'Canonical':
+                available.add(computation['id'])
     return ordered

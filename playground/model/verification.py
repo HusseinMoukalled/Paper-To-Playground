@@ -4,7 +4,7 @@ import json
 import re
 
 from playground.ir.serialization import parse_json
-from playground.ir.models import GroundingStatus
+from playground.ir.models import GroundingStatus, KnowledgeClass
 from playground.retrieval.evidence import RetrievalConfidence
 
 MAX_RISK_UNITS = 4
@@ -28,9 +28,49 @@ def detect_risks(ir, evidence):
         elif claim.evidence_refs and re.search(r"\b(benchmark|outperform|accuracy|experimental result|causes|causal)\b|\d+(?:\.\d+)?\s*%", claim.claim, re.IGNORECASE):
             risks.append(RiskUnit("claim_evidence", claim.claim_id, claim.claim, claim.evidence_refs, "high_risk_paper_claim"))
     if evidence.retrieval_confidence != RetrievalConfidence.HIGH:
+        variables = {v.id:v for v in ir.scientific_model.variables}
+        computations = {c.id:c for c in ir.computations}
         for equation in ir.scientific_model.equations:
-            risks.append(RiskUnit("equation_evidence", equation.id, equation.expression,
-                                  equation.evidence_refs, "ambiguous_retrieval"))
+            # Derived intermediates are checked against their executable lineage,
+            # not incorrectly required to appear verbatim in the source paper.
+            if equation.knowledge_class != KnowledgeClass.SOURCE_GROUNDED:
+                continue
+            linked = [c for c in ir.computations if equation.id in c.metadata.get('equation_refs', [])]
+            dependencies, seen = [], set()
+            pending = [dep for c in linked for dep in c.dependencies]
+            while pending:
+                identity = pending.pop(0)
+                if identity in seen:
+                    continue
+                seen.add(identity)
+                if len(seen) > 12:
+                    raise ValueError('Equation verification lineage exceeds narrow bounds')
+                c = computations[identity]
+                dependencies.append({'id':c.id, 'expression':c.expression,
+                                     'bindings':c.metadata.get('bindings', {}), 'outputs':c.output_refs})
+                pending.extend(c.dependencies)
+            symbol_refs = set(equation.variable_refs)
+            for dep in dependencies:
+                symbol_refs.update(dep['bindings'].values())
+                symbol_refs.update(dep['outputs'])
+            statement = json.dumps({'expression':equation.expression,
+                                    'symbols':{variables[r].source_symbol or variables[r].display_symbol: variables[r].meaning
+                                               for r in sorted(symbol_refs) if r in variables},
+                                    'declared_dependency_definitions':dependencies,
+                                    'variable_symbols':{r:variables[r].source_symbol or variables[r].display_symbol
+                                                        for r in sorted(symbol_refs) if r in variables}})
+            # Include immediate source definition paragraphs already in the
+            # bounded pack. Never retrieve new text or invent citations here.
+            anchors = [b for b in evidence.evidence_blocks if b.evidence_id in equation.evidence_refs]
+            positions = {int(m.group(1)) for b in anchors for identity in b.source_element_ids
+                         if (m := re.fullmatch(r'SRC-(\d+)', identity))}
+            context_refs = [b.evidence_id for b in evidence.evidence_blocks
+                            if b.evidence_type.value == 'paragraph' and any(b.section_id == a.section_id for a in anchors)
+                            and any(abs(int(m.group(1))-position) <= 1 for identity in b.source_element_ids
+                                    if (m := re.fullmatch(r'SRC-(\d+)',identity)) for position in positions)][:2]
+            refs = tuple(dict.fromkeys((*equation.evidence_refs,*context_refs)))
+            risks.append(RiskUnit("equation_evidence", equation.id, statement,
+                                  refs, "ambiguous_retrieval"))
     # Caller can additionally construct control_mechanism/exploration_mechanism units
     # for concrete disagreements from downstream deterministic checks.
     return tuple(risks[:MAX_RISK_UNITS])

@@ -69,7 +69,7 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
         equations = ''.join(f'<div class="equation-panel" id="equation-{escape(c["id"])}" data-computation-id="{escape(c["id"])}" '
                             f'data-depends-on="{escape(" ".join(c["reads"]))}"><p class="equation" data-role="equation"></p>'
                             f'<p class="substitution" data-role="substitution"></p></div>' for c in m['computations'])
-        visuals = ''.join(f'<article class="panel"><h3>{escape(v["question"])}</h3><p>{escape(lesson["visual_intent"])}</p>'
+        visuals = ''.join(f'<article class="panel"><h3>{escape(v["question"])}</h3><p>{escape(v.get("fallback_reason") or lesson["visual_intent"])}</p>'
                          f'<div class="visual" data-visual-id="{escape(v["id"])}" data-depends-on="{escape(" ".join(v["data_refs"]))}"></div>'
                          '<p class="hint">Teaching visualization generated from the current calculations.</p></article>' for v in m['visuals'])
         output_ids = list(dict.fromkeys(m['outputs'] + lesson['important_intermediates']))
@@ -94,13 +94,17 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
             if isinstance(paper_metadata.get('source_url'), str):
                 paper_details += '<p>' + source_link(paper_metadata['source_url']) + '</p>'
         ground_plan = ''.join(f'<li>{escape(x)}</li>' for x in lesson['source_grounding_plan'])
+        source_validation = m['metadata'].get('source_validation', {})
+        source_warning = ('<p class="callout">Source extraction or retrieval has limitations: '
+                          + escape(', '.join(source_validation.get('finding_codes', []))) + '. '
+                          'Consult the cited source before interpreting results.</p>') if source_validation.get('status') == 'WARN' else ''
         toolbar = '<button class="secondary" data-role="reset">Reset</button>'
         if any(v['component'] == 'comparison' for v in m['visuals']):
             toolbar += '<button class="secondary" data-role="save-comparison">Save comparison</button><span data-role="comparison-status"></span>'
         if any(v['component'] == 'process' for v in m['visuals']):
             toolbar += '<button class="secondary" data-role="step-next">Next step</button><span data-role="step-value"></span>'
         css = (RUNTIME / 'styles.css').read_text(encoding='utf-8')
-        js = '\n'.join((RUNTIME / name).read_text(encoding='utf-8') for name in ('evaluator.js', 'visuals.js', 'runtime.js'))
+        js = '\n'.join((RUNTIME / name).read_text(encoding='utf-8') for name in ('canonical.js', 'evaluator.js', 'visuals.js', 'runtime.js'))
         return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{escape(m['concept'])} · Paper to Playground</title><style>{css}</style></head>
@@ -116,7 +120,7 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
 <section data-role="limitation" class="callout"><h2>Where this demonstration stops</h2><p>{escape(lesson['limitation_or_assumption'])}</p>
 <p>{escape(lesson['misconception'])}</p><p>{escape(science['demonstration_scope'])}</p>
 <ul>{''.join('<li>' + escape(x) + '</li>' for x in science['limitations'] + science['assumptions'])}</ul></section>
-<section data-role="source-grounding" class="grounding"><h2>What supports this lesson</h2>{paper_details}{grounding}<ul>{sources}</ul><ul>{ground_plan}</ul>
+<section data-role="source-grounding" class="grounding"><h2>What supports this lesson</h2>{paper_details}{source_warning}<details><summary>Claim-level grounding audit ({len(m['grounding_records'])} claims)</summary>{grounding}</details><ul>{sources}</ul><ul>{ground_plan}</ul>
 <p>Paper-supported claims cite evidence IDs. Derived values use the executable mechanism. Teaching choices and ranges are pedagogical simplifications.</p></section>
 <footer>Explore the mechanism with small inputs. Generated diagrams are teaching representations; they are not original paper figures.</footer>
 </main><script type="application/json" id="playground-manifest">{safe_json(m)}</script><script>{js}</script></body></html>'''
