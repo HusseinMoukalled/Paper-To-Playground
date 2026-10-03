@@ -1,0 +1,690 @@
+{
+  "scientific_model": {
+    "concept": "Linear response",
+    "purpose": "Explain gain and offset.",
+    "focus_alignment": "how gain and offset affect the response",
+    "variables": [
+      {
+        "id": "var-a",
+        "source_symbol": "a",
+        "display_symbol": "a",
+        "meaning": "Gain scales the input.",
+        "type": "scalar",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [
+          "E1"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-b",
+        "source_symbol": "b",
+        "display_symbol": "b",
+        "meaning": "Offset translates the response.",
+        "type": "scalar",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [
+          "E1"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-x",
+        "source_symbol": "x",
+        "display_symbol": "x",
+        "meaning": "Input to the response.",
+        "type": "scalar",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [
+          "E1"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-y",
+        "source_symbol": "y",
+        "display_symbol": "y",
+        "meaning": "Output response.",
+        "type": "scalar",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [
+          "E1"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-response",
+        "expression": "a*x+b",
+        "meaning": "The linear response is scaled input plus offset.",
+        "variable_refs": [
+          "var-a",
+          "var-b",
+          "var-x",
+          "var-y"
+        ],
+        "evidence_refs": [
+          "E1"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      }
+    ],
+    "relationships": [
+      {
+        "id": "rel-response",
+        "description": "Gain and offset determine the output.",
+        "input_refs": [
+          "var-a",
+          "var-b",
+          "var-x"
+        ],
+        "output_refs": [
+          "var-y"
+        ],
+        "equation_refs": [
+          "eq-response"
+        ],
+        "evidence_refs": [
+          "E1"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      }
+    ],
+    "mechanism_steps": [
+      {
+        "id": "step-response",
+        "order": 0,
+        "description": "Scale the input, then add the offset.",
+        "equation_refs": [
+          "eq-response"
+        ],
+        "input_refs": [
+          "var-a",
+          "var-b",
+          "var-x"
+        ],
+        "output_refs": [
+          "var-y"
+        ]
+      }
+    ],
+    "assumptions": [
+      "The response is idealized."
+    ],
+    "limitations": [
+      "No saturation or measurement noise is represented."
+    ],
+    "misconceptions": [
+      "Changing gain is not the same as changing offset."
+    ],
+    "invariants": [
+      "approx_equal(y, a*x+b)"
+    ],
+    "edge_cases": [
+      "Zero gain removes input sensitivity."
+    ],
+    "provenance": [
+      "E1",
+      "E2"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "Toy inputs demonstrate the mechanism, not paper experiments or benchmark results."
+  },
+  "lesson_spec": {
+    "central_learning_question": "How do gain and offset affect a response?",
+    "learning_objectives": [
+      "Explain how gain and offset affect the response."
+    ],
+    "audience_prerequisites": [
+      "Basic algebra"
+    ],
+    "intuition": "Think of scaling followed by translation.",
+    "teaching_sequence": [
+      "Inspect the equation.",
+      "Vary each control."
+    ],
+    "symbol_explanations": {
+      "var-a": "Gain scales the input.",
+      "var-b": "Offset translates the response.",
+      "var-x": "Input to the response.",
+      "var-y": "Output response."
+    },
+    "controls": [
+      {
+        "id": "control-a",
+        "label": "Gain",
+        "scientific_variable": "var-a",
+        "control_type": "slider",
+        "default": 1,
+        "units": null,
+        "validation_rule": "clamp",
+        "effect_targets": [
+          "compute-response",
+          "var-y"
+        ],
+        "learning_purpose": "Observe scaling sensitivity.",
+        "safe_range_reason": "Bounded toy teaching values, not experimental ranges.",
+        "minimum": 0,
+        "maximum": 4,
+        "step": 0.1,
+        "options": []
+      },
+      {
+        "id": "control-b",
+        "label": "Offset",
+        "scientific_variable": "var-b",
+        "control_type": "slider",
+        "default": 0,
+        "units": null,
+        "validation_rule": "clamp",
+        "effect_targets": [
+          "compute-response",
+          "var-y"
+        ],
+        "learning_purpose": "Observe translation.",
+        "safe_range_reason": "Bounded toy teaching values, not experimental ranges.",
+        "minimum": 0,
+        "maximum": 4,
+        "step": 0.1,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "compute-response"
+    ],
+    "visual_question": "How does the response change?",
+    "visual_intent": "Show the live output response.",
+    "guided_explorations": [
+      {
+        "id": "explore-baseline",
+        "title": "Baseline",
+        "change": "Set gain to one and offset to zero.",
+        "observe": "The output equals the input.",
+        "why": "Unit gain preserves the input.",
+        "setup": {
+          "control-a": 1,
+          "control-b": 0
+        }
+      },
+      {
+        "id": "explore-contrast",
+        "title": "Contrast",
+        "change": "Increase gain and offset.",
+        "observe": "The output increases.",
+        "why": "Scaling and translation both contribute.",
+        "setup": {
+          "control-a": 2,
+          "control-b": 1
+        }
+      }
+    ],
+    "limitation_or_assumption": "The model is idealized.",
+    "misconception": "Gain and offset are different operations.",
+    "source_grounding_plan": [
+      "E1 supports the equation; toy inputs are pedagogical."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-response",
+      "expression": "a*x+b",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-a",
+        "var-b",
+        "var-x"
+      ],
+      "output_refs": [
+        "var-y"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "bindings": {
+          "a": "var-a",
+          "b": "var-b",
+          "x": "var-x"
+        },
+        "equation_refs": [
+          "eq-response"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "add",
+          "args": [
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "a",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "x",
+                  "args": []
+                }
+              ]
+            },
+            {
+              "kind": "variable",
+              "value": "b",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-response",
+      "visual_type": "scalar",
+      "question": "How does the response change?",
+      "data_refs": [
+        "compute-response"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "Linear response",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Explain gain and offset.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "how gain and offset affect the response",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "Toy inputs demonstrate the mechanism, not paper experiments or benchmark results.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "Think of scaling followed by translation.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "The model is idealized.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "Gain and offset are different operations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "The response is idealized.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "No saturation or measurement noise is represented.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "Changing gain is not the same as changing offset.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "Zero gain removes input sensitivity.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the equation.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Vary each control.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "E1 supports the equation; toy inputs are pedagogical.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Explain how gain and offset affect the response.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Basic algebra",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "How do gain and offset affect a response?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How does the response change?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Show the live output response.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-response.question",
+      "claim": "How does the response change?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-a",
+      "claim": "Gain scales the input.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-b",
+      "claim": "Offset translates the response.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-x",
+      "claim": "Input to the response.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-y",
+      "claim": "Output response.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "eq-response",
+      "claim": "The linear response is scaled input plus offset.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "rel-response",
+      "claim": "Gain and offset determine the output.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "step-response",
+      "claim": "Scale the input, then add the offset.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-a",
+      "claim": "Gain scales the input.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-b",
+      "claim": "Offset translates the response.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-x",
+      "claim": "Input to the response.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-y",
+      "claim": "Output response.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-a.learning_purpose",
+      "claim": "Observe scaling sensitivity.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-a.safe_range_reason",
+      "claim": "Bounded toy teaching values, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-b.learning_purpose",
+      "claim": "Observe translation.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-b.safe_range_reason",
+      "claim": "Bounded toy teaching values, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-baseline.change",
+      "claim": "Set gain to one and offset to zero.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-baseline.observe",
+      "claim": "The output equals the input.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-baseline.why",
+      "claim": "Unit gain preserves the input.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-contrast.change",
+      "claim": "Increase gain and offset.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-contrast.observe",
+      "claim": "The output increases.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-contrast.why",
+      "claim": "Scaling and translation both contribute.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "how gain and offset affect the response",
+    "learning_objective_refs": [
+      "Explain how gain and offset affect the response."
+    ],
+    "mechanism_refs": [
+      "eq-response",
+      "step-response"
+    ],
+    "control_refs": [
+      "control-a",
+      "control-b"
+    ],
+    "computation_refs": [
+      "compute-response"
+    ],
+    "visual_refs": [
+      "visual-response"
+    ],
+    "exploration_refs": [
+      "explore-baseline",
+      "explore-contrast"
+    ]
+  },
+  "metadata": {
+    "defaults": {
+      "var-x": 2
+    },
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use introductory algebra and separate gain from offset.",
+    "invariant_bindings": {
+      "y": "var-y",
+      "a": "var-a",
+      "b": "var-b",
+      "x": "var-x"
+    }
+  }
+}
