@@ -13,6 +13,18 @@ from tests.fixtures.dev2_factory import explanation
 
 
 class ComputationTests(unittest.TestCase):
+    def test_array_entry_bounds_are_not_scalar_state_probes(self):
+        ir = explanation()
+        for kind, default in [('vector', [1, 2]), ('matrix', [[1, 2], [3, 4]])]:
+            with self.subTest(kind=kind):
+                control = replace(ir.lesson_spec.controls[0], control_type=kind,
+                                  default=default, minimum=-5, maximum=5)
+                candidate = replace(ir, lesson_spec=replace(ir.lesson_spec,
+                                    controls=(control, *ir.lesson_spec.controls[1:])))
+                self.assertFalse(any(label.startswith(control.id + ':')
+                                     for label, _ in representative_states(candidate)))
+                self.assertEqual(control.default, default)
+
     def test_ast_roundtrip(self):
         node = parse("softmax([a, b, 0])")
         restored = Node.from_dict(json.loads(json.dumps(node.to_dict())))

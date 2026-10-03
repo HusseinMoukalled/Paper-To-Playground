@@ -70,6 +70,10 @@ def prepare_inputs(ir, setup=None, *, strict=False):
 def representative_states(ir):
     states = [("default", {})]
     for c in ir.lesson_spec.controls:
+        # Array bounds constrain individual entries, not the whole value. Their
+        # shape-preserving probes are supplied by control_test_values below.
+        if c.control_type in {"vector", "matrix"}:
+            continue
         if c.minimum is not None:
             states.append((c.id + ":minimum", {c.id: c.minimum}))
         if c.maximum is not None:

@@ -34,11 +34,16 @@ DSL names are simple identifiers like q or score, NEVER stable IDs containing hy
 Example binding: expression="score+b", metadata.bindings={"score":"var-score","b":"var-b"},
 input_refs=["var-score","var-b"], dependencies=["compute-score"], output_refs=["var-result"].
 Each control.default MUST match its scientific variable type/shape; scalar sliders cannot control a matrix or vector.
+Control types are EXACTLY slider, number, select, toggle, vector, matrix; never vector_editor or matrix_editor.
 Each control MUST affect computations and visible output. No display-only selector counted as a scientific control.
 Keep dimensions consistent with actual array sizes; do not vary a dimension parameter independently of fixed-size arrays.
 Prefer controls on actual input coordinates or matrices, with bounded valid control_test_values for each array control.
 softmax accepts ONE VECTOR ONLY, not matrices; sum/mean flatten all entries; no axis arguments.
 matmul uses matrices/vectors; use matmul(a,b), NEVER the @ operator. Use transpose(a), no method calls.
+matmul supports matrix-matrix and matrix-vector ONLY, never vector-matrix or vector-vector.
+For one query q and key rows K, attention scores use matmul(K,q)/sqrt(dk).
+For weights w and value rows V, the weighted result uses matmul(transpose(V),w).
+These are column-vector forms of the paper's row-vector equations; label the orientation explicitly.
 If the paper presents batched equations, demonstrate one representative row/query/step with the scope clearly labeled;
 preserve that mechanism's mathematics, rather than claiming unsupported batched execution.
 A source equation must use the SAME restricted DSL and bindings as its linked computation, with source_symbol names

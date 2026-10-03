@@ -7,6 +7,9 @@ from playground.ir.grounding import learner_claims
 
 def normalize_wire_conventions(ir):
     """Resolve unambiguous symbol keys and known claim-path spellings only."""
+    control_types = {'vector_editor':'vector','matrix_editor':'matrix','range':'slider'}
+    ir = replace(ir,lesson_spec=replace(ir.lesson_spec,controls=tuple(
+        replace(c,control_type=control_types.get(c.control_type,c.control_type)) for c in ir.lesson_spec.controls)))
     aliases = {}
     for variable in ir.scientific_model.variables:
         for name in (variable.id,variable.source_symbol,variable.display_symbol):
@@ -23,10 +26,27 @@ def normalize_wire_conventions(ir):
             return ir,0  # Ambiguous merging is never a safe transformation.
         symbols[resolved] = text
     candidate = replace(ir,lesson_spec=replace(ir.lesson_spec,symbol_explanations=symbols))
+    control_aliases = {}
+    for control in ir.lesson_spec.controls:
+        names = {control.id,control.scientific_variable}
+        names.update(name for name,refs in aliases.items() if refs == {control.scientific_variable})
+        for name in names:
+            control_aliases.setdefault(name,set()).add(control.id)
+    explorations = []
+    for exploration in candidate.lesson_spec.guided_explorations:
+        setup = {}
+        for name,value in exploration.setup.items():
+            key = next(iter(control_aliases[name])) if name in control_aliases and len(control_aliases[name]) == 1 else name
+            if key in setup:
+                return ir,0
+            setup[key] = value
+        explorations.append(replace(exploration,setup=setup))
+    candidate = replace(candidate,lesson_spec=replace(candidate.lesson_spec,guided_explorations=tuple(explorations)))
     claims = learner_claims(candidate)
     used = set()
     records = []
     changes = sum(key not in ir.lesson_spec.symbol_explanations for key in symbols)
+    changes += sum(a.setup != b.setup for a,b in zip(ir.lesson_spec.guided_explorations,explorations))
     for record in ir.grounding_records:
         key = record.claim_id.replace('scientific_model.','science.').replace('lesson_spec.','lesson.')
         key = re.sub(r'\.i(\d+)(?=\.|$)',r'.\1',key)

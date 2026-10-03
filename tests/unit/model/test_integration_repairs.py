@@ -20,7 +20,9 @@ class IntegrationRepairTests(unittest.TestCase):
         ir = explanation()
         symbols = {v.display_symbol:ir.lesson_spec.symbol_explanations[v.id] for v in ir.scientific_model.variables}
         records = tuple(replace(r,claim_id=r.claim_id.replace('science.assumptions.0','science.assumptions.i0').replace('symbol.var-a','symbol.a')) for r in ir.grounding_records)
-        candidate = replace(ir,lesson_spec=replace(ir.lesson_spec,symbol_explanations=symbols),grounding_records=records)
+        control_vars = {c.id:c.scientific_variable for c in ir.lesson_spec.controls}
+        explorations = tuple(replace(e,setup={control_vars[key]:value for key,value in e.setup.items()}) for e in ir.lesson_spec.guided_explorations)
+        candidate = replace(ir,lesson_spec=replace(ir.lesson_spec,symbol_explanations=symbols,guided_explorations=explorations),grounding_records=records)
         restored,changes = normalize_wire_conventions(candidate)
         self.assertGreater(changes,0)
         self.assertEqual(restored,ir)

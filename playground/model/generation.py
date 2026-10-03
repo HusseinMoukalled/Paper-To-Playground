@@ -70,6 +70,14 @@ class SemanticEngine:
                 _error(FailureCode.IR_INVALID, "ScientificModel schema validation failed.")
         stage = "combined" if scientific is None else "lesson"
         schema = json_schema(ExplanationIR)
+        from playground.computation.operations import TYPES, DOMAINS
+        variable_schema = schema['properties']['scientific_model']['properties']['variables']['items']['properties']
+        variable_schema['type']['enum'] = sorted(TYPES)
+        variable_schema['domain'] = {'anyOf':[{'type':'null'},{'type':'string','enum':sorted(d for d in DOMAINS if d is not None)}]}
+        control_schema = schema['properties']['lesson_spec']['properties']['controls']['items']['properties']
+        control_schema['control_type']['enum'] = ['slider','number','select','toggle','vector','matrix']
+        control_schema['validation_rule']['enum'] = ['clamp','reject','normalize','warn']
+        schema['properties']['computations']['items']['properties']['output_type']['enum'] = sorted(TYPES)
         schema['properties']['metadata'] = {'type':'object','properties':{
             'audience':{'type':'string','const':evidence.audience},
             'audience_adaptation':{'type':'string'},
@@ -80,7 +88,7 @@ class SemanticEngine:
         },'required':['audience','audience_adaptation','defaults','invariant_bindings','control_test_values','equation_scope'],
             'additionalProperties':True}
         raw = self.client.complete(build_messages(evidence, stage=stage, scientific_model=scientific),
-                                   max_tokens=12000, purpose="semantic" if scientific is None else "lesson",response_schema=schema)
+                                   max_tokens=16000, purpose="semantic" if scientific is None else "lesson",response_schema=schema)
         try:
             ir = decode(ExplanationIR, restore_structural_defaults(ExplanationIR, _normalize(raw)))
         except ValueError as exc:
@@ -95,13 +103,18 @@ class SemanticEngine:
         if changes:
             self.client._event('deterministic_input_repair', 'pass', details={'changed_setups':changes})
         report = validate_ir(ir, evidence, budget=self.client.budget)
+        self.client._event('initial_ir_validation', report.status.value,
+                           details={'findings':[{'code':f.code,'target':f.target,'message':f.message}
+                                                for f in report.findings]})
         failed = [f for f in report.findings if f.status == ValidationStatus.FAIL]
         if self.enable_repairs and failed and all(f.code in {'CLAIM_UNCLASSIFIED','EVIDENCE_LINEAGE_MISMATCH'} for f in failed):
             from playground.model.grounding_repair import complete_missing_grounding
             try:
                 ir = complete_missing_grounding(self.client,ir,evidence,targets={f.target for f in failed})
                 report = validate_ir(ir,evidence,budget=self.client.budget)
-                self.client._event('grounding_revalidation',report.status.value)
+                self.client._event('grounding_revalidation',report.status.value,
+                                   details={'findings':[{'code':f.code,'target':f.target,'message':f.message}
+                                                        for f in report.findings]})
             except (ValueError,TypeError,KeyError):
                 _error(FailureCode.IR_INVALID, 'Targeted provenance repair failed; scientific prose preserved.')
         if self.enable_repairs and report.status == ValidationStatus.FAIL:

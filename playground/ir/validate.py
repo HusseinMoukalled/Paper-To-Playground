@@ -137,8 +137,8 @@ def validate_ir(ir, evidence, *, execute_science=True, budget=None):
             fail("EXPLORATION_INCOMPLETE", "pedagogy", "Exploration needs change/observe/why and Apply Setup", exploration.id)
         try:
             prepare_inputs(ir, exploration.setup, strict=True)
-        except (ValueError, KeyError, TypeError):
-            fail("PRESET_INVALID", "pedagogy", "Exploration preset invalid", exploration.id)
+        except (ValueError, KeyError, TypeError) as exc:
+            fail("PRESET_INVALID", "pedagogy", "Exploration preset invalid: " + str(exc), exploration.id)
     if len(lesson.guided_explorations) >= 2 and lesson.guided_explorations[0].setup == lesson.guided_explorations[1].setup:
         fail("EXPLORATION_CONTRAST_MISSING", "pedagogy", "Explorations must configure a meaningful contrast")
     if not ir.visuals:

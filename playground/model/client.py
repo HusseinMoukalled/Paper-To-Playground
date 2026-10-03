@@ -114,7 +114,7 @@ class OpenRouterClient:
                 payload['response_format'] = {'type':'json_schema','json_schema':{
                     'name':'explanation_ir','strict':True,'schema':redact(response_schema)}}
             # This permitted DeepSeek model enables high reasoning by default;
-            # explicit non-thinking JSON generation keeps the 90-second contract.
+            # non-thinking structured output leaves tokens for the full IR.
             # Other supplied model IDs retain their own supported defaults.
             if self.model_id == 'deepseek/deepseek-v4.1-flash':
                 payload['reasoning'] = {'enabled': False, 'exclude': True}

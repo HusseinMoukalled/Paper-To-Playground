@@ -203,7 +203,9 @@ def validate_browser(path: str | Path, *, reference_evaluator: ReferenceEvaluato
             baseline, baseline_visuals = inspect()
             for control in m['controls']:
                 changed_output = changed_visual = False
-                candidates = alternative_values(control)
+                declared = m.get('metadata', {}).get('control_test_values', {}).get(control['id'], [])
+                candidates = (declared if control['control_type'] in {'vector', 'matrix'} and declared
+                              else alternative_values(control))
                 for value in candidates:
                     page.locator('[data-role="reset"]').click()
                     set_native_control(page, control, value)

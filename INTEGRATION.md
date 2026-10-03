@@ -6,13 +6,13 @@ before integration; this document describes the running public CLI.
 
 ## Run
 
-Use Python 3.11 and an installed Chrome, Edge, or Chromium. No browser download,
+Use Python 3.11 or 3.12 and an installed Chrome, Edge, or Chromium. No browser download,
 Node installation, server, or GPU is required.
 
 ```powershell
 python -m pip install -r requirements.txt
 $env:OPENROUTER_API_KEY = [Environment]::GetEnvironmentVariable('OPENROUTER_API_KEY', 'User')
-python agent.py --input examples/case.json --output out --model deepseek/deepseek-v4.1-flash
+python agent.py --input case.json --output out --model deepseek/deepseek-v4.1-flash
 ```
 
 The key must be in the CLI process environment; the program does not load `.env`
@@ -28,8 +28,9 @@ and requests a clearly scoped attention demonstration.
 - One shared budget covers source retrieval, optional tie-breaking, semantic
   generation, narrow repairs, risky-unit verification, science and browser tests.
 - The supplied model ID is unchanged. Provider selection favors throughput.
-  DeepSeek V4.1 Flash's default high thinking mode is explicitly disabled for
-  bounded JSON generation; deterministic science validation remains required.
+  DeepSeek V4.1 Flash's default thinking is disabled for structured output so
+  the bounded completion allowance is available to the actual IR. Requests
+  remain limited to 90 seconds; deterministic science validation is required.
 - Strict IR checks run before rendering. Known null-container/enum formatting
   differences and explicitly declared input policies are repaired deterministically.
   Fixed numeric parameters are omitted from controls only when at least two

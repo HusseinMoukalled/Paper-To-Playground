@@ -1,4 +1,4 @@
-# Python 3.11; CPU-only source parsing and installed-Chromium validation.
+# Python 3.11 or 3.12; CPU-only source parsing and installed-Chromium validation.
 PyMuPDF==1.26.7
 httpx==0.28.1
 beautifulsoup4==4.14.3

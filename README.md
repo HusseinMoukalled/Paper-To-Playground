@@ -1,7 +1,32 @@
 # Paper to Playground
 
 The three developer subsystems are integrated on `Hussein/Integration`.
-See [INTEGRATION.md](INTEGRATION.md) for current setup, CLI usage and verification.
+
+## Submission quick start
+
+From the repository directory, use Python 3.11 or 3.12 and set
+`OPENROUTER_API_KEY` in your terminal environment. Chrome, Edge, or Chromium
+must be installed for browser verification. The supplied `case.json` uses the
+Transformer paper's scaled dot-product attention mechanism.
+
+```bash
+python -m pip install -r requirements.txt
+python agent.py --input case.json --output out --model deepseek/deepseek-v4.1-flash
+```
+
+**MODEL_ID: `deepseek/deepseek-v4.1-flash` (DeepSeek V4.1 Flash on OpenRouter).**
+On success, open `out/index.html` directly in your browser. It works offline;
+`out/trace.jsonl` records extraction warnings, validation and model usage.
+
+If you saved the key in Windows user environment settings while your terminal
+was already open, restart the terminal or refresh its environment in PowerShell:
+
+```powershell
+$env:OPENROUTER_API_KEY = [Environment]::GetEnvironmentVariable('OPENROUTER_API_KEY', 'User')
+```
+
+See [INTEGRATION.md](INTEGRATION.md) for pipeline behavior and tests. The
+architecture contract below also applies to the integrated implementation.
 
 ## Master Architecture, Implementation Specification, and Coding-Agent Contract
 
