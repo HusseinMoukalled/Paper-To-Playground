@@ -3,6 +3,7 @@ from dataclasses import replace
 import re
 from playground.computation.validate import control_value
 from playground.ir.grounding import learner_claims
+from playground.ir.models import KnowledgeClass
 
 
 def normalize_wire_conventions(ir):
@@ -68,6 +69,65 @@ def normalize_wire_conventions(ir):
         changes += key != record.claim_id
         records.append(replace(record,claim_id=key))
     return replace(candidate,grounding_records=tuple(records)),changes
+
+
+def reconcile_equation_links(ir):
+    """Drop equation links whose AST does not match. Do not rewrite expressions.
+
+    Unlinked scientific equations stay visible as explicit context, which is the
+    contract for a paper formula the demonstration does not execute directly.
+    """
+    from playground.computation.evaluator import compile_computations
+    from playground.computation.science import check_equation_consistency, link_matches
+    try:
+        check_equation_consistency(compile_computations(ir))
+        return ir, 0
+    except (ValueError, KeyError, TypeError):
+        pass
+    variables = {v.id: v for v in ir.scientific_model.variables}
+    equations = {q.id: q for q in ir.scientific_model.equations}
+    computations = []
+    linked = set()
+    changes = 0
+    for spec in ir.computations:
+        refs = spec.metadata.get("equation_refs", [])
+        original = list(refs) if isinstance(refs, list) else []
+        kept = []
+        if isinstance(refs, list) and spec.metadata.get("kind", "expression") == "expression":
+            for ref in refs:
+                if ref in equations and link_matches(spec, equations[ref], variables):
+                    kept.append(ref)
+                    linked.add(ref)
+        if kept != original:
+            changes += 1
+        meta = {**spec.metadata, "equation_refs": kept}
+        computations.append(replace(spec, metadata=meta))
+    scope = ir.metadata.get("equation_scope")
+    scope = dict(scope) if isinstance(scope, dict) else {}
+    new_scope = {key: "context_only" for key in equations if key not in linked}
+    if new_scope != scope:
+        changes += 1
+    candidate = replace(ir, computations=tuple(computations), metadata={**ir.metadata, "equation_scope": new_scope})
+    try:
+        check_equation_consistency(compile_computations(candidate))
+    except (ValueError, KeyError, TypeError):
+        return ir, 0
+    return candidate, changes
+
+
+def declare_used_knowledge_classes(ir):
+    """Record classes already present on claims and objects. Do not invent a class."""
+    existing = ir.scientific_model.knowledge_classes
+    used = set(existing)
+    for record in ir.grounding_records:
+        used.add(record.knowledge_class)
+    for collection in (ir.scientific_model.variables, ir.scientific_model.equations, ir.scientific_model.relationships):
+        for item in collection:
+            used.add(item.knowledge_class)
+    added = tuple(kind for kind in KnowledgeClass if kind in used and kind not in existing)
+    if not added:
+        return ir, 0
+    return replace(ir, scientific_model=replace(ir.scientific_model, knowledge_classes=existing + added)), len(added)
 
 
 def normalize_declared_inputs(ir):

@@ -1,7 +1,139 @@
-:root{color-scheme:light;--ink:#132c34;--muted:#455d64;--accent:#006b63;--line:#c4d2d1;--paper:#f7f5ee;--panel:#fff;--soft:#e4f1ed;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.6;color:var(--ink);background:var(--paper)}
-*{box-sizing:border-box}body{margin:0}main{max-width:1160px;margin:auto;padding:32px 28px 72px}header{border-bottom:1px solid var(--line);padding:28px 0 36px;margin-bottom:36px}.eyebrow{font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);font-weight:750}h1{font-family:Georgia,serif;font-size:clamp(2rem,5vw,3.7rem);line-height:1.14;letter-spacing:-.035em;max-width:950px;margin:16px 0 24px}h2{font-size:1.45rem;line-height:1.3;margin:0 0 16px}h3{font-size:1.05rem;margin:8px 0}p{margin:8px 0 16px}a{color:var(--accent);overflow-wrap:anywhere}.lede{font-size:1.15rem;max-width:800px;color:var(--muted)}section{margin-bottom:36px}.panel{padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:12px;min-width:0}.playground-grid{display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,2fr);gap:24px}.controls{display:flex;flex-direction:column;gap:22px}.control label{font-weight:650;display:block}.control input,.control select,.control textarea{width:100%;font:inherit;accent-color:var(--accent)}.control input:not([type=range]):not([type=checkbox]),.control select,.control textarea{padding:8px 10px;border:1px solid #718b90;border-radius:6px;background:white;color:var(--ink)}.control input[type=checkbox]{width:24px;height:24px}.current-value{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);display:block}.hint{font-size:.82rem;color:var(--muted);margin:4px 0}button{font:inherit;font-weight:650;border:1px solid var(--accent);border-radius:7px;background:var(--accent);color:#fff;padding:9px 16px;cursor:pointer;min-height:44px}button.secondary{background:transparent;color:var(--accent)}button:hover{background:#004e49;color:#fff}:focus-visible{outline:3px solid #a64506;outline-offset:4px}.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:18px 0}.visual{width:100%;overflow:hidden;min-height:210px}.visual svg{width:100%;height:auto;display:block}.visual text{font-family:system-ui,sans-serif;font-size:12px;fill:var(--ink)}.mark,.cell{fill:var(--accent)}.cell-label{fill:var(--ink);font-weight:750}.curve{stroke:var(--accent);stroke-width:2.5;fill:none}.axis{stroke:#70868d;stroke-width:1}.flow-cell{fill:var(--soft);stroke:var(--accent)}.active-cell{fill:#eecb87;stroke:#8a5006;stroke-width:3}.outputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}.output{background:var(--soft);padding:16px;border-radius:8px;overflow-wrap:anywhere}.output output{display:block;font-size:1.2rem;font-variant-numeric:tabular-nums;font-weight:650}.equation{font-family:Cambria,Georgia,serif;font-size:1.2rem;overflow-wrap:anywhere}.substitution{font-family:ui-monospace,monospace;font-size:.82rem;color:var(--muted);overflow-wrap:anywhere}.equation-panel{padding:16px 0;border-bottom:1px solid var(--line)}dl.symbols{display:grid;grid-template-columns:minmax(60px,auto) 1fr;gap:6px 24px}dt{font-weight:700}dd{margin:0}.explorations{display:grid;grid-template-columns:1fr 1fr;gap:24px}.exploration[data-active=true]{border:2px solid var(--accent)}.callout{border-left:4px solid #a5680a;background:#fcf0d5;padding:18px 24px}.grounding{font-size:.9rem}.badge{display:inline-block;font-size:.72rem;letter-spacing:.035em;border:1px solid var(--line);border-radius:4px;padding:2px 7px;margin-right:8px}.status{min-height:1.6em;color:var(--muted);font-size:.88rem}[aria-invalid=true]{outline:2px solid #a43119}footer{border-top:1px solid var(--line);padding-top:20px;font-size:.82rem;color:var(--muted)}
-@media(max-width:720px){main{padding:20px 16px 48px}.playground-grid,.explorations{grid-template-columns:1fr}.panel{padding:18px}header{padding-top:12px}.outputs{grid-template-columns:1fr 1fr}}
-@media(max-width:380px){.outputs{grid-template-columns:1fr}dl.symbols{gap:6px 12px}}
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
-.visual .cell{fill:#8dcdc2}.equation math{font-size:1.2rem;max-width:100%}
-.equation{overflow-x:auto;max-width:100%}.equation-panel{min-width:0;max-width:100%}dl.symbols dd{min-width:0;overflow-wrap:anywhere}
+:root{
+  color-scheme:light;
+  --ink:#1b1914;
+  --muted:#5c564c;
+  --accent:#0c5c56;
+  --accent-deep:#083f3b;
+  --line:#e4dccb;
+  --paper:#f6f1e7;
+  --panel:#fffdf8;
+  --soft:#e7f3f1;
+  --gold:#8a5a12;
+  --shadow:0 18px 50px rgba(48,36,16,.08);
+  font-family:"Segoe UI",system-ui,sans-serif;
+  font-size:17px;
+  line-height:1.65;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, rgba(12,92,86,.08), transparent 55%),
+    var(--paper);
+}
+*{box-sizing:border-box}
+body{margin:0;overflow-wrap:anywhere}
+main{max-width:1120px;margin:auto;padding:28px 32px 88px}
+header{padding:18px 0 8px}
+.eyebrow{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:750;margin:0 0 10px}
+h1{font-family:Palatino,"Palatino Linotype",Georgia,serif;font-size:clamp(2rem,4vw,3.2rem);line-height:1.12;letter-spacing:-.03em;font-weight:600;max-width:26ch;margin:8px 0 18px}
+h2{font-family:Palatino,"Palatino Linotype",Georgia,serif;font-size:1.7rem;font-weight:600;line-height:1.25;margin:0 0 18px}
+h3{font-family:Palatino,"Palatino Linotype",Georgia,serif;font-size:1.2rem;font-weight:600;line-height:1.35;margin:0 0 8px}
+p{margin:8px 0 14px}
+a{color:var(--accent)}
+.lede{font-size:1.12rem;max-width:68ch;color:#3d3830}
+.objectives{display:grid;gap:8px;padding:0;margin:22px 0 0;list-style:none}
+.objectives li{background:rgba(255,253,248,.72);border:1px solid var(--line);border-radius:999px;padding:8px 14px;width:fit-content;max-width:100%}
+.block{margin:42px 0}
+.panel{padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;min-width:0;box-shadow:var(--shadow)}
+.playground-grid{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:22px;align-items:start}
+.playground-grid>*{min-width:0}
+.controls{display:flex;flex-direction:column;gap:18px;position:sticky;top:16px}
+.control{padding-bottom:16px;border-bottom:1px dashed var(--line)}
+.control:last-of-type{border-bottom:0;padding-bottom:0}
+.control-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.control label{font-weight:680;display:block;margin-bottom:4px}
+.control input,.control select,.control textarea{width:100%;font:inherit;accent-color:var(--accent)}
+.control input:not([type=range]):not([type=checkbox]),.control select,.control textarea{padding:10px 12px;border:1px solid #cabb9f;border-radius:10px;background:#fff;color:var(--ink)}
+/* The raw JSON textarea remains the validated source of truth, but learners use the grid. */
+.control textarea.array-source{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.control textarea.array-source:focus-visible{position:static;width:100%;height:auto;margin:0;clip:auto;font-family:ui-monospace,Consolas,monospace;font-size:.9rem}
+.array-grid{display:grid;gap:6px;margin:8px 0}
+.cell-input{width:100%;font:inherit;font-family:Cambria,"Cambria Math",Georgia,serif;font-size:1.02rem;text-align:center;padding:8px 4px;border:1px solid #cabb9f;border-radius:8px;background:#fff;color:var(--ink);-moz-appearance:textfield}
+.cell-input::-webkit-outer-spin-button,.cell-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.cell-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12,92,86,.15);outline:0}
+.control input[type=range]{height:30px;padding:0;cursor:pointer}
+.range-ends{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-top:-4px}
+.control input[type=checkbox]{width:22px;height:22px}
+.current-value{font-family:Cambria,"Cambria Math",Georgia,serif;font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--accent-deep);display:block;margin:0}
+.current-value.math-value math{font-size:1rem}
+.control[data-kind=vector] .current-value,.control[data-kind=matrix] .current-value{display:none}
+.hint,.caption{font-size:.84rem;color:var(--muted);margin:8px 0 0}
+button{font:inherit;font-weight:680;border:0;border-radius:999px;background:var(--accent);color:#fff;padding:10px 18px;cursor:pointer;min-height:44px}
+button.secondary{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+button:hover{background:var(--accent-deep);color:#fff}
+:focus-visible{outline:3px solid #b86112;outline-offset:3px}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:18px 0}
+.stage{display:grid;gap:18px}
+.visual{width:100%;overflow:hidden;min-height:220px;background:linear-gradient(180deg,#fdfcf9,#f2f6f5);border:1px solid var(--line);border-radius:14px;padding:6px}
+.visual svg{width:100%;height:auto;display:block}
+.visual text{font-family:"Segoe UI",system-ui,sans-serif;font-size:12px;fill:var(--ink)}
+.visual .tick{fill:#6f685c;font-size:11px}
+.visual .axis-label{fill:#4a4438;font-size:12px;font-weight:650;letter-spacing:.02em}
+.visual .value{fill:var(--accent-deep);font-weight:700;font-size:12px}
+.visual .note{fill:var(--gold);font-size:11px;font-style:italic}
+.grid{stroke:#e4ddcd;stroke-width:1}
+.mark{fill:var(--accent);transition:height .35s ease,y .35s ease,cx .35s ease,cy .35s ease}
+.mark:hover{fill:var(--accent-deep)}
+.cell{fill:var(--accent)}
+.cell.negative{fill:#b65d2e}
+.cell-label{fill:var(--ink);font-weight:700;font-size:13px}
+.cell-label.light{fill:#fff}
+.curve{stroke:var(--accent);stroke-width:2.5;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.area{fill:rgba(12,92,86,.10)}
+.arrowhead{fill:var(--accent)}
+.axis{stroke:#8d8374;stroke-width:1.2}
+.flow-cell{fill:var(--soft);stroke:var(--accent);stroke-width:1.5}
+.active-cell{fill:#f3d48a;stroke:var(--gold);stroke-width:3}
+.mark,.cell,.curve,.area{animation:rise .5s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.outputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.output{background:var(--panel);border:1px solid var(--line);padding:16px 16px 12px;border-radius:16px;overflow-wrap:anywhere;min-width:0}
+.output .symbol{font-family:Cambria,"Cambria Math",Georgia,serif;font-size:1.1rem;color:var(--muted)}
+.output output{display:block;margin-top:6px;font-family:Cambria,"Cambria Math",Georgia,serif;font-size:1.45rem;font-variant-numeric:tabular-nums;color:var(--accent-deep);overflow-x:auto}
+.output output.has-math{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.output .math-view{font-family:Cambria,"Cambria Math",Georgia,serif;color:var(--accent-deep);overflow-x:auto;margin-top:4px}
+.output .math-view math{font-size:1.15rem}
+.output .math-view:empty{display:none}
+.output output.tick{animation:tick .35s ease}
+@keyframes tick{from{transform:translateY(3px);opacity:.4}to{transform:none;opacity:1}}
+.equation-panel{min-width:0;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:16px;margin-top:16px;padding:14px 18px 10px;box-shadow:var(--shadow)}
+.equation-label{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:750;margin:0 0 6px}
+.equation{font-family:Cambria,"Cambria Math",Georgia,serif;overflow-x:auto;overflow-y:hidden;display:block;width:0;min-width:100%;max-width:100%;padding:6px 0;margin:0;text-align:center}
+.equation math{font-size:1.6rem}
+.equation.substituted{border-top:1px dashed var(--line);margin-top:8px;padding-top:12px}
+.equation.substituted math{color:var(--accent-deep)}
+/* Plain-text substitution is retained for assistive tech and validators. */
+.substitution{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:-1px;padding:0;border:0}
+math{font-family:"Cambria Math","Latin Modern Math","STIX Two Math","Libertinus Math","Noto Sans Math","Segoe UI Symbol",serif}
+math mtable{font-size:1em}
+math mtd{padding:.18em .55em}
+.equation.substituted math{font-size:1.3rem}
+.equation.substituted mtable{font-size:.92em}
+dl.symbols{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr);gap:10px 18px;align-items:baseline}
+dl.symbols dt,dl.symbols dd{min-width:0;overflow-wrap:anywhere}
+dt{font-family:Cambria,"Cambria Math",Georgia,serif;font-size:1.25rem}
+dd{margin:0}
+dt math{font-size:1.25rem}
+.steps{padding-left:1.2rem}
+.steps li{margin:8px 0;padding-left:4px}
+.steps li::marker{color:var(--accent);font-weight:700}
+.explorations{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.exploration[data-active=true]{border-color:var(--accent);box-shadow:0 0 0 3px rgba(12,92,86,.15)}
+.callout{border:0;border-left:5px solid var(--gold);background:#fbf3df;border-radius:0 16px 16px 0;padding:8px 8px 8px 22px}
+.grounding{font-size:.92rem}
+.badge{display:inline-block;font-family:"Segoe UI",sans-serif;font-size:.68rem;letter-spacing:.04em;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-right:6px;color:var(--muted);vertical-align:middle}
+.status{min-height:1.6em;color:var(--accent-deep);font-size:.95rem}
+[aria-invalid=true]{outline:2px solid #a43119}
+footer{border-top:1px solid var(--line);margin-top:28px;padding-top:18px;font-size:.82rem;color:var(--muted)}
+@media(max-width:720px){
+  main{padding:20px 16px 56px}
+  .playground-grid,.explorations{grid-template-columns:1fr}
+  .controls{position:static}
+  .panel{padding:16px}
+  .equation math{font-size:1.25rem}
+  h1{max-width:none}
+}
+@media(max-width:380px){
+  .outputs{grid-template-columns:1fr}
+  dl.symbols{grid-template-columns:1fr;gap:2px 0}
+  dl.symbols dd{margin-bottom:12px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto;animation:none}}

@@ -95,13 +95,21 @@ class SemanticEngine:
             _error(FailureCode.IR_INVALID, "ExplanationIR schema validation failed.", {'schema_error': str(exc)})
         if scientific is not None and to_mapping(ir.scientific_model) != to_mapping(scientific):
             _error(FailureCode.IR_INVALID, "Lesson stage changed the fixed ScientificModel.")
-        from playground.model.structural_repair import normalize_declared_inputs, normalize_wire_conventions
+        from playground.model.structural_repair import (
+            declare_used_knowledge_classes, normalize_declared_inputs, normalize_wire_conventions,
+            reconcile_equation_links)
         ir, wire_changes = normalize_wire_conventions(ir)
         if wire_changes:
             self.client._event('deterministic_wire_repair','pass',details={'changed_paths':wire_changes})
         ir, changes = normalize_declared_inputs(ir)
         if changes:
             self.client._event('deterministic_input_repair', 'pass', details={'changed_setups':changes})
+        ir, class_changes = declare_used_knowledge_classes(ir)
+        if class_changes:
+            self.client._event('deterministic_knowledge_class_repair', 'pass', details={'added_classes': class_changes})
+        ir, equation_changes = reconcile_equation_links(ir)
+        if equation_changes:
+            self.client._event('deterministic_equation_link_repair', 'pass', details={'changed_links': equation_changes})
         report = validate_ir(ir, evidence, budget=self.client.budget)
         self.client._event('initial_ir_validation', report.status.value,
                            details={'findings':[{'code':f.code,'target':f.target,'message':f.message}
@@ -111,6 +119,12 @@ class SemanticEngine:
             from playground.model.grounding_repair import complete_missing_grounding
             try:
                 ir = complete_missing_grounding(self.client,ir,evidence,targets={f.target for f in failed})
+                ir, class_changes = declare_used_knowledge_classes(ir)
+                if class_changes:
+                    self.client._event('deterministic_knowledge_class_repair', 'pass', details={'added_classes': class_changes})
+                ir, equation_changes = reconcile_equation_links(ir)
+                if equation_changes:
+                    self.client._event('deterministic_equation_link_repair', 'pass', details={'changed_links': equation_changes})
                 report = validate_ir(ir,evidence,budget=self.client.budget)
                 self.client._event('grounding_revalidation',report.status.value,
                                    details={'findings':[{'code':f.code,'target':f.target,'message':f.message}
@@ -128,7 +142,12 @@ class SemanticEngine:
                     ir, report = request_repair(self.client,ir,evidence,failure,allowed_paths=paths,
                                                evidence_refs=ir.scientific_model.provenance)
                 except (ValueError,TypeError,KeyError):
-                    _error(FailureCode.IR_INVALID,'Targeted executable repair failed; original IR preserved.')
+                    ir, equation_changes = reconcile_equation_links(ir)
+                    if equation_changes:
+                        self.client._event('deterministic_equation_link_repair', 'pass', details={'changed_links': equation_changes})
+                    report = validate_ir(ir, evidence, budget=self.client.budget)
+                    if report.status == ValidationStatus.FAIL:
+                        _error(FailureCode.IR_INVALID,'Targeted executable repair failed; original IR preserved.')
         self.client._event("validate_ir", report.status.value,
                            details={"findings": [{"code": f.code, "stage": f.stage, "status": f.status.value, "target": f.target, "message": f.message} for f in report.findings]})
         if report.status == ValidationStatus.FAIL:

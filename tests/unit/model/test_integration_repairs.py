@@ -10,7 +10,12 @@ from playground.ir.models import ExplanationIR
 from playground.ir.validate import validate_ir
 from playground.model.client import OpenRouterClient
 from playground.model.generation import SemanticEngine
-from playground.model.structural_repair import normalize_wire_conventions, normalize_declared_inputs
+from playground.ir.models import KnowledgeClass
+from playground.computation.evaluator import compile_computations
+from playground.computation.science import check_equation_consistency
+from playground.model.structural_repair import (
+    declare_used_knowledge_classes, normalize_wire_conventions, normalize_declared_inputs,
+    reconcile_equation_links)
 from tests.fixtures.dev2_factory import explanation, evidence_pack
 from tests.unit.model.test_client import response, TEST_KEY
 
@@ -71,6 +76,33 @@ class IntegrationRepairTests(unittest.TestCase):
         self.assertEqual(validate_ir(renamed,evidence_pack()).status.value,'PASS')
         bad = replace(renamed,computations=(replace(renamed.computations[0],expression='a*x-b'),))
         self.assertEqual(validate_ir(bad,evidence_pack()).status.value,'FAIL')
+
+    def test_used_knowledge_classes_are_declared_without_changing_claims(self):
+        ir = explanation()
+        omitted = tuple(kind for kind in ir.scientific_model.knowledge_classes if kind != KnowledgeClass.PEDAGOGICAL)
+        candidate = replace(ir, scientific_model=replace(ir.scientific_model, knowledge_classes=omitted))
+        self.assertEqual(validate_ir(candidate, evidence_pack()).status.value, 'FAIL')
+        restored, added = declare_used_knowledge_classes(candidate)
+        self.assertEqual(added, 1)
+        self.assertIn(KnowledgeClass.PEDAGOGICAL, restored.scientific_model.knowledge_classes)
+        self.assertEqual(restored.grounding_records, candidate.grounding_records)
+        self.assertEqual(validate_ir(restored, evidence_pack()).status.value, 'PASS')
+
+    def test_mismatched_equation_becomes_context_without_rewriting_math(self):
+        ir = explanation()
+        self.assertEqual(reconcile_equation_links(ir)[1], 0)
+        bad = replace(ir.computations[0], expression='a*x-b')
+        candidate = replace(ir, computations=(bad,) + ir.computations[1:])
+        with self.assertRaises(ValueError):
+            check_equation_consistency(compile_computations(candidate))
+        restored, changes = reconcile_equation_links(candidate)
+        self.assertGreater(changes, 0)
+        self.assertEqual(restored.computations[0].expression, 'a*x-b')
+        self.assertEqual(restored.computations[0].metadata.get('equation_refs'), [])
+        equation_id = ir.scientific_model.equations[0].id
+        self.assertEqual(restored.metadata['equation_scope'][equation_id], 'context_only')
+        check_equation_consistency(compile_computations(restored))
+        self.assertNotIn('EQUATION_COMPUTATION_MISMATCH', {f.code for f in validate_ir(restored, evidence_pack()).findings})
 
     def test_degenerate_control_fallback_retains_fixed_value_and_two_controls(self):
         ir = explanation()

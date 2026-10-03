@@ -103,20 +103,72 @@
     histories = nextHistories;
     return next;
   }
+  // Editable number grids mirror array textareas so learners never type raw JSON.
+  function renderGrid(el, value) {
+    const grid = document.querySelector('[data-grid-for="' + el.id + '"]');
+    if (!grid || !Array.isArray(value)) return;
+    const matrix = value.every(Array.isArray);
+    const rows = matrix ? value : [value];
+    const signature = rows.length + 'x' + rows[0].length;
+    if (grid.dataset.signature !== signature) {
+      grid.dataset.signature = signature;
+      grid.style.gridTemplateColumns = 'repeat(' + rows[0].length + ', minmax(0, 1fr))';
+      grid.replaceChildren(...rows.flatMap((row, i) => row.map((_, j) => {
+        const cell = document.createElement('input');
+        cell.type = 'number'; cell.step = 'any'; cell.className = 'cell-input';
+        cell.dataset.row = String(i); cell.dataset.col = String(j);
+        cell.setAttribute('aria-label', (matrix ? 'row ' + (i + 1) + ', column ' + (j + 1) : 'entry ' + (j + 1)));
+        const commit = () => {
+          const current = JSON.parse(el.value);
+          const parsed = Number(cell.value);
+          if (matrix) current[i][j] = parsed; else current[j] = parsed;
+          el.value = JSON.stringify(current);
+          el.dispatchEvent(new Event('change', {bubbles: true}));
+        };
+        cell.addEventListener('change', commit);
+        return cell;
+      })));
+      grid.removeAttribute('aria-hidden');
+    }
+    const cells = grid.querySelectorAll('input');
+    rows.forEach((row, i) => row.forEach((x, j) => { const cell = cells[i * row.length + j]; if (cell && document.activeElement !== cell) cell.value = AST.short(x); }));
+  }
   function refresh() {
     for (const [id, el] of elements) {
       const value = state[id];
       if (el.type === 'checkbox') el.checked = value;
       else el.value = Array.isArray(value) ? JSON.stringify(value) : String(value);
       const display = document.getElementById(el.getAttribute('aria-describedby').split(' ')[0]);
-      display.textContent = AST.format(value);
+      if (Array.isArray(value)) { display.replaceChildren(AST.substituted({type: 'Constant', value}, symbols, null)); display.classList.add('math-value'); }
+      else display.textContent = AST.format(value);
       el.removeAttribute('aria-invalid');
+      renderGrid(el, value);
     }
-    outputs.forEach(el => { const value = state[el.dataset.outputId]; el.textContent = AST.format(value); el.dataset.value = JSON.stringify(value); });
+    document.querySelectorAll('dl.symbols dt, .output .symbol').forEach(dt => {
+      const label = dt.dataset.symbol || dt.textContent;
+      dt.dataset.symbol = label;
+      dt.replaceChildren(AST.symbol(label));
+    });
+    outputs.forEach(el => {
+      const value = state[el.dataset.outputId];
+      el.textContent = AST.format(value);
+      el.dataset.value = JSON.stringify(value);
+      // Arrays additionally get a typeset matrix view; the plain text stays canonical for validation.
+      const view = el.parentElement.querySelector('[data-math-for]');
+      if (view) {
+        if (Array.isArray(value)) { view.replaceChildren(AST.substituted({type: 'Constant', value}, symbols, null)); el.classList.add('has-math'); }
+        else { view.replaceChildren(); el.classList.remove('has-math'); }
+      }
+      el.classList.remove('tick');
+      void el.offsetWidth;
+      el.classList.add('tick');
+    });
     for (const computation of manifest.computations) {
       const panel = document.getElementById('equation-' + computation.id);
       const target = computation.output_refs[0];
       panel.querySelector('[data-role="equation"]').replaceChildren(AST.math(computation.ast, symbols, symbols[target]));
+      const substitutedPanel = panel.querySelector('[data-role="substituted"]');
+      if (substitutedPanel) substitutedPanel.replaceChildren(AST.substituted(computation.ast, symbols, state, state[target]));
       panel.querySelector('[data-role="substitution"]').textContent = AST.equation(computation.ast, symbols, state) + ' = ' + AST.format(state[target]);
       panel.dataset.value = JSON.stringify(state[target]);
     }

@@ -119,6 +119,22 @@
   const format = x => Array.isArray(x) ? '[' + x.map(format).join(', ') + ']' :
     numeric(x) ? String(Number(x.toPrecision(7))) : x && typeof x === 'object' ?
     Object.entries(x).map(([name,value]) => name + '=' + format(value)).join(', ') : String(x);
+  // Short numerals keep substituted equations readable; full precision stays in the data attributes.
+  const short = x => numeric(x) ? String(Number(x.toPrecision(4))) : String(x);
+  const prettyCall = (name, args) => {
+    const [a, b] = args;
+    if (name === 'divide' && args.length === 2) return '(' + a + ' / ' + b + ')';
+    if (name === 'sqrt' && args.length === 1) return '√(' + a + ')';
+    if (name === 'power' && args.length === 2) return a + '^' + b;
+    if (name === 'transpose' && args.length === 1) return a + 'ᵀ';
+    if (name === 'matmul' && args.length === 2) return a + ' ' + b;
+    if (name === 'multiply' && args.length === 2) return '(' + a + ' × ' + b + ')';
+    if (name === 'dot' && args.length === 2) return '(' + a + ' · ' + b + ')';
+    if (name === 'add' && args.length === 2) return '(' + a + ' + ' + b + ')';
+    if (name === 'subtract' && args.length === 2) return '(' + a + ' − ' + b + ')';
+    if (name === 'abs' && args.length === 1) return '|' + a + '|';
+    return name + '(' + args.join(', ') + ')';
+  };
   const equation = (n, symbols = {}, state = null) => {
     const child = x => equation(x, symbols, state);
     switch (n.type) {
@@ -127,7 +143,7 @@
       case 'Variable': return state && own(state, n.id) ? format(state[n.id]) : symbols[n.id] || n.id;
       case 'Unary': return '(' + n.op + child(n.operand) + ')';
       case 'Binary': return '(' + child(n.left) + ' ' + ({'*': '×', '/': '÷', '**': '^'}[n.op] || n.op) + ' ' + child(n.right) + ')';
-      case 'Call': return n.function + '(' + n.args.map(child).join(', ') + ')';
+      case 'Call': return prettyCall(n.function, n.args.map(child));
       case 'Index': return child(n.value) + '[' + child(n.index) + ']';
       case 'Vector': return '[' + n.items.map(child).join(', ') + ']';
       case 'Matrix': return '[' + n.rows.map(row => '[' + row.map(child).join(', ') + ']').join('; ') + ']';
@@ -142,30 +158,183 @@
     children.forEach(child => node.append(child));
     return node;
   };
-  const mathematical = (n, symbols = {}) => {
-    const child = x => mathematical(x, symbols);
+  // Fences stretch to the height of the matrix they enclose.
+  const fence = text => { const node = mathNode('mo', [], text); node.setAttribute('stretchy', 'true'); node.setAttribute('symmetric', 'true'); return node; };
+  // Concrete values typeset as numerals, column vectors and bracketed matrices.
+  const valueNode = value => {
+    if (Array.isArray(value)) {
+      const isMatrix = value.every(Array.isArray);
+      const rows = isMatrix ? value : value.map(x => [x]);
+      if (rows.length > 6 || rows.some(r => r.length > 6)) return mathNode('mtext', [], format(value));
+      const table = mathNode('mtable', rows.map(r => mathNode('mtr', r.map(x => mathNode('mtd', [valueNode(x)])))));
+      return mathNode('mrow', [fence('['), table, fence(']')]);
+    }
+    if (numeric(value)) {
+      const text = short(value);
+      return text.startsWith('-') ? mathNode('mrow', [mathNode('mo', [], '−'), mathNode('mn', [], text.slice(1))]) : mathNode('mn', [], text);
+    }
+    return mathNode('mtext', [], String(value));
+  };
+  // Authored display symbols arrive as plain text or light LaTeX ("d_k", "\alpha^2", "sqrt(d_k)",
+  // "q·k_i / sqrt(d_k)", "\frac{a}{b}"). A small recursive-descent parser typesets them generically.
+  const GREEK = {alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ε', varepsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ', iota: 'ι', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', rho: 'ρ', sigma: 'σ', tau: 'τ', upsilon: 'υ', phi: 'φ', varphi: 'φ', chi: 'χ', psi: 'ψ', omega: 'ω', Gamma: 'Γ', Delta: 'Δ', Theta: 'Θ', Lambda: 'Λ', Xi: 'Ξ', Pi: 'Π', Sigma: 'Σ', Phi: 'Φ', Psi: 'Ψ', Omega: 'Ω', infty: '∞', cdot: '·', times: '×', pm: '±', le: '≤', ge: '≥', ne: '≠', approx: '≈', to: '→', rightarrow: '→', sum: '∑', prod: '∏', partial: '∂', nabla: '∇', ell: 'ℓ', hbar: 'ℏ'};
+  const identifier = text => {
+    const node = mathNode('mi', [], GREEK[text] || text);
+    if (!GREEK[text] && text.length > 1) node.setAttribute('mathvariant', 'normal');
+    return node;
+  };
+  const tokenizeSymbol = raw => {
+    const tokens = [];
+    const re = /\\[A-Za-z]+|[A-Za-z]+|\d+(?:\.\d+)?|\s+|./gu;
+    for (const m of raw.matchAll(re)) { if (!/^\s+$/.test(m[0])) tokens.push(m[0]); }
+    return tokens;
+  };
+  const parseSymbol = raw => {
+    const tokens = tokenizeSymbol(raw);
+    let i = 0;
+    const peek = () => tokens[i];
+    const take = () => tokens[i++];
+    const wrap = nodes => nodes.length === 1 ? nodes[0] : mathNode('mrow', nodes);
+    const group = () => {
+      if (peek() === '{') { take(); const inner = sequence(t => t === '}'); if (peek() === '}') take(); return inner; }
+      return atom();
+    };
+    const atom = () => {
+      const t = take();
+      if (t === undefined) return mathNode('mrow');
+      if (t === '(' || t === '[' || t === '|') {
+        const close = {'(': ')', '[': ']', '|': '|'}[t];
+        const inner = sequence(x => x === close);
+        if (peek() === close) take();
+        return mathNode('mrow', [fence(t), inner, fence(close)]);
+      }
+      if (t === '\\frac') { const a = group(); const b = group(); return mathNode('mfrac', [a, b]); }
+      if (t === '\\sqrt' || t === 'sqrt') {
+        if (peek() === '{') return mathNode('msqrt', [group()]);
+        if (peek() === '(') { take(); const inner = sequence(x => x === ')'); if (peek() === ')') take(); return mathNode('msqrt', [inner]); }
+        return identifier('sqrt');
+      }
+      if (t.startsWith('\\')) { const name = t.slice(1); return GREEK[name] ? mathNode(/^(sum|prod|partial|nabla|infty)$/.test(name) ? 'mo' : 'mi', [], GREEK[name]) : identifier(name); }
+      if (/^\d/.test(t)) return mathNode('mn', [], t);
+      if (/^[A-Za-z]+$/u.test(t)) {
+        // Function application when immediately followed by "(".
+        if (peek() === '(' && t.length > 1 && !GREEK[t]) { const fn = identifier(t); const args = atom(); return mathNode('mrow', [fn, mathNode('mo', [], '\u2061'), args]); }
+        return identifier(t);
+      }
+      return mathNode('mo', [], t === '*' ? '·' : t);
+    };
+    const scripted = () => {
+      let base = atom();
+      let sub = null, sup = null;
+      while (peek() === '_' || peek() === '^') {
+        const which = take();
+        const script = group();
+        if (which === '_') sub = sub ? mathNode('mrow', [sub, script]) : script; else sup = sup ? mathNode('mrow', [sup, script]) : script;
+      }
+      if (sub && sup) return mathNode('msubsup', [base, sub, sup]);
+      if (sub) return mathNode('msub', [base, sub]);
+      if (sup) return mathNode('msup', [base, sup]);
+      return base;
+    };
+    // "a / b" becomes a fraction when both sides are single scripted terms.
+    const sequence = stop => {
+      const items = [];
+      while (i < tokens.length && !stop(peek())) {
+        if (peek() === '/' && items.length) {
+          take();
+          const denominator = scripted();
+          const numerator = items.pop();
+          items.push(mathNode('mfrac', [numerator, denominator]));
+          continue;
+        }
+        items.push(scripted());
+      }
+      return wrap(items);
+    };
+    return sequence(() => false);
+  };
+  const symbolNode = text => {
+    const raw = String(text ?? '').trim();
+    if (!raw) return mathNode('mi');
+    try { return parseSymbol(raw); } catch (_) { return identifier(raw); }
+  };
+  // Operator precedence decides where parentheses are actually needed.
+  const PRECEDENCE = {sum: 1, compare: 2, add: 3, subtract: 3, multiply: 4, dot: 4, matmul: 5, unary: 6, power: 7, atom: 9};
+  const binaryName = op => ({'+': 'add', '-': 'subtract', '*': 'multiply', '/': 'divide', '**': 'power'}[op] || 'compare');
+  const precedenceOf = n => {
+    if (n.type === 'Binary') { const name = binaryName(n.op); return name === 'divide' ? PRECEDENCE.atom : PRECEDENCE[name]; }
+    if (n.type === 'Unary') return PRECEDENCE.unary;
+    if (n.type === 'Call') return PRECEDENCE[n.function] ?? PRECEDENCE.atom;
+    if (n.type === 'Conditional') return PRECEDENCE.compare;
+    return PRECEDENCE.atom;
+  };
+  // When state is supplied, variables render as their current numerals for the substituted form.
+  const mathematical = (n, symbols = {}, state = null) => {
+    const child = x => mathematical(x, symbols, state);
     const op = x => mathNode('mo', [], x);
     const row = children => mathNode('mrow', children);
+    const wrap = (x, minimum) => precedenceOf(x) < minimum ? row([op('('), child(x), op(')')]) : child(x);
+    const fname = name => {
+      const node = mathNode(name === 'sum' ? 'mo' : 'mi', [], name === 'sum' ? '∑' : name);
+      if (name !== 'sum' && name.length > 1) node.setAttribute('mathvariant', 'normal');
+      return node;
+    };
+    const callArgs = args => args.flatMap((a, i) => i ? [op(','), child(a)] : [child(a)]);
     switch (n.type) {
-      case 'Canonical': return mathematical(root.ScientificCanonical.display(n), symbols);
-      case 'Constant': return mathNode(typeof n.value === 'number' ? 'mn' : 'mtext', [], format(n.value));
-      case 'Variable': return mathNode('mi', [], symbols[n.id] || n.id);
-      case 'Unary': return row([op(n.op), child(n.operand)]);
-      case 'Binary':
-        if (n.op === '/') return mathNode('mfrac', [child(n.left), child(n.right)]);
-        if (n.op === '**') return mathNode('msup', [row([op('('), child(n.left), op(')')]), child(n.right)]);
-        return row([op('('), child(n.left), op(n.op === '*' ? '×' : n.op), child(n.right), op(')')]);
-      case 'Call':
-        if (n.function === 'sqrt' && n.args.length === 1) return mathNode('msqrt', [child(n.args[0])]);
-        return row([mathNode(n.function === 'sum' ? 'mo' : 'mi', [], n.function === 'sum' ? '∑' : n.function), op('('),
-          ...n.args.flatMap((a, i) => i ? [op(','), child(a)] : [child(a)]), op(')')]);
-      case 'Index': return mathNode('msub', [child(n.value), child(n.index)]);
+      case 'Canonical': return mathematical(root.ScientificCanonical.display(n), symbols, state);
+      case 'Constant': return typeof n.value === 'number' || Array.isArray(n.value) ? valueNode(n.value) : mathNode('mtext', [], String(n.value));
+      case 'Variable': return state && own(state, n.id) ? valueNode(state[n.id]) : symbolNode(symbols[n.id] || n.id);
+      case 'Unary': return row([op(n.op === '-' ? '−' : n.op), wrap(n.operand, PRECEDENCE.unary)]);
+      case 'Binary': {
+        const name = binaryName(n.op);
+        if (name === 'divide') return mathNode('mfrac', [child(n.left), child(n.right)]);
+        if (name === 'power') return mathNode('msup', [wrap(n.left, PRECEDENCE.atom), child(n.right)]);
+        const glyph = {add: '+', subtract: '−', multiply: '×'}[name] || ({'<': '<', '<=': '≤', '>': '>', '>=': '≥', '==': '=', '!=': '≠'}[n.op] || n.op);
+        const level = PRECEDENCE[name];
+        return row([wrap(n.left, level), op(glyph), wrap(n.right, level + (name === 'subtract' ? 1 : 0))]);
+      }
+      case 'Call': {
+        const name = n.function, args = n.args;
+        if (name === 'sqrt' && args.length === 1) return mathNode('msqrt', [child(args[0])]);
+        if (name === 'divide' && args.length === 2) return mathNode('mfrac', [child(args[0]), child(args[1])]);
+        if (name === 'power' && args.length === 2) return mathNode('msup', [wrap(args[0], PRECEDENCE.atom), child(args[1])]);
+        if (name === 'transpose' && args.length === 1) return mathNode('msup', [wrap(args[0], PRECEDENCE.atom), mathNode('mi', [], 'T')]);
+        if (name === 'abs' && args.length === 1) return row([op('|'), child(args[0]), op('|')]);
+        if (name === 'exp' && args.length === 1) return mathNode('msup', [mathNode('mi', [], 'e'), child(args[0])]);
+        if (name === 'norm' && args.length === 1) return row([op('‖'), child(args[0]), op('‖')]);
+        if (name === 'matmul' && args.length === 2) return row([wrap(args[0], PRECEDENCE.matmul), op('\u2062'), wrap(args[1], PRECEDENCE.matmul)]);
+        const infix = {add: '+', subtract: '−', multiply: '×', dot: '·'};
+        if (infix[name] && args.length === 2) {
+          const level = PRECEDENCE[name];
+          return row([wrap(args[0], level), op(infix[name]), wrap(args[1], level + (name === 'subtract' ? 1 : 0))]);
+        }
+        if (name === 'sum' && args.length === 1) return row([op('∑'), wrap(args[0], PRECEDENCE.multiply)]);
+        return row([fname(name), op('('), ...callArgs(args), op(')')]);
+      }
+      case 'Index': return mathNode('msub', [wrap(n.value, PRECEDENCE.atom), child(n.index)]);
       case 'Vector': return row([op('['), ...n.items.flatMap((a, i) => i ? [op(','), child(a)] : [child(a)]), op(']')]);
-      case 'Matrix': return row([op('['), mathNode('mtable', n.rows.map(r => mathNode('mtr', r.map(x => mathNode('mtd', [child(x)]))))), op(']')]);
+      case 'Matrix': return row([fence('['), mathNode('mtable', n.rows.map(r => mathNode('mtr', r.map(x => mathNode('mtd', [child(x)]))))), fence(']')]);
       case 'Conditional': return row([child(n.then), mathNode('mtext', [], ' if '), child(n.condition), mathNode('mtext', [], ', otherwise '), child(n.else)]);
       default: return fail('Unsupported equation AST');
     }
   };
-  const math = (ast, symbols, output) => mathNode('math', output ? [mathNode('mi', [], output), mathNode('mo', [], '='), mathematical(ast, symbols)] : [mathematical(ast, symbols)]);
-  root.ScientificAST = Object.freeze({evaluate, equation, math, format, finite, operations: Object.keys(ops)});
+  const math = (ast, symbols, output) => {
+    const node = mathNode('math', output ? [symbolNode(output), mathNode('mo', [], '='), mathematical(ast, symbols)] : [mathematical(ast, symbols)]);
+    node.setAttribute('display', 'block');
+    return node;
+  };
+  // Substituted form: symbols replaced by current numerals, then the evaluated result.
+  const substituted = (ast, symbols, state, result) => {
+    const parts = [mathematical(ast, symbols, state)];
+    if (result !== undefined) parts.push(mathNode('mo', [], '='), valueNode(result));
+    const node = mathNode('math', parts);
+    node.setAttribute('display', 'block');
+    return node;
+  };
+  const symbol = text => {
+    const node = mathNode('math', [symbolNode(text)]);
+    node.setAttribute('display', 'inline');
+    return node;
+  };
+  root.ScientificAST = Object.freeze({evaluate, equation, math, substituted, symbol, format, short, finite, operations: Object.keys(ops)});
 })(globalThis);

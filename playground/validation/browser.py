@@ -144,9 +144,21 @@ def validate_browser(path: str | Path, *, reference_evaluator: ReferenceEvaluato
     def finding(code, message, target=None, status=ValidationStatus.FAIL, details=None):
         findings.append(ValidationFinding(status, code, 'browser', message, target, details or {}))
 
-    def require(condition, code, message, target=None):
+    def require(condition, code, message, target=None, details=None):
         if not condition:
-            finding(code, message, target)
+            finding(code, message, target, details=details)
+
+    def reset_diff(snapshot, baseline, visuals, baseline_visuals, tolerance):
+        """Name what Reset failed to restore so the trace is actionable."""
+        changed_state = [k for k in snapshot['state'] if k not in baseline['state'] or not close_enough(snapshot['state'][k], baseline['state'][k], tolerance)]
+        changed_visuals = [k for k in visuals if visuals[k] != baseline_visuals.get(k)]
+        excerpt = {}
+        for key in changed_visuals[:2]:
+            a, b = baseline_visuals.get(key, ''), visuals[key]
+            index = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
+            excerpt[key] = {'baseline': a[max(0, index - 60):index + 120], 'after_reset': b[max(0, index - 60):index + 120]}
+        return {'state_keys': changed_state, 'ui': snapshot['ui'] if snapshot['ui'] != baseline['ui'] else None,
+                'error': snapshot['error'], 'visuals': changed_visuals, 'excerpt': excerpt}
 
     errors: list[str] = []
     attempted_network: list[str] = []
@@ -217,7 +229,8 @@ def validate_browser(path: str | Path, *, reference_evaluator: ReferenceEvaluato
                 require(changed_visual, 'BROWSER_DEAD_VISUAL', 'No scientific visual changed across control probes.', control['id'])
                 page.locator('[data-role="reset"]').click()
                 reset, reset_visuals = inspect()
-                require(close_enough(reset, baseline, tolerance) and reset_visuals == baseline_visuals, 'BROWSER_RESET_FAILED', 'Reset did not restore baseline representations.')
+                require(close_enough(reset, baseline, tolerance) and reset_visuals == baseline_visuals, 'BROWSER_RESET_FAILED', 'Reset did not restore baseline representations.',
+                        control['id'], reset_diff(reset, baseline, reset_visuals, baseline_visuals, tolerance))
             for exploration in m['explorations']:
                 # Buttons are selected by ordinal; source IDs remain data.
                 index = next(i for i, e in enumerate(m['explorations']) if e['id'] == exploration['id'])
@@ -236,7 +249,8 @@ def validate_browser(path: str | Path, *, reference_evaluator: ReferenceEvaluato
                 require(not lengths or max(lengths) <= 1 or snapshot['ui']['step'] == 1, 'BROWSER_STEPPER_FAILED', 'Stepper did not advance scientific process view.')
             page.locator('[data-role="reset"]').click()
             snapshot, visuals = inspect()
-            require(close_enough(snapshot, baseline, tolerance) and visuals == baseline_visuals, 'BROWSER_RESET_FAILED', 'Final Reset did not restore all scientific and explanatory state.')
+            require(close_enough(snapshot, baseline, tolerance) and visuals == baseline_visuals, 'BROWSER_RESET_FAILED', 'Final Reset did not restore all scientific and explanatory state.',
+                    None, reset_diff(snapshot, baseline, visuals, baseline_visuals, tolerance))
             for width in (375, 768):
                 page.set_viewport_size({'width': width, 'height': 900})
                 require(page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), 'BROWSER_RESPONSIVE_FAILED', 'Lesson overflows the viewport.')

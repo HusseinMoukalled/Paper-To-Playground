@@ -37,10 +37,13 @@ def _control(control: dict, index: int) -> str:
              f'data-variable-id="{escape(control["scientific_variable"])}" '
              f'data-depends-on="{escape(control["scientific_variable"])}" '
              f'aria-describedby="{value_id} {hint_id}"')
+    grid = ''
     if kind == 'select':
         input_html = f'<select {attrs}>' + ''.join(f'<option value="{escape(x)}">{escape(x)}</option>' for x in control['options']) + '</select>'
     elif kind in {'vector', 'matrix'}:
-        input_html = f'<textarea {attrs} rows="2" spellcheck="false">{escape(safe_json(control["default"]))}</textarea>'
+        # The textarea stays the validated source of truth; the runtime layers an editable number grid on it.
+        input_html = f'<textarea {attrs} rows="2" spellcheck="false" class="array-source">{escape(safe_json(control["default"]))}</textarea>'
+        grid = f'<div class="array-grid" data-grid-for="{key}" aria-hidden="true"></div>'
     elif kind == 'toggle':
         input_html = f'<input {attrs} type="checkbox"' + (' checked' if control['default'] else '') + '>'
     else:
@@ -49,9 +52,12 @@ def _control(control: dict, index: int) -> str:
         if control['step'] is None:
             domain += ' step="any"'
         input_html = f'<input {attrs} type="{input_type}" value="{escape(control["default"])}"{domain}>'
+        if input_type == 'range':
+            lo, hi = control['minimum'], control['maximum']
+            input_html += f'<div class="range-ends"><span>{escape(lo)}</span><span>{escape(hi)}</span></div>'
     units = (' (' + escape(control['units']) + ')') if control['units'] else ''
-    return (f'<div class="control"><label for="{key}">{escape(control["label"])}{units}</label>'
-            f'<output id="{value_id}" class="current-value">{escape(control["default"])}</output>{input_html}'
+    return (f'<div class="control" data-kind="{escape(kind)}"><div class="control-head"><label for="{key}">{escape(control["label"])}{units}</label>'
+            f'<output id="{value_id}" class="current-value">{escape(control["default"])}</output></div>{grid}{input_html}'
             f'<p id="{hint_id}" class="hint">{escape(control["learning_purpose"])} '
             f'{escape(control["safe_range_reason"])}</p></div>')
 
@@ -61,21 +67,24 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
         m = build_manifest(ir, asts=asts)
         lesson, science = m['lesson_spec'], m['scientific_model']
         controls = ''.join(_control(c, i) for i, c in enumerate(m['controls']))
-        symbols = ''.join(f'<dt data-variable-id="{escape(v["id"])}">{escape(v["display_symbol"])}</dt><dd>{escape(v["meaning"])}'
+        symbols = ''.join(f'<dt data-variable-id="{escape(v["id"])}" data-symbol="{escape(v["display_symbol"])}">{escape(v["display_symbol"])}</dt><dd>{escape(v["meaning"])}'
                           + (f' · {escape(v["units"])}' if v['units'] else '')
                           + f' <span class="badge">{escape(v["knowledge_class"])}</span></dd>' for v in m['variables'])
         objectives = ''.join(f'<li data-objective-id="{i}">{escape(value)}</li>' for i, value in enumerate(lesson['learning_objectives']))
         steps = ''.join(f'<li data-mechanism-id="{escape(s["id"])}">{escape(s["description"])}</li>' for s in sorted(science['mechanism_steps'], key=lambda s: s['order']))
         equations = ''.join(f'<div class="equation-panel" id="equation-{escape(c["id"])}" data-computation-id="{escape(c["id"])}" '
-                            f'data-depends-on="{escape(" ".join(c["reads"]))}"><p class="equation" data-role="equation"></p>'
-                            f'<p class="substitution" data-role="substitution"></p></div>' for c in m['computations'])
-        visuals = ''.join(f'<article class="panel"><h3>{escape(v["question"])}</h3><p>{escape(lesson["visual_intent"])}</p>'
+                            f'data-depends-on="{escape(" ".join(c["reads"]))}"><p class="equation-label">Step {i + 1}</p>'
+                            f'<p class="equation" data-role="equation"></p>'
+                            f'<p class="equation substituted" data-role="substituted"></p>'
+                            f'<p class="substitution" data-role="substitution"></p></div>' for i, c in enumerate(m['computations']))
+        visuals = ''.join(f'<article class="panel figure"><p class="eyebrow">Live figure</p><h3>{escape(v["question"])}</h3>'
                          f'<div class="visual" data-visual-id="{escape(v["id"])}" data-depends-on="{escape(" ".join(v["data_refs"]))}"></div>'
-                         '<p class="hint">Teaching visualization generated from the current calculations.</p></article>' for v in m['visuals'])
+                         f'<p class="caption">{escape(lesson["visual_intent"])}</p></article>' for v in m['visuals'])
         output_ids = list(dict.fromkeys(m['outputs'] + lesson['important_intermediates']))
         variable_by_id = {v['id']: v for v in m['variables']}
-        values = ''.join(f'<div class="output"><span>{escape(variable_by_id[ref]["display_symbol"])}</span>'
+        values = ''.join(f'<div class="output"><span class="symbol" data-symbol="{escape(variable_by_id[ref]["display_symbol"])}">{escape(variable_by_id[ref]["display_symbol"])}</span>'
                         f'<output data-output-id="{escape(ref)}" data-variable-id="{escape(ref)}" data-depends-on="{escape(ref)}" aria-live="polite"></output>'
+                        f'<div class="math-view" data-math-for="{escape(ref)}" aria-hidden="true"></div>'
                         f'<p class="hint">{escape(variable_by_id[ref]["meaning"])}</p></div>' for ref in output_ids)
         explorations = ''.join(f'<article class="panel exploration" data-exploration-id="{escape(e["id"])}"><span class="eyebrow">Exploration {i + 1}</span>'
                               f'<h3>{escape(e["title"])}</h3><p><strong>Change:</strong> {escape(e["change"])}</p>'
@@ -105,14 +114,14 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{escape(m['concept'])} · Paper to Playground</title><style>{css}</style></head>
 <body><main><header data-role="central-question"><div class="eyebrow">Paper to Playground · Interactive scientific lesson</div>
-<h1>{escape(lesson['central_learning_question'])}</h1><p class="lede">{escape(science['purpose'])}</p><ul>{objectives}</ul></header>
-<section data-role="intuition"><h2>Build an intuition</h2><p class="lede">{escape(lesson['intuition'])}</p></section>
-<section data-role="symbols"><h2>The parts and symbols</h2><dl class="symbols">{symbols}</dl></section>
-<section data-role="mechanism"><h2>Follow the mechanism</h2><ol>{steps}</ol>{equations}</section>
-<section data-role="playground"><h2>Predict, change, observe</h2><div class="playground-grid"><div class="panel controls">{controls}</div><div>{visuals}</div></div>
+<h1>{escape(lesson['central_learning_question'])}</h1><p class="lede">{escape(science['purpose'])}</p><ul class="objectives">{objectives}</ul></header>
+<section class="block" data-role="intuition"><h2>Build an intuition</h2><p class="lede">{escape(lesson['intuition'])}</p></section>
+<section class="block" data-role="symbols"><h2>The parts and symbols</h2><dl class="symbols">{symbols}</dl></section>
+<section class="block" data-role="mechanism"><h2>Follow the mechanism</h2><ol class="steps">{steps}</ol>{equations}</section>
+<section class="block" data-role="playground"><h2>Predict, change, observe</h2><div class="playground-grid"><div class="panel controls">{controls}</div><div class="stage">{visuals}</div></div>
 <div class="toolbar">{toolbar}</div><p class="status" role="status" aria-live="polite" data-role="status"></p></section>
-<section data-role="intermediates"><h2>Follow the numbers</h2><div class="outputs">{values}</div></section>
-<section data-role="explorations"><h2>Two ways to explore</h2><div class="explorations">{explorations}</div></section>
+<section class="block" data-role="intermediates"><h2>Follow the numbers</h2><div class="outputs">{values}</div></section>
+<section class="block" data-role="explorations"><h2>Two ways to explore</h2><div class="explorations">{explorations}</div></section>
 <section data-role="limitation" class="callout"><h2>Where this demonstration stops</h2><p>{escape(lesson['limitation_or_assumption'])}</p>
 <p>{escape(lesson['misconception'])}</p><p>{escape(science['demonstration_scope'])}</p>
 <ul>{''.join('<li>' + escape(x) + '</li>' for x in science['limitations'] + science['assumptions'])}</ul></section>

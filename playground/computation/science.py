@@ -11,6 +11,49 @@ def _bind(node, symbols):
     return Node(node.kind, node.value, tuple(_bind(x, symbols) for x in node.args))
 
 
+def _prepared_equation(spec, equation, variables):
+    """Return the RHS and symbol map for one direct equation link."""
+    expression = equation.expression
+    if "=" in expression and not any(op in expression for op in ("==", "<=", ">=", "!=")):
+        lhs, _separator, rhs = expression.partition("=")
+        if not IDENTIFIER.fullmatch(lhs.strip()) or "=" in rhs:
+            raise ValueError("Unsupported equation notation")
+        expression = rhs.strip()
+        output_symbols = {symbol for v in spec.output_refs for symbol in
+                          (variables[v].source_symbol, variables[v].display_symbol) if symbol}
+        if lhs.strip() not in output_symbols:
+            raise ValueError("Equation left-hand side does not match computation output")
+    symbols = {}
+    for var_id in equation.variable_refs:
+        var = variables[var_id]
+        for symbol in (var.source_symbol, var.display_symbol):
+            if symbol:
+                if symbol in symbols and symbols[symbol] != var_id:
+                    raise ValueError("Ambiguous source symbols")
+                symbols[symbol] = var_id
+    # Explicit compiler bindings also name safe DSL aliases for source
+    # notation such as d_k. They must resolve to declared equation vars.
+    for symbol, var_id in spec.metadata.get("bindings", {}).items():
+        if var_id in equation.variable_refs:
+            if symbol in symbols and symbols[symbol] != var_id:
+                raise ValueError("Ambiguous equation binding alias")
+            symbols[symbol] = var_id
+    return expression, symbols
+
+
+def link_matches(spec, equation, variables):
+    """True only when this computation executes that equation's canonical AST."""
+    try:
+        if spec.metadata.get("kind", "expression") != "expression":
+            return False
+        expression, symbols = _prepared_equation(spec, equation, variables)
+        actual = _bind(parse(spec.expression), spec.metadata.get("bindings", {}))
+        expected = _bind(parse(expression), symbols)
+        return expected == actual
+    except (ValueError, KeyError, TypeError):
+        return False
+
+
 def check_equation_consistency(ir):
     """Direct links must match the canonical math, modulo explicit symbol renaming.
 
@@ -31,31 +74,7 @@ def check_equation_consistency(ir):
         actual = _bind(parse(spec.expression), spec.metadata.get("bindings", {}))
         for ref in equation_refs:
             equation = equations[ref]
-            expression = equation.expression
-            if "=" in expression and not any(op in expression for op in ("==", "<=", ">=", "!=")):
-                lhs, separator, rhs = expression.partition("=")
-                if not IDENTIFIER.fullmatch(lhs.strip()) or "=" in rhs:
-                    raise ValueError("Unsupported equation notation")
-                expression = rhs.strip()
-                output_symbols = {symbol for v in spec.output_refs for symbol in
-                                  (variables[v].source_symbol, variables[v].display_symbol) if symbol}
-                if lhs.strip() not in output_symbols:
-                    raise ValueError("Equation left-hand side does not match computation output")
-            symbols = {}
-            for var_id in equation.variable_refs:
-                var = variables[var_id]
-                for symbol in (var.source_symbol, var.display_symbol):
-                    if symbol:
-                        if symbol in symbols and symbols[symbol] != var_id:
-                            raise ValueError("Ambiguous source symbols")
-                        symbols[symbol] = var_id
-            # Explicit compiler bindings also name safe DSL aliases for source
-            # notation such as d_k. They must resolve to declared equation vars.
-            for symbol, var_id in spec.metadata.get('bindings', {}).items():
-                if var_id in equation.variable_refs:
-                    if symbol in symbols and symbols[symbol] != var_id:
-                        raise ValueError('Ambiguous equation binding alias')
-                    symbols[symbol] = var_id
+            expression, symbols = _prepared_equation(spec, equation, variables)
             expected = _bind(parse(expression), symbols)
             if expected != actual:
                 raise ValueError("Scientific equation differs from executable canonical AST")
