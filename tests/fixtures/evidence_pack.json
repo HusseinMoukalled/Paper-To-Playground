@@ -1,0 +1,123 @@
+{
+  "source_id": "paper-70c17f8234a262493e08e7fe06f3fc4fda4f89258e2fc9183b5faab6ddfc2d37",
+  "paper_metadata": {
+    "title": "Generic State Update"
+  },
+  "focus": "Equation 6",
+  "audience": "second-year engineering undergraduate",
+  "evidence_blocks": [
+    {
+      "evidence_id": "Edeff35dea2262d9d5269",
+      "evidence_type": "equation",
+      "content": "y = x + gain (6)",
+      "source_element_ids": [
+        "SRC-000003"
+      ],
+      "rank": 0,
+      "page": null,
+      "section_id": "sec-0001",
+      "section_title": "1 Feedback",
+      "metadata": {
+        "html_tag": "p",
+        "body_references": [],
+        "equation_number": "6",
+        "figure_number": null,
+        "table_number": null,
+        "bbox": null,
+        "extraction_confidence": "deterministic"
+      }
+    },
+    {
+      "evidence_id": "E17599772837f500d82cf",
+      "evidence_type": "paragraph",
+      "content": "The feedback gain changes the state.",
+      "source_element_ids": [
+        "SRC-000002"
+      ],
+      "rank": 1,
+      "page": null,
+      "section_id": "sec-0001",
+      "section_title": "1 Feedback",
+      "metadata": {
+        "html_tag": "p",
+        "body_references": [],
+        "equation_number": null,
+        "figure_number": null,
+        "table_number": null,
+        "bbox": null,
+        "extraction_confidence": "deterministic"
+      }
+    },
+    {
+      "evidence_id": "E5dcdf048e845b59970a8",
+      "evidence_type": "paragraph",
+      "content": "The pipeline in Figure 2 processes the state.",
+      "source_element_ids": [
+        "SRC-000004"
+      ],
+      "rank": 2,
+      "page": null,
+      "section_id": "sec-0001",
+      "section_title": "1 Feedback",
+      "metadata": {
+        "html_tag": "p",
+        "body_references": [
+          [
+            "figure",
+            "2"
+          ]
+        ],
+        "equation_number": null,
+        "figure_number": null,
+        "table_number": null,
+        "bbox": null,
+        "extraction_confidence": "deterministic"
+      }
+    },
+    {
+      "evidence_id": "E4cb92512d232cdfceb0c",
+      "evidence_type": "figure_context",
+      "content": "Figure 2. Feedback pipeline.",
+      "source_element_ids": [
+        "SRC-000005"
+      ],
+      "rank": 3,
+      "page": null,
+      "section_id": "sec-0001",
+      "section_title": "1 Feedback",
+      "metadata": {
+        "html_tag": "figure",
+        "caption": "Figure 2. Feedback pipeline.",
+        "numeric_values_from_pixels": false,
+        "body_references": [
+          [
+            "figure",
+            "2"
+          ]
+        ],
+        "equation_number": null,
+        "figure_number": "2",
+        "table_number": null,
+        "bbox": null,
+        "extraction_confidence": "deterministic"
+      }
+    }
+  ],
+  "retrieval_confidence": "HIGH",
+  "retrieval_metadata": {
+    "strategy": "explicit_lexical_heading_bm25",
+    "explicit_matches": 1,
+    "unresolved_references": [],
+    "top_term_coverage": 1.0,
+    "top_bm25_score": 2.3506669162816243,
+    "rerank_used": false,
+    "neighbor_expansions": 1,
+    "confidence_basis": "observable_structural_signals; not a probability",
+    "source_is_untrusted": true,
+    "omitted_explicit_count": 0,
+    "omitted_explicit_element_ids": [],
+    "omitted_context_count": 0,
+    "omitted_context_element_ids": [],
+    "omitted_references": []
+  }
+}
