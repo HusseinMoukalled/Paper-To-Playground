@@ -1,0 +1,345 @@
+{
+  "scientific_model": {
+    "concept": "Fixture signal_transformation",
+    "purpose": "Trace how two inputs change this small mechanism.",
+    "focus_alignment": "A controlled mechanism fixture.",
+    "variables": [
+      {
+        "id": "var-x",
+        "source_symbol": "x",
+        "display_symbol": "x",
+        "meaning": "First input",
+        "type": "scalar",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [
+          "E001"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-y",
+        "source_symbol": "y",
+        "display_symbol": "y",
+        "meaning": "Second input",
+        "type": "scalar",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [
+          "E001"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-product",
+        "source_symbol": null,
+        "display_symbol": "p",
+        "meaning": "Shared intermediate product",
+        "type": "scalar",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-result",
+        "source_symbol": null,
+        "display_symbol": "r",
+        "meaning": "Mechanism output",
+        "type": "sequence",
+        "shape": [
+          4
+        ],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-product",
+        "order": 0,
+        "description": "Compute the shared product.",
+        "equation_refs": [],
+        "input_refs": [],
+        "output_refs": []
+      },
+      {
+        "id": "step-output",
+        "order": 1,
+        "description": "Compute the mechanism output.",
+        "equation_refs": [],
+        "input_refs": [],
+        "output_refs": []
+      }
+    ],
+    "assumptions": [],
+    "limitations": [
+      "Toy inputs do not reproduce a full research experiment."
+    ],
+    "misconceptions": [],
+    "invariants": [],
+    "edge_cases": [],
+    "provenance": [
+      "E001: synthetic fixture equation, page 1"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "A small executable teaching example, with no experimental claims."
+  },
+  "lesson_spec": {
+    "central_learning_question": "How do the two inputs affect the result?",
+    "learning_objectives": [
+      "Trace both input dependencies."
+    ],
+    "audience_prerequisites": [
+      "Basic algebra"
+    ],
+    "intuition": "A change in either input flows through the shared intermediate.",
+    "teaching_sequence": [
+      "intuition",
+      "mechanism",
+      "playground"
+    ],
+    "symbol_explanations": {
+      "x": "First input",
+      "y": "Second input"
+    },
+    "controls": [
+      {
+        "id": "control-x",
+        "label": "First input x",
+        "scientific_variable": "var-x",
+        "control_type": "number",
+        "default": 1,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-product",
+          "var-result"
+        ],
+        "learning_purpose": "Observe the dependency on this input.",
+        "safe_range_reason": "Small positive toy inputs.",
+        "minimum": 0.5,
+        "maximum": 4,
+        "step": 0.5,
+        "options": []
+      },
+      {
+        "id": "control-y",
+        "label": "Second input y",
+        "scientific_variable": "var-y",
+        "control_type": "number",
+        "default": 2,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-product",
+          "var-result"
+        ],
+        "learning_purpose": "Observe the dependency on this input.",
+        "safe_range_reason": "Small positive toy inputs.",
+        "minimum": 0.5,
+        "maximum": 4,
+        "step": 0.5,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-product"
+    ],
+    "visual_question": "How does the mechanism output respond?",
+    "visual_intent": "Read actual computed values and their representation.",
+    "guided_explorations": [
+      {
+        "id": "explore-baseline",
+        "title": "Start with small inputs",
+        "change": "Use the first setup.",
+        "observe": "Inspect the intermediate and output.",
+        "why": "It establishes the mechanism at a small scale.",
+        "setup": {
+          "var-x": 0.5,
+          "var-y": 1.5
+        }
+      },
+      {
+        "id": "explore-contrast",
+        "title": "Contrast a stronger input",
+        "change": "Use the second setup.",
+        "observe": "Compare the output and intermediate.",
+        "why": "It reveals the dependence on both inputs.",
+        "setup": {
+          "control-x": 3,
+          "control-y": 2
+        }
+      }
+    ],
+    "limitation_or_assumption": "This demonstration uses small synthetic inputs.",
+    "misconception": "A visual trend is not a paper benchmark result.",
+    "source_grounding_plan": [
+      "Synthetic fixture evidence E001."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-product",
+      "expression": "x * y",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-x",
+        "var-y"
+      ],
+      "output_refs": [
+        "var-product"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "ast": {
+          "type": "Binary",
+          "op": "*",
+          "left": {
+            "type": "Variable",
+            "id": "var-x"
+          },
+          "right": {
+            "type": "Variable",
+            "id": "var-y"
+          }
+        }
+      }
+    },
+    {
+      "id": "compute-result",
+      "expression": "[x, p, x + y, x - y]",
+      "output_type": "sequence",
+      "input_refs": [
+        "var-product",
+        "var-x",
+        "var-y"
+      ],
+      "output_refs": [
+        "var-result"
+      ],
+      "dependencies": [
+        "compute-product"
+      ],
+      "metadata": {
+        "ast": {
+          "type": "Vector",
+          "items": [
+            {
+              "type": "Variable",
+              "id": "var-x"
+            },
+            {
+              "type": "Variable",
+              "id": "var-product"
+            },
+            {
+              "type": "Binary",
+              "op": "+",
+              "left": {
+                "type": "Variable",
+                "id": "var-x"
+              },
+              "right": {
+                "type": "Variable",
+                "id": "var-y"
+              }
+            },
+            {
+              "type": "Binary",
+              "op": "-",
+              "left": {
+                "type": "Variable",
+                "id": "var-x"
+              },
+              "right": {
+                "type": "Variable",
+                "id": "var-y"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-result",
+      "visual_type": "auto",
+      "question": "How does the mechanism output respond?",
+      "data_refs": [
+        "var-result"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "claim-mechanism",
+      "claim": "The fixture defines the shared product.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E001"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "claim-output",
+      "claim": "The displayed output follows the executable AST.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-result"
+      ]
+    },
+    {
+      "claim_id": "claim-toy",
+      "claim": "Input ranges and diagrams were chosen for teaching.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Trace both inputs",
+    "learning_objective_refs": [
+      "0"
+    ],
+    "mechanism_refs": [
+      "step-product",
+      "step-output"
+    ],
+    "control_refs": [
+      "control-x",
+      "control-y"
+    ],
+    "computation_refs": [
+      "compute-product",
+      "compute-result"
+    ],
+    "visual_refs": [
+      "visual-result"
+    ],
+    "exploration_refs": [
+      "explore-baseline",
+      "explore-contrast"
+    ]
+  },
+  "metadata": {
+    "mechanism_family": "signal_transformation"
+  }
+}

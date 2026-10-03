@@ -1,1 +1,2 @@
-# Foundation uses only the Python 3.11 standard library.
+# Browser controller uses installed Chromium. No playwright install step.
+playwright==1.58.0
