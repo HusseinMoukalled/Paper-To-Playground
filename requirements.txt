@@ -1,4 +1,5 @@
-# Source intelligence: CPU-only wheels and static parsing, Python 3.11 compatible.
+# Python 3.11; CPU-only source parsing and installed-Chromium validation.
 PyMuPDF==1.26.7
 httpx==0.28.1
 beautifulsoup4==4.14.3
+playwright==1.58.0
