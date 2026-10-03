@@ -1,6 +1,6 @@
 # Paper to Playground
 
-Team: Hussein Moukalled, Hadi Lahham, Yasmina Mansour
+Team: Hussein Moukalled, Hadi Lahham, Yasmina Hanna
 
 An autonomous generator that turns one research-paper source and a short learning brief into a single offline interactive lesson. It is a reusable compiler, not a page written for one paper.
 
