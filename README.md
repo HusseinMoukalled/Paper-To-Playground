@@ -10,12 +10,14 @@ An autonomous generator that turns one research-paper source and a short learnin
 
 1. Acquire a local PDF, `file://` path, or HTTP(S) HTML/PDF paper and parse it into a `PaperDocument`.
 2. Retrieve a compact evidence pack with explicit section, equation, figure, and table lookup, then lexical/BM25 ranking.
-3. Ask the supplied OpenRouter model for a structured scientific model and lesson. The model does not write the page.
-4. Check the lesson, repair missing provenance and knowledge-class declarations deterministically, and keep only equation links whose math matches the code that runs.
-5. Execute the restricted math AST in Python, render it with the shared scientific UI, and check the page in installed Chrome, Edge, or Chromium.
+3. Ask the supplied OpenRouter model for a small lesson plan: explanations, scientific input declarations, executable calculation stages, visuals and two exploration presets. The model does not write the page.
+4. Compile that plan into the scientific and teaching IR in Python, deriving IDs, dependencies, control types, executable teaching equations, coverage and exact claim-text records. Source prose keeps evidence citations; computed quantities and teaching equations keep computation provenance; toy settings are labeled pedagogical. Check schema, references, calculations, controls, presets and invariants, including independent array probes. Failures receive concrete feedback for up to three authoring attempts within the shared budget; predicate and boolean-type defects can receive smaller field revisions.
+5. Calculate each exploration's observations directly from its preset and the default inputs; the model's predicted numerical observations are replaced with these computed comparisons. Review the complete lesson and its executable mathematics against the evidence, recording a concrete verdict for each calculation, source claim and exploration. The reviewer receives the actual computed default and preset values. Unsupported science receives correction feedback and must pass a fresh review. Execute the restricted math AST in Python, render it with the shared scientific UI, and check the page in installed Chrome, Edge, or Chromium.
 6. Promote `out/index.html` only after those checks. `out/trace.jsonl` records stages, token use, failures, and repairs.
 
 Every model call uses the `MODEL_ID` argument unchanged. The key is read from `OPENROUTER_API_KEY` and is never written into the page or the trace.
+
+For DeepSeek V4.1 Flash, structured calls disable reasoning so the completion allowance remains available for the lesson and review JSON. Reported completion usage is charged to the shared budget. See [OpenRouter's reasoning-token documentation](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
 
 ## Setup and run
 
@@ -34,7 +36,7 @@ On Windows Command Prompt, a new window picks up a user-level key. For one windo
 set OPENROUTER_API_KEY=your-key-here
 ```
 
-Success exits 0 and writes `out/index.html` and `out/trace.jsonl`. Open `index.html` directly. It embeds its own CSS, JavaScript, and math, and does not need a network connection.
+Success exits 0 and writes `out/index.html` and `out/trace.jsonl`. The authored `candidate.plan.json` and decoded `candidate.ir.json` are retained for diagnostics. Open `index.html` directly. It embeds its own CSS, JavaScript, and math, and does not need a network connection.
 
 ## Input
 
@@ -52,7 +54,30 @@ Success exits 0 and writes `out/index.html` and `out/trace.jsonl`. Open `index.h
 
 ## Example
 
-`case.json` in this repository asks for scaled dot-product attention from *Attention Is All You Need*, Section 3.2.1, for a second-year engineering undergraduate. A successful run writes `out/index.html`: a self-contained lesson with the question, symbols set as math, live scores, softmax weights, the output vector, at least two controls, two guided setups, a limitation, and source grounding. `out/trace.jsonl` is the matching execution record. Assessed pages are generated again from the case; this example is only a sample.
+Actual generated pages are included in Git, together with their exact input, authored plan and trace:
+
+- [Attention HTML](examples/generated/attention/index.html), [input](examples/generated/attention/case.json), [trace](examples/generated/attention/trace.jsonl).
+- [Shannon entropy HTML](examples/generated/entropy/index.html), [input](examples/generated/entropy/case.json), [trace](examples/generated/entropy/trace.jsonl).
+
+Open the HTML directly in a browser; generation and an API key are unnecessary to use these examples. The pages are copied from successful fresh CLI runs. Generated working outputs stay ignored under `out/`; these submission examples are tracked under `examples/`.
+
+## Verification
+
+See [the measured verification report](VERIFICATION.md) and [the code walkthrough](WALKTHROUGH.md).
+
+Run the deterministic tests, including offline Chromium checks:
+
+```bash
+python -m unittest discover -s tests -q
+```
+
+With `OPENROUTER_API_KEY` set, run fresh end-to-end tests using the supplied model:
+
+```bash
+python scripts/verify_live.py --model deepseek/deepseek-v4.1-flash --repeats 2
+```
+
+The runner tests attention, Shannon entropy, Adam, batch normalization, dropout, distillation and logical clocks with the public CLI, clean output directories, actual API calls and browser checks. It saves HTML, traces, per-run token/time measurements and a SHA-256 fingerprint of the production code under `out/verification/`. Use `--cases entropy attention --repeats 1` for a smaller check. Use `--prompt-key` to enter a key with terminal echo disabled if it is unavailable in the current environment. These are our practice briefs; they are not the instructor's hidden inputs or an official reassessment. Offline tests use controlled model responses and cannot establish live generation reliability.
 
 ## Reuse
 

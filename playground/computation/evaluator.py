@@ -260,7 +260,10 @@ def execute(ir, inputs: dict, *, guard=None):
             if any(not IDENTIFIER.fullmatch(k) for k in bindings) or any(v not in values for v in bindings.values()):
                 raise ValueError("Unresolved scientific binding")
             guard.check()
-            result, history = execute_spec(spec, {k: values[v] for k, v in bindings.items()}, guard=guard)
+            try:
+                result, history = execute_spec(spec, {k: values[v] for k, v in bindings.items()}, guard=guard)
+            except (ValueError, TypeError, ZeroDivisionError, OverflowError) as exc:
+                raise ValueError(f"{spec.id}, expression '{spec.expression}', expected {spec.output_type}: {exc}") from exc
             values[spec.id] = result
             for output in spec.output_refs:
                 if output not in variables:

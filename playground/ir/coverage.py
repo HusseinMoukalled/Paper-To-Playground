@@ -1,5 +1,6 @@
 """Machine-checkable focus path. Objective refs are exact objective strings."""
 from playground.validation.report import ValidationFinding, ValidationStatus as S
+import re
 
 
 def validate_coverage(ir, evidence):
@@ -13,6 +14,22 @@ def validate_coverage(ir, evidence):
     if coverage.focus != evidence.focus:
         fail("Focus changed from the supplied EvidencePack")
     science, lesson = ir.scientific_model, ir.lesson_spec
+    # Enforce explicit named-input lists mechanically; prose requirements still
+    # need semantic review. This is notation matching, not a paper template.
+    named = r'[A-Za-z][A-Za-z0-9_]*'
+    lists = re.finditer(r'\beditable\s+(' + named + r'(?:\s*,\s*' + named +
+                        r')*(?:\s*,?\s+and\s+' + named + r')?)\s+'
+                        r'(?:inputs|values|vectors|matrices|parameters)\b', evidence.focus, re.I)
+    controlled = {c.scientific_variable for c in lesson.controls}
+    for match in lists:
+        requested = re.findall(named, match.group(1))
+        for symbol in requested:
+            if symbol.lower() == 'and':
+                continue
+            matches = [v for v in science.variables if v.source_symbol.casefold() == symbol.casefold()]
+            if not any(v.id in controlled for v in matches):
+                fail(f"Focus explicitly requests editable {symbol}; declare it as an editable scientific input "
+                     "with a control and a computation path. A fixed value or an unrelated switch is insufficient.")
     sets = {
         "learning_objective_refs": set(lesson.learning_objectives),
         "mechanism_refs": {x.id for x in science.mechanism_steps} | {x.id for x in science.relationships} | {x.id for x in science.equations},
@@ -45,12 +62,13 @@ def validate_coverage(ir, evidence):
             continue
         var = controls[cid].scientific_variable
         if not downstream(var).intersection(selected):
-            fail("Covered control is disconnected from covered computation")
+            fail(f"Control {cid} ({var}) is unused by the computations; bind and use it in an expression")
     observed = {ref for visual in ir.visuals for ref in visual.data_refs}
     for control in lesson.controls:
         reached = downstream(control.scientific_variable)
         if not observed.intersection(reached) or not set(control.effect_targets) <= reached:
-            fail("Control lacks a dependency path to declared effects and visible scientific output")
+            fail(f"Control {control.id} lacks a dependency path to declared effects {control.effect_targets} "
+                 "and visible scientific output")
     produced = selected | {v for c in ir.computations if c.id in selected for v in c.output_refs}
     mechanisms = {x.id: x for collection in (science.equations, science.relationships, science.mechanism_steps) for x in collection}
     computed_variables = {v for c in ir.computations if c.id in selected for v in c.input_refs + c.output_refs}

@@ -1,0 +1,262 @@
+{
+  "title": "Scaled Dot-Product Attention: Scores, Weights, and Weighted Output",
+  "purpose": "Explain the core computation of scaled dot-product attention for a single query: similarity scores, softmax-normalized weights, and the weighted combination of values, including the effect of the 1/sqrt(d_k) scaling.",
+  "scope": "One query vector q, two key vectors and two value vectors (d_k = d_v = 2). The lesson computes scores, scaled scores, attention weights, and the output vector. It does not cover multi-head attention, masking, training, or learned projections.",
+  "intuition": "A query is compared with each key by a dot product. Larger dot products mean the query is more similar to that key. Dividing by sqrt(d_k) keeps these scores from growing with dimension, so the softmax stays in a well-behaved range. The softmax turns scores into weights that sum to one, and the output is the weighted average of the value vectors.",
+  "learning_objectives": [
+    "Compute attention scores as dot products between a query and each key, and apply the 1/sqrt(d_k) scaling.",
+    "Convert scaled scores to attention weights with softmax, verify they sum to one, and form the weighted output as a convex combination of value vectors."
+  ],
+  "prerequisites": [
+    "Vector dot product and basic matrix-vector multiplication.",
+    "Softmax as a normalized exponential that maps real scores to a probability distribution."
+  ],
+  "assumptions": [
+    "The query, keys, and values are already projected vectors; this lesson does not compute the learned linear projections.",
+    "Only one query is used, so the attention weight vector has one entry per key and the output is a single value vector."
+  ],
+  "limitations": [
+    "The lesson uses d_k = 2 and two keys; real models use larger dimensions and many keys, which changes the numerical scale of scores and weights.",
+    "Masking, dropout, and multi-head concatenation are outside this scope."
+  ],
+  "misconception": "Scaling by 1/sqrt(d_k) is not an arbitrary normalization; it counteracts the growth of dot-product variance with dimension, keeping softmax gradients from becoming extremely small.",
+  "edge_cases": [
+    "When all scaled scores are equal, softmax gives uniform weights and the output is the simple average of the value vectors.",
+    "When one scaled score is much larger than the others, its weight approaches one and the output approaches that value vector."
+  ],
+  "evidence_refs": [
+    "Ea5174acb5120f8d7af1a",
+    "Ef0f5ea2528a21fe64b4b",
+    "E4ad662dfc8a8fa44fb6c",
+    "Eb91ba47af715ce8d60ae"
+  ],
+  "inputs": [
+    {
+      "name": "q",
+      "label": "Query vector q",
+      "meaning": "The query vector of dimension d_k = 2 used to compute similarity with each key.",
+      "type": "vector",
+      "domain": "real",
+      "value": [
+        1.0,
+        0.0
+      ],
+      "editable": true,
+      "minimum": -5.0,
+      "maximum": 5.0,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ]
+    },
+    {
+      "name": "K",
+      "label": "Key matrix K",
+      "meaning": "Two key vectors stacked as rows; each row is a key of dimension d_k = 2.",
+      "type": "matrix",
+      "domain": "real",
+      "value": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "editable": true,
+      "minimum": -5.0,
+      "maximum": 5.0,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ]
+    },
+    {
+      "name": "V",
+      "label": "Value matrix V",
+      "meaning": "Two value vectors stacked as rows; each row is a value of dimension d_v = 2.",
+      "type": "matrix",
+      "domain": "real",
+      "value": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "editable": true,
+      "minimum": -5.0,
+      "maximum": 5.0,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ]
+    },
+    {
+      "name": "scale_on",
+      "label": "Apply 1/sqrt(d_k) scaling",
+      "meaning": "Boolean switch: when true, scores are divided by sqrt(d_k); when false, raw dot-product scores are used.",
+      "type": "boolean",
+      "domain": null,
+      "value": true,
+      "editable": true,
+      "minimum": null,
+      "maximum": null,
+      "step": null,
+      "units": null,
+      "evidence_refs": [
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "scores",
+      "label": "Raw attention scores",
+      "expression": "matmul(K, q)",
+      "meaning": "Dot product of the query with each key, producing one score per key.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ]
+    },
+    {
+      "name": "scaled_scores",
+      "label": "Scaled attention scores",
+      "expression": "scores / sqrt(2) if scale_on else scores",
+      "meaning": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "E4ad662dfc8a8fa44fb6c"
+      ]
+    },
+    {
+      "name": "weights",
+      "label": "Attention weights",
+      "expression": "softmax(scaled_scores)",
+      "meaning": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+      "type": "distribution",
+      "domain": "probability",
+      "units": null,
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ]
+    },
+    {
+      "name": "output",
+      "label": "Attention output",
+      "expression": "matmul(transpose(V), weights)",
+      "meaning": "Weighted sum of the value vectors, using the attention weights as coefficients.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ]
+    }
+  ],
+  "invariants": [
+    "approx_equal(sum(weights), 1)"
+  ],
+  "visuals": [
+    {
+      "type": "bars",
+      "question": "How do the attention weights change when the query is more similar to one key than the other?",
+      "refs": [
+        "weights",
+        "scaled_scores"
+      ]
+    },
+    {
+      "type": "vector",
+      "question": "How does the output vector compare to the individual value vectors when the weights are uniform versus concentrated?",
+      "refs": [
+        "output",
+        "V",
+        "weights"
+      ]
+    }
+  ],
+  "explorations": [
+    {
+      "title": "Equal scores with and without scaling",
+      "setup": {
+        "q": [
+          1.0,
+          1.0
+        ],
+        "K": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "V": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "scale_on": true
+      },
+      "observe": "With q = [1,1], both raw scores are 1. Scaling by 1/sqrt(2) gives equal scaled scores, so softmax returns uniform weights [0.5, 0.5] and the output is the average of the two value vectors. Turning scaling off leaves the scores equal, so the weights and output are unchanged.",
+      "why": "Equal scores always produce uniform softmax weights regardless of the common scale factor, because softmax is invariant to adding a constant to all scores. The scaling changes the magnitude of the scores but not their relative differences when they are already equal."
+    },
+    {
+      "title": "Dominant score with and without scaling",
+      "setup": {
+        "q": [
+          3.0,
+          0.0
+        ],
+        "K": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "V": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "scale_on": true
+      },
+      "observe": "With q = [3,0], the raw scores are [3, 0]. Scaling by 1/sqrt(2) gives approximately [2.121, 0]. The softmax weights become more concentrated on the first key than with raw scores, and the output moves closer to the first value vector. Turning scaling off uses the larger raw scores, producing even more concentrated weights and an output even closer to the first value vector.",
+      "why": "Dividing by sqrt(d_k) reduces the magnitude of the score differences, which makes the softmax less peaked. Without scaling, larger score differences push softmax toward a one-hot distribution, which is the behavior the scaling factor is designed to counteract."
+    }
+  ]
+}

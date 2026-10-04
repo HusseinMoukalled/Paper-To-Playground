@@ -6,7 +6,11 @@ from playground.computation.parser import parse, IDENTIFIER
 def _bind(node, symbols):
     if node.kind == "variable":
         if node.value not in symbols:
-            raise ValueError("Equation contains an unmapped scientific symbol")
+            raise ValueError(f"Unmapped equation symbol '{node.value}'; available bindings are {sorted(symbols)}. "
+                             "Use the computation's aliases and include their variables in equation.variable_refs.")
+        if symbols[node.value] is None:
+            raise ValueError(f"Ambiguous equation symbol '{node.value}'; use distinct aliases in "
+                             "the equation expression and computation bindings")
         return Node("variable", symbols[node.value])
     return Node(node.kind, node.value, tuple(_bind(x, symbols) for x in node.args))
 
@@ -22,20 +26,23 @@ def _prepared_equation(spec, equation, variables):
         output_symbols = {symbol for v in spec.output_refs for symbol in
                           (variables[v].source_symbol, variables[v].display_symbol) if symbol}
         if lhs.strip() not in output_symbols:
-            raise ValueError("Equation left-hand side does not match computation output")
+            raise ValueError(f"{equation.id} linked to {spec.id}: equation LHS '{lhs.strip()}' must name "
+                             f"the output {spec.output_refs}, whose symbols are {sorted(output_symbols)}. "
+                             "Use the same output symbol or a right-hand-side-only equation.")
     symbols = {}
     for var_id in equation.variable_refs:
         var = variables[var_id]
         for symbol in (var.source_symbol, var.display_symbol):
             if symbol:
                 if symbol in symbols and symbols[symbol] != var_id:
-                    raise ValueError("Ambiguous source symbols")
-                symbols[symbol] = var_id
+                    symbols[symbol] = None
+                else:
+                    symbols[symbol] = var_id
     # Explicit compiler bindings also name safe DSL aliases for source
     # notation such as d_k. They must resolve to declared equation vars.
     for symbol, var_id in spec.metadata.get("bindings", {}).items():
         if var_id in equation.variable_refs:
-            if symbol in symbols and symbols[symbol] != var_id:
+            if symbol in symbols and symbols[symbol] not in {None, var_id}:
                 raise ValueError("Ambiguous equation binding alias")
             symbols[symbol] = var_id
     return expression, symbols
@@ -77,7 +84,8 @@ def check_equation_consistency(ir):
             expression, symbols = _prepared_equation(spec, equation, variables)
             expected = _bind(parse(expression), symbols)
             if expected != actual:
-                raise ValueError("Scientific equation differs from executable canonical AST")
+                raise ValueError(f"{ref} linked to {spec.id}: equation '{equation.expression}' differs "
+                                 f"from executable '{spec.expression}' after symbol binding")
             linked.add(ref)
     context_only = ir.metadata.get("equation_scope", {})
     if not isinstance(context_only, dict) or not set(context_only) <= equations.keys():

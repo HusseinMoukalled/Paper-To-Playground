@@ -1,0 +1,1196 @@
+{
+  "scientific_model": {
+    "concept": "Dropout: Training-Time Masking and Test-Time Weight Scaling",
+    "purpose": "Show how a binary dropout mask zeroes activations during training, and how the paper's test-time convention compensates by scaling weights rather than sampling masks.",
+    "focus_alignment": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+    "variables": [
+      {
+        "id": "var-a",
+        "source_symbol": "a",
+        "display_symbol": "a",
+        "meaning": "Fixed activation vector before dropout, with one entry per unit.",
+        "type": "vector",
+        "shape": [
+          4
+        ],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "PEDAGOGICAL"
+      },
+      {
+        "id": "var-m",
+        "source_symbol": "m",
+        "display_symbol": "m",
+        "meaning": "Binary dropout mask for one training step: 1 keeps the unit, 0 drops it.",
+        "type": "vector",
+        "shape": [
+          4
+        ],
+        "domain": "integer",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-p",
+        "source_symbol": "p",
+        "display_symbol": "p",
+        "meaning": "Retention probability: probability that a unit is kept during training.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "unit_interval",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-a_train",
+        "source_symbol": "a_train",
+        "display_symbol": "masked training activation",
+        "meaning": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-a_test_paper",
+        "source_symbol": "a_test_paper",
+        "display_symbol": "test-time activation under paper weight scaling",
+        "meaning": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-a_test_alt",
+        "source_symbol": "a_test_alt",
+        "display_symbol": "test-time activation under alternative 1/p scaling",
+        "meaning": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-expected_train",
+        "source_symbol": "expected_train",
+        "display_symbol": "expected training activation",
+        "meaning": "Expected value of the masked training activation when each unit is kept independently with probability p.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-a_train",
+        "expression": "a * m",
+        "meaning": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+        "variable_refs": [
+          "var-a",
+          "var-m",
+          "var-a_train"
+        ],
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-a_test_paper",
+        "expression": "a * p",
+        "meaning": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+        "variable_refs": [
+          "var-a",
+          "var-p",
+          "var-a_test_paper"
+        ],
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-a_test_alt",
+        "expression": "a / p",
+        "meaning": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+        "variable_refs": [
+          "var-a",
+          "var-p",
+          "var-a_test_alt"
+        ],
+        "evidence_refs": [],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-expected_train",
+        "expression": "a * p",
+        "meaning": "Expected value of the masked training activation when each unit is kept independently with probability p.",
+        "variable_refs": [
+          "var-a",
+          "var-p",
+          "var-expected_train"
+        ],
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-a_train",
+        "order": 0,
+        "description": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+        "equation_refs": [
+          "eq-a_train"
+        ],
+        "input_refs": [
+          "var-a",
+          "var-m"
+        ],
+        "output_refs": [
+          "var-a_train"
+        ]
+      },
+      {
+        "id": "step-a_test_paper",
+        "order": 1,
+        "description": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+        "equation_refs": [
+          "eq-a_test_paper"
+        ],
+        "input_refs": [
+          "var-a",
+          "var-p"
+        ],
+        "output_refs": [
+          "var-a_test_paper"
+        ]
+      },
+      {
+        "id": "step-a_test_alt",
+        "order": 2,
+        "description": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+        "equation_refs": [
+          "eq-a_test_alt"
+        ],
+        "input_refs": [
+          "var-a",
+          "var-p"
+        ],
+        "output_refs": [
+          "var-a_test_alt"
+        ]
+      },
+      {
+        "id": "step-expected_train",
+        "order": 3,
+        "description": "Expected value of the masked training activation when each unit is kept independently with probability p.",
+        "equation_refs": [
+          "eq-expected_train"
+        ],
+        "input_refs": [
+          "var-a",
+          "var-p"
+        ],
+        "output_refs": [
+          "var-expected_train"
+        ]
+      }
+    ],
+    "assumptions": [
+      "The activation vector is a fixed illustrative example, not a random sample.",
+      "The mask is a fixed binary pattern used to illustrate one training step; it is not drawn at random."
+    ],
+    "limitations": [
+      "Only one fixed mask is shown; the paper's training procedure draws a fresh independent mask per example and per unit.",
+      "The test-time scaling is applied here directly to activations for comparison; in the paper it is applied to the weights of the trained network."
+    ],
+    "misconceptions": [
+      "Dropout is not simply deleting units at test time. At test time the paper uses a deterministic scaled network, not a random mask."
+    ],
+    "invariants": [
+      "approx_equal(a_test_paper, expected_train)"
+    ],
+    "edge_cases": [
+      "If the retention probability p is 1, no unit is dropped and the test-time scaling factor is 1.",
+      "If the mask has all zeros, the masked training activation is the zero vector, while the test-time scaled activation is still nonzero."
+    ],
+    "provenance": [
+      "E35e54071714358685eb8",
+      "E6a0892dd751edadbc967"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "A single fixed activation vector with an editable binary mask and retention probability. We compute the masked training activation and the paper's test-time scaled activation. We do not train, sample random masks, or evaluate Monte-Carlo model averaging."
+  },
+  "lesson_spec": {
+    "central_learning_question": "Show how a binary dropout mask zeroes activations during training, and how the paper's test-time convention compensates by scaling weights rather than sampling masks.",
+    "learning_objectives": [
+      "Compute the training-time masked activation from an activation vector and a binary mask.",
+      "Distinguish the paper's test-time weight-scaling convention from training-time masking, and label any alternative scaling convention explicitly."
+    ],
+    "audience_prerequisites": [
+      "Elementwise multiplication of vectors",
+      "Expected value of a Bernoulli random variable"
+    ],
+    "intuition": "During training, each unit is kept with probability p and otherwise set to zero, so the expected activation of a kept unit is p times its original value. At test time the paper avoids sampling masks and instead scales the weights down by p, which makes the deterministic test activation match that same expected value.",
+    "teaching_sequence": [
+      "Inspect the inputs and equations.",
+      "Change each scientific input and compare the live intermediates.",
+      "Apply both exploration setups and explain the difference."
+    ],
+    "symbol_explanations": {
+      "var-a": "Fixed activation vector before dropout, with one entry per unit.",
+      "var-m": "Binary dropout mask for one training step: 1 keeps the unit, 0 drops it.",
+      "var-p": "Retention probability: probability that a unit is kept during training.",
+      "var-a_train": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+      "var-a_test_paper": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+      "var-a_test_alt": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+      "var-expected_train": "Expected value of the masked training activation when each unit is kept independently with probability p."
+    },
+    "controls": [
+      {
+        "id": "control-m",
+        "label": "m",
+        "scientific_variable": "var-m",
+        "control_type": "vector",
+        "default": [
+          1,
+          0,
+          1,
+          1
+        ],
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-a_train"
+        ],
+        "learning_purpose": "Binary dropout mask for one training step: 1 keeps the unit, 0 drops it.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0,
+        "maximum": 1,
+        "step": 1,
+        "options": []
+      },
+      {
+        "id": "control-p",
+        "label": "p",
+        "scientific_variable": "var-p",
+        "control_type": "slider",
+        "default": 0.5,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-a_test_paper",
+          "var-a_test_alt",
+          "var-expected_train"
+        ],
+        "learning_purpose": "Retention probability: probability that a unit is kept during training.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0.05,
+        "maximum": 1.0,
+        "step": 0.05,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-a_train",
+      "var-a_test_paper",
+      "var-a_test_alt",
+      "var-expected_train"
+    ],
+    "visual_question": "How do the original activations, the masked training activations, and the paper's test-time scaled activations compare entry by entry?",
+    "visual_intent": "Compare the computed mechanism and its intermediate values.",
+    "guided_explorations": [
+      {
+        "id": "explore-1",
+        "title": "Mask pattern changes training activations but not test-time scaling",
+        "change": "Set m to [0, 1, 0, 1]; Set p to 0.5.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: masked training activation = [0.0, -1.0, 0.0, 3.0] (starting value: [2.0, -0.0, 0.5, 3.0]); test-time activation under paper weight scaling = [1.0, -0.5, 0.25, 1.5] (starting value: [1.0, -0.5, 0.25, 1.5]); test-time activation under alternative 1/p scaling = [4.0, -2.0, 1.0, 6.0] (starting value: [4.0, -2.0, 1.0, 6.0]); expected training activation = [1.0, -0.5, 0.25, 1.5] (starting value: [1.0, -0.5, 0.25, 1.5]).",
+        "why": "The mask only affects which units are zeroed during training. The test-time scaling depends only on p and the original activations, so it is unchanged by the mask pattern.",
+        "setup": {
+          "control-m": [
+            0,
+            1,
+            0,
+            1
+          ],
+          "control-p": 0.5
+        }
+      },
+      {
+        "id": "explore-2",
+        "title": "Retention probability changes the test-time scaling factor",
+        "change": "Set m to [1, 0, 1, 1]; Set p to 0.8.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: masked training activation = [2.0, -0.0, 0.5, 3.0] (starting value: [2.0, -0.0, 0.5, 3.0]); test-time activation under paper weight scaling = [1.6, -0.8, 0.4, 2.4] (starting value: [1.0, -0.5, 0.25, 1.5]); test-time activation under alternative 1/p scaling = [2.5, -1.25, 0.625, 3.75] (starting value: [4.0, -2.0, 1.0, 6.0]); expected training activation = [1.6, -0.8, 0.4, 2.4] (starting value: [1.0, -0.5, 0.25, 1.5]).",
+        "why": "Increasing p raises the expected fraction of kept units, so the paper's test-time scaling factor p increases. The training mask is fixed in this exploration, so the masked training activation does not change.",
+        "setup": {
+          "control-m": [
+            1,
+            0,
+            1,
+            1
+          ],
+          "control-p": 0.8
+        }
+      }
+    ],
+    "limitation_or_assumption": "Only one fixed mask is shown; the paper's training procedure draws a fresh independent mask per example and per unit.",
+    "misconception": "Dropout is not simply deleting units at test time. At test time the paper uses a deterministic scaled network, not a random mask.",
+    "source_grounding_plan": [
+      "Source citations support the scientific explanation; computed values are derived from explicit toy inputs."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-a_train",
+      "expression": "a * m",
+      "output_type": "vector",
+      "input_refs": [
+        "var-a",
+        "var-m"
+      ],
+      "output_refs": [
+        "var-a_train"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "a": "var-a",
+          "m": "var-m"
+        },
+        "equation_refs": [
+          "eq-a_train"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "multiply",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "a",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "m",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-a_test_paper",
+      "expression": "a * p",
+      "output_type": "vector",
+      "input_refs": [
+        "var-a",
+        "var-p"
+      ],
+      "output_refs": [
+        "var-a_test_paper"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "a": "var-a",
+          "p": "var-p"
+        },
+        "equation_refs": [
+          "eq-a_test_paper"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "multiply",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "a",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "p",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-a_test_alt",
+      "expression": "a / p",
+      "output_type": "vector",
+      "input_refs": [
+        "var-a",
+        "var-p"
+      ],
+      "output_refs": [
+        "var-a_test_alt"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "a": "var-a",
+          "p": "var-p"
+        },
+        "equation_refs": [
+          "eq-a_test_alt"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "divide",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "a",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "p",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-expected_train",
+      "expression": "a * p",
+      "output_type": "vector",
+      "input_refs": [
+        "var-a",
+        "var-p"
+      ],
+      "output_refs": [
+        "var-expected_train"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "a": "var-a",
+          "p": "var-p"
+        },
+        "equation_refs": [
+          "eq-expected_train"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "multiply",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "a",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "p",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-1",
+      "visual_type": "bars",
+      "question": "How do the original activations, the masked training activations, and the paper's test-time scaled activations compare entry by entry?",
+      "data_refs": [
+        "var-a",
+        "var-a_train",
+        "var-a_test_paper"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "visual-2",
+      "visual_type": "comparison",
+      "question": "How does the paper's p-scaling differ from the alternative 1/p scaling at test time?",
+      "data_refs": [
+        "var-a_test_paper",
+        "var-a_test_alt"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "Dropout: Training-Time Masking and Test-Time Weight Scaling",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Show how a binary dropout mask zeroes activations during training, and how the paper's test-time convention compensates by scaling weights rather than sampling masks.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "A single fixed activation vector with an editable binary mask and retention probability. We compute the masked training activation and the paper's test-time scaled activation. We do not train, sample random masks, or evaluate Monte-Carlo model averaging.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "During training, each unit is kept with probability p and otherwise set to zero, so the expected activation of a kept unit is p times its original value. At test time the paper avoids sampling masks and instead scales the weights down by p, which makes the deterministic test activation match that same expected value.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "Only one fixed mask is shown; the paper's training procedure draws a fresh independent mask per example and per unit.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "Dropout is not simply deleting units at test time. At test time the paper uses a deterministic scaled network, not a random mask.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "The activation vector is a fixed illustrative example, not a random sample.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.1",
+      "claim": "The mask is a fixed binary pattern used to illustrate one training step; it is not drawn at random.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "Only one fixed mask is shown; the paper's training procedure draws a fresh independent mask per example and per unit.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.1",
+      "claim": "The test-time scaling is applied here directly to activations for comparison; in the paper it is applied to the weights of the trained network.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "Dropout is not simply deleting units at test time. At test time the paper uses a deterministic scaled network, not a random mask.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "If the retention probability p is 1, no unit is dropped and the test-time scaling factor is 1.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.1",
+      "claim": "If the mask has all zeros, the masked training activation is the zero vector, while the test-time scaled activation is still nonzero.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the inputs and equations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Change each scientific input and compare the live intermediates.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.2",
+      "claim": "Apply both exploration setups and explain the difference.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "Source citations support the scientific explanation; computed values are derived from explicit toy inputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Compute the training-time masked activation from an activation vector and a binary mask.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.1",
+      "claim": "Distinguish the paper's test-time weight-scaling convention from training-time masking, and label any alternative scaling convention explicitly.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Elementwise multiplication of vectors",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.1",
+      "claim": "Expected value of a Bernoulli random variable",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "Show how a binary dropout mask zeroes activations during training, and how the paper's test-time convention compensates by scaling weights rather than sampling masks.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How do the original activations, the masked training activations, and the paper's test-time scaled activations compare entry by entry?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Compare the computed mechanism and its intermediate values.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-1.question",
+      "claim": "How do the original activations, the masked training activations, and the paper's test-time scaled activations compare entry by entry?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-2.question",
+      "claim": "How does the paper's p-scaling differ from the alternative 1/p scaling at test time?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-a",
+      "claim": "Fixed activation vector before dropout, with one entry per unit.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-m",
+      "claim": "Binary dropout mask for one training step: 1 keeps the unit, 0 drops it.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-p",
+      "claim": "Retention probability: probability that a unit is kept during training.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-a_train",
+      "claim": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-a_train"
+      ]
+    },
+    {
+      "claim_id": "var-a_test_paper",
+      "claim": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-a_test_paper"
+      ]
+    },
+    {
+      "claim_id": "var-a_test_alt",
+      "claim": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-a_test_alt"
+      ]
+    },
+    {
+      "claim_id": "var-expected_train",
+      "claim": "Expected value of the masked training activation when each unit is kept independently with probability p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-expected_train"
+      ]
+    },
+    {
+      "claim_id": "eq-a_train",
+      "claim": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-a_train"
+      ]
+    },
+    {
+      "claim_id": "eq-a_test_paper",
+      "claim": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-a_test_paper"
+      ]
+    },
+    {
+      "claim_id": "eq-a_test_alt",
+      "claim": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-a_test_alt"
+      ]
+    },
+    {
+      "claim_id": "eq-expected_train",
+      "claim": "Expected value of the masked training activation when each unit is kept independently with probability p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-expected_train"
+      ]
+    },
+    {
+      "claim_id": "step-a_train",
+      "claim": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-a_train"
+      ]
+    },
+    {
+      "claim_id": "step-a_test_paper",
+      "claim": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-a_test_paper"
+      ]
+    },
+    {
+      "claim_id": "step-a_test_alt",
+      "claim": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-a_test_alt"
+      ]
+    },
+    {
+      "claim_id": "step-expected_train",
+      "claim": "Expected value of the masked training activation when each unit is kept independently with probability p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-expected_train"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-a",
+      "claim": "Fixed activation vector before dropout, with one entry per unit.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-m",
+      "claim": "Binary dropout mask for one training step: 1 keeps the unit, 0 drops it.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-p",
+      "claim": "Retention probability: probability that a unit is kept during training.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-a_train",
+      "claim": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-a_train"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-a_test_paper",
+      "claim": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-a_test_paper"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-a_test_alt",
+      "claim": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-a_test_alt"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-expected_train",
+      "claim": "Expected value of the masked training activation when each unit is kept independently with probability p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-expected_train"
+      ]
+    },
+    {
+      "claim_id": "control-m.learning_purpose",
+      "claim": "Binary dropout mask for one training step: 1 keeps the unit, 0 drops it.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-m.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-p.learning_purpose",
+      "claim": "Retention probability: probability that a unit is kept during training.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-p.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.change",
+      "claim": "Set m to [0, 1, 0, 1]; Set p to 0.5.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: masked training activation = [0.0, -1.0, 0.0, 3.0] (starting value: [2.0, -0.0, 0.5, 3.0]); test-time activation under paper weight scaling = [1.0, -0.5, 0.25, 1.5] (starting value: [1.0, -0.5, 0.25, 1.5]); test-time activation under alternative 1/p scaling = [4.0, -2.0, 1.0, 6.0] (starting value: [4.0, -2.0, 1.0, 6.0]); expected training activation = [1.0, -0.5, 0.25, 1.5] (starting value: [1.0, -0.5, 0.25, 1.5]).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-a_train",
+        "compute-a_test_paper",
+        "compute-a_test_alt",
+        "compute-expected_train"
+      ]
+    },
+    {
+      "claim_id": "explore-1.why",
+      "claim": "The mask only affects which units are zeroed during training. The test-time scaling depends only on p and the original activations, so it is unchanged by the mask pattern.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.change",
+      "claim": "Set m to [1, 0, 1, 1]; Set p to 0.8.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: masked training activation = [2.0, -0.0, 0.5, 3.0] (starting value: [2.0, -0.0, 0.5, 3.0]); test-time activation under paper weight scaling = [1.6, -0.8, 0.4, 2.4] (starting value: [1.0, -0.5, 0.25, 1.5]); test-time activation under alternative 1/p scaling = [2.5, -1.25, 0.625, 3.75] (starting value: [4.0, -2.0, 1.0, 6.0]); expected training activation = [1.6, -0.8, 0.4, 2.4] (starting value: [1.0, -0.5, 0.25, 1.5]).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-a_train",
+        "compute-a_test_paper",
+        "compute-a_test_alt",
+        "compute-expected_train"
+      ]
+    },
+    {
+      "claim_id": "explore-2.why",
+      "claim": "Increasing p raises the expected fraction of kept units, so the paper's test-time scaling factor p increases. The training mask is fixed in this exploration, so the masked training activation does not change.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+    "learning_objective_refs": [
+      "Compute the training-time masked activation from an activation vector and a binary mask.",
+      "Distinguish the paper's test-time weight-scaling convention from training-time masking, and label any alternative scaling convention explicitly."
+    ],
+    "mechanism_refs": [
+      "eq-a_train",
+      "eq-a_test_paper",
+      "eq-a_test_alt",
+      "eq-expected_train"
+    ],
+    "control_refs": [
+      "control-m",
+      "control-p"
+    ],
+    "computation_refs": [
+      "compute-a_train",
+      "compute-a_test_paper",
+      "compute-a_test_alt",
+      "compute-expected_train"
+    ],
+    "visual_refs": [
+      "visual-1",
+      "visual-2"
+    ],
+    "exploration_refs": [
+      "explore-1",
+      "explore-2"
+    ]
+  },
+  "metadata": {
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use the stated prerequisites and a bounded worked mechanism for second-year engineering undergraduate.",
+    "defaults": {
+      "var-a": [
+        2.0,
+        -1.0,
+        0.5,
+        3.0
+      ]
+    },
+    "invariant_bindings": {
+      "a_test_paper": "var-a_test_paper",
+      "expected_train": "var-expected_train"
+    },
+    "control_test_values": {},
+    "equation_scope": {}
+  }
+}

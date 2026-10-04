@@ -1,0 +1,1529 @@
+{
+  "scientific_model": {
+    "concept": "Batch Normalization of a Scalar Minibatch: Mean, Variance, Normalize, Affine",
+    "purpose": "Walk through the Batch Normalization transform of Algorithm 1 on a small scalar minibatch: compute the batch mean, the batch variance, the normalized values, and the affine output, and see how the affine scale and shift and the stabilizer epsilon change the result.",
+    "focus_alignment": "Section 3, Algorithm 1: explain batch normalization of a small scalar minibatch. Show the batch mean, population variance, normalized values and affine outputs. Let the learner change inputs and the affine scale or shift. Include epsilon and a constant batch edge case. Do not train a network.",
+    "variables": [
+      {
+        "id": "var-x",
+        "source_symbol": "x",
+        "display_symbol": "minibatch values x",
+        "meaning": "The scalar activations of one feature across the four examples in the minibatch.",
+        "type": "vector",
+        "shape": [
+          4
+        ],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-gamma",
+        "source_symbol": "gamma",
+        "display_symbol": "affine scale gamma",
+        "meaning": "The learned scale applied to the normalized values in the affine step.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-beta",
+        "source_symbol": "beta",
+        "display_symbol": "affine shift beta",
+        "meaning": "The learned shift added after scaling in the affine step.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-epsilon",
+        "source_symbol": "epsilon",
+        "display_symbol": "stabilizer epsilon",
+        "meaning": "A small positive constant added to the batch variance before the square root to avoid division by zero.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "positive",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-mu",
+        "source_symbol": "mu",
+        "display_symbol": "batch mean mu",
+        "meaning": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-centered",
+        "source_symbol": "centered",
+        "display_symbol": "centered values x - mu",
+        "meaning": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-variance",
+        "source_symbol": "variance",
+        "display_symbol": "batch variance sigma squared",
+        "meaning": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-x_hat",
+        "source_symbol": "x_hat",
+        "display_symbol": "normalized values x hat",
+        "meaning": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-y",
+        "source_symbol": "y",
+        "display_symbol": "affine outputs y",
+        "meaning": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-mu",
+        "expression": "mean(x)",
+        "meaning": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+        "variable_refs": [
+          "var-x",
+          "var-mu"
+        ],
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-centered",
+        "expression": "x - mu",
+        "meaning": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+        "variable_refs": [
+          "var-mu",
+          "var-x",
+          "var-centered"
+        ],
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-variance",
+        "expression": "mean(centered * centered)",
+        "meaning": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+        "variable_refs": [
+          "var-centered",
+          "var-variance"
+        ],
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-x_hat",
+        "expression": "centered / sqrt(variance + epsilon)",
+        "meaning": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+        "variable_refs": [
+          "var-centered",
+          "var-epsilon",
+          "var-variance",
+          "var-x_hat"
+        ],
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-y",
+        "expression": "gamma * x_hat + beta",
+        "meaning": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta.",
+        "variable_refs": [
+          "var-beta",
+          "var-gamma",
+          "var-x_hat",
+          "var-y"
+        ],
+        "evidence_refs": [
+          "E875dd2ad00c67d852ed3"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-mu",
+        "order": 0,
+        "description": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+        "equation_refs": [
+          "eq-mu"
+        ],
+        "input_refs": [
+          "var-x"
+        ],
+        "output_refs": [
+          "var-mu"
+        ]
+      },
+      {
+        "id": "step-centered",
+        "order": 1,
+        "description": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+        "equation_refs": [
+          "eq-centered"
+        ],
+        "input_refs": [
+          "var-mu",
+          "var-x"
+        ],
+        "output_refs": [
+          "var-centered"
+        ]
+      },
+      {
+        "id": "step-variance",
+        "order": 2,
+        "description": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+        "equation_refs": [
+          "eq-variance"
+        ],
+        "input_refs": [
+          "var-centered"
+        ],
+        "output_refs": [
+          "var-variance"
+        ]
+      },
+      {
+        "id": "step-x_hat",
+        "order": 3,
+        "description": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+        "equation_refs": [
+          "eq-x_hat"
+        ],
+        "input_refs": [
+          "var-centered",
+          "var-epsilon",
+          "var-variance"
+        ],
+        "output_refs": [
+          "var-x_hat"
+        ]
+      },
+      {
+        "id": "step-y",
+        "order": 4,
+        "description": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta.",
+        "equation_refs": [
+          "eq-y"
+        ],
+        "input_refs": [
+          "var-beta",
+          "var-gamma",
+          "var-x_hat"
+        ],
+        "output_refs": [
+          "var-y"
+        ]
+      }
+    ],
+    "assumptions": [
+      "The minibatch is the population used for the statistics, so the variance divides by the batch size m rather than by m-1.",
+      "The same scalar feature is measured on every example, so the batch mean and variance are scalars."
+    ],
+    "limitations": [
+      "Only the training-time transform is shown; inference-time Batch Normalization uses fixed running statistics, which are not computed here.",
+      "A four-value minibatch is a teaching simplification; real minibatches are larger and the statistics are noisier or smoother accordingly."
+    ],
+    "misconceptions": [
+      "Normalization does not make the outputs zero-mean and unit-variance once the affine scale and shift are applied; the affine step deliberately undoes that standardization."
+    ],
+    "invariants": [
+      "approx_equal(mean(centered), 0)",
+      "approx_equal(mean(x_hat * x_hat), variance / (variance + epsilon))"
+    ],
+    "edge_cases": [
+      "A constant minibatch has zero variance, so the normalized values are 0/(sqrt(epsilon)) = 0 and the affine output collapses to the shift.",
+      "A very small epsilon makes the normalized values large when the batch variance is small, which is why epsilon is kept positive."
+    ],
+    "provenance": [
+      "E08481ffd0bbf2f7140af",
+      "E6f0138518cc5aa7c8eaf",
+      "E7f359ce1bd83b1b56ce6",
+      "E875dd2ad00c67d852ed3"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "A single scalar feature over a fixed-size minibatch of four values, using the batch statistics of that minibatch (training-time behavior). No network, no training, no running averages, no backpropagation, and no per-channel or convolutional treatment."
+  },
+  "lesson_spec": {
+    "central_learning_question": "Walk through the Batch Normalization transform of Algorithm 1 on a small scalar minibatch: compute the batch mean, the batch variance, the normalized values, and the affine output, and see how the affine scale and shift and the stabilizer epsilon change the result.",
+    "learning_objectives": [
+      "Compute the batch mean and batch variance of a scalar minibatch and use them to normalize each value.",
+      "Explain how the affine scale and shift, and the stabilizer epsilon, change the normalized and affine outputs."
+    ],
+    "audience_prerequisites": [
+      "Arithmetic mean and variance of a finite list of numbers.",
+      "Elementwise vector arithmetic: subtract a scalar, divide by a scalar, multiply by a scalar."
+    ],
+    "intuition": "Batch Normalization re-centers each minibatch to zero mean and unit variance, then lets the layer re-scale and re-shift the result with learned parameters. The normalization step removes the batch's location and spread; the affine step restores a representation the next layer can use.",
+    "teaching_sequence": [
+      "Inspect the inputs and equations.",
+      "Change each scientific input and compare the live intermediates.",
+      "Apply both exploration setups and explain the difference."
+    ],
+    "symbol_explanations": {
+      "var-x": "The scalar activations of one feature across the four examples in the minibatch.",
+      "var-gamma": "The learned scale applied to the normalized values in the affine step.",
+      "var-beta": "The learned shift added after scaling in the affine step.",
+      "var-epsilon": "A small positive constant added to the batch variance before the square root to avoid division by zero.",
+      "var-mu": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+      "var-centered": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+      "var-variance": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+      "var-x_hat": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+      "var-y": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta."
+    },
+    "controls": [
+      {
+        "id": "control-x",
+        "label": "minibatch values x",
+        "scientific_variable": "var-x",
+        "control_type": "vector",
+        "default": [
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-mu",
+          "var-centered",
+          "var-variance",
+          "var-x_hat",
+          "var-y"
+        ],
+        "learning_purpose": "The scalar activations of one feature across the four examples in the minibatch.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": null,
+        "maximum": null,
+        "step": null,
+        "options": []
+      },
+      {
+        "id": "control-gamma",
+        "label": "affine scale gamma",
+        "scientific_variable": "var-gamma",
+        "control_type": "slider",
+        "default": 1.0,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-y"
+        ],
+        "learning_purpose": "The learned scale applied to the normalized values in the affine step.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": -3.0,
+        "maximum": 3.0,
+        "step": 0.1,
+        "options": []
+      },
+      {
+        "id": "control-beta",
+        "label": "affine shift beta",
+        "scientific_variable": "var-beta",
+        "control_type": "slider",
+        "default": 0.0,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-y"
+        ],
+        "learning_purpose": "The learned shift added after scaling in the affine step.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": -3.0,
+        "maximum": 3.0,
+        "step": 0.1,
+        "options": []
+      },
+      {
+        "id": "control-epsilon",
+        "label": "stabilizer epsilon",
+        "scientific_variable": "var-epsilon",
+        "control_type": "slider",
+        "default": 0.001,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-x_hat",
+          "var-y"
+        ],
+        "learning_purpose": "A small positive constant added to the batch variance before the square root to avoid division by zero.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0.0001,
+        "maximum": 0.1,
+        "step": 0.0001,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-mu",
+      "var-centered",
+      "var-variance",
+      "var-x_hat",
+      "var-y"
+    ],
+    "visual_question": "How do the raw minibatch values, the centered values, the normalized values, and the affine outputs compare in location and spread?",
+    "visual_intent": "Compare the computed mechanism and its intermediate values.",
+    "guided_explorations": [
+      {
+        "id": "explore-1",
+        "title": "Affine scale and shift reshape the normalized batch",
+        "change": "Set minibatch values x to [1.0, 2.0, 3.0, 4.0]; Set affine scale gamma to 2.0; Set affine shift beta to 1.0; Set stabilizer epsilon to 0.001.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: batch mean mu = 2.5 (starting value: 2.5); centered values x - mu = [-1.5, -0.5, 0.5, 1.5] (starting value: [-1.5, -0.5, 0.5, 1.5]); batch variance sigma squared = 1.25 (starting value: 1.25); normalized values x hat = [-1.3411045, -0.44703482, 0.44703482, 1.3411045] (starting value: [-1.3411045, -0.44703482, 0.44703482, 1.3411045]); affine outputs y = [-1.6822089, 0.10593037, 1.8940696, 3.6822089] (starting value: [-1.3411045, -0.44703482, 0.44703482, 1.3411045]).",
+        "why": "The affine step is a deliberate re-parameterization: normalization fixes the batch statistics, and gamma and beta let the layer choose a new scale and location for the next layer.",
+        "setup": {
+          "control-x": [
+            1.0,
+            2.0,
+            3.0,
+            4.0
+          ],
+          "control-gamma": 2.0,
+          "control-beta": 1.0,
+          "control-epsilon": 0.001
+        }
+      },
+      {
+        "id": "explore-2",
+        "title": "A constant minibatch collapses to the shift",
+        "change": "Set minibatch values x to [5.0, 5.0, 5.0, 5.0]; Set affine scale gamma to 2.0; Set affine shift beta to 1.0; Set stabilizer epsilon to 0.001.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: batch mean mu = 5.0 (starting value: 2.5); centered values x - mu = [0.0, 0.0, 0.0, 0.0] (starting value: [-1.5, -0.5, 0.5, 1.5]); batch variance sigma squared = 0.0 (starting value: 1.25); normalized values x hat = [0.0, 0.0, 0.0, 0.0] (starting value: [-1.3411045, -0.44703482, 0.44703482, 1.3411045]); affine outputs y = [1.0, 1.0, 1.0, 1.0] (starting value: [-1.3411045, -0.44703482, 0.44703482, 1.3411045]).",
+        "why": "With zero variance the numerator is zero, so the stabilizer epsilon only affects the denominator and the normalized values remain zero; the affine shift then sets the entire output.",
+        "setup": {
+          "control-x": [
+            5.0,
+            5.0,
+            5.0,
+            5.0
+          ],
+          "control-gamma": 2.0,
+          "control-beta": 1.0,
+          "control-epsilon": 0.001
+        }
+      }
+    ],
+    "limitation_or_assumption": "Only the training-time transform is shown; inference-time Batch Normalization uses fixed running statistics, which are not computed here.",
+    "misconception": "Normalization does not make the outputs zero-mean and unit-variance once the affine scale and shift are applied; the affine step deliberately undoes that standardization.",
+    "source_grounding_plan": [
+      "Source citations support the scientific explanation; computed values are derived from explicit toy inputs."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-mu",
+      "expression": "mean(x)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-x"
+      ],
+      "output_refs": [
+        "var-mu"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "x": "var-x"
+        },
+        "equation_refs": [
+          "eq-mu"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "mean",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "x",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-centered",
+      "expression": "x - mu",
+      "output_type": "vector",
+      "input_refs": [
+        "var-mu",
+        "var-x"
+      ],
+      "output_refs": [
+        "var-centered"
+      ],
+      "dependencies": [
+        "compute-mu"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "mu": "var-mu",
+          "x": "var-x"
+        },
+        "equation_refs": [
+          "eq-centered"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "subtract",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "x",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "mu",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-variance",
+      "expression": "mean(centered * centered)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-centered"
+      ],
+      "output_refs": [
+        "var-variance"
+      ],
+      "dependencies": [
+        "compute-centered"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "centered": "var-centered"
+        },
+        "equation_refs": [
+          "eq-variance"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "mean",
+          "args": [
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "centered",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "centered",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-x_hat",
+      "expression": "centered / sqrt(variance + epsilon)",
+      "output_type": "vector",
+      "input_refs": [
+        "var-centered",
+        "var-epsilon",
+        "var-variance"
+      ],
+      "output_refs": [
+        "var-x_hat"
+      ],
+      "dependencies": [
+        "compute-centered",
+        "compute-variance"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "centered": "var-centered",
+          "epsilon": "var-epsilon",
+          "variance": "var-variance"
+        },
+        "equation_refs": [
+          "eq-x_hat"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "divide",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "centered",
+              "args": []
+            },
+            {
+              "kind": "call",
+              "value": "sqrt",
+              "args": [
+                {
+                  "kind": "call",
+                  "value": "add",
+                  "args": [
+                    {
+                      "kind": "variable",
+                      "value": "variance",
+                      "args": []
+                    },
+                    {
+                      "kind": "variable",
+                      "value": "epsilon",
+                      "args": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-y",
+      "expression": "gamma * x_hat + beta",
+      "output_type": "vector",
+      "input_refs": [
+        "var-beta",
+        "var-gamma",
+        "var-x_hat"
+      ],
+      "output_refs": [
+        "var-y"
+      ],
+      "dependencies": [
+        "compute-x_hat"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "beta": "var-beta",
+          "gamma": "var-gamma",
+          "x_hat": "var-x_hat"
+        },
+        "equation_refs": [
+          "eq-y"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "add",
+          "args": [
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "gamma",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "x_hat",
+                  "args": []
+                }
+              ]
+            },
+            {
+              "kind": "variable",
+              "value": "beta",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-1",
+      "visual_type": "bars",
+      "question": "How do the raw minibatch values, the centered values, the normalized values, and the affine outputs compare in location and spread?",
+      "data_refs": [
+        "var-x",
+        "var-centered",
+        "var-x_hat",
+        "var-y"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "visual-2",
+      "visual_type": "scalar",
+      "question": "How do the batch mean, batch variance, and the affine scale and shift combine into the final outputs?",
+      "data_refs": [
+        "var-mu",
+        "var-variance",
+        "var-gamma",
+        "var-beta",
+        "var-y"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "Batch Normalization of a Scalar Minibatch: Mean, Variance, Normalize, Affine",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Walk through the Batch Normalization transform of Algorithm 1 on a small scalar minibatch: compute the batch mean, the batch variance, the normalized values, and the affine output, and see how the affine scale and shift and the stabilizer epsilon change the result.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "Section 3, Algorithm 1: explain batch normalization of a small scalar minibatch. Show the batch mean, population variance, normalized values and affine outputs. Let the learner change inputs and the affine scale or shift. Include epsilon and a constant batch edge case. Do not train a network.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "A single scalar feature over a fixed-size minibatch of four values, using the batch statistics of that minibatch (training-time behavior). No network, no training, no running averages, no backpropagation, and no per-channel or convolutional treatment.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "Batch Normalization re-centers each minibatch to zero mean and unit variance, then lets the layer re-scale and re-shift the result with learned parameters. The normalization step removes the batch's location and spread; the affine step restores a representation the next layer can use.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "Only the training-time transform is shown; inference-time Batch Normalization uses fixed running statistics, which are not computed here.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "Normalization does not make the outputs zero-mean and unit-variance once the affine scale and shift are applied; the affine step deliberately undoes that standardization.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "The minibatch is the population used for the statistics, so the variance divides by the batch size m rather than by m-1.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.1",
+      "claim": "The same scalar feature is measured on every example, so the batch mean and variance are scalars.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "Only the training-time transform is shown; inference-time Batch Normalization uses fixed running statistics, which are not computed here.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.1",
+      "claim": "A four-value minibatch is a teaching simplification; real minibatches are larger and the statistics are noisier or smoother accordingly.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "Normalization does not make the outputs zero-mean and unit-variance once the affine scale and shift are applied; the affine step deliberately undoes that standardization.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "A constant minibatch has zero variance, so the normalized values are 0/(sqrt(epsilon)) = 0 and the affine output collapses to the shift.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.1",
+      "claim": "A very small epsilon makes the normalized values large when the batch variance is small, which is why epsilon is kept positive.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the inputs and equations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Change each scientific input and compare the live intermediates.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.2",
+      "claim": "Apply both exploration setups and explain the difference.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "Source citations support the scientific explanation; computed values are derived from explicit toy inputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Compute the batch mean and batch variance of a scalar minibatch and use them to normalize each value.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.1",
+      "claim": "Explain how the affine scale and shift, and the stabilizer epsilon, change the normalized and affine outputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Arithmetic mean and variance of a finite list of numbers.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.1",
+      "claim": "Elementwise vector arithmetic: subtract a scalar, divide by a scalar, multiply by a scalar.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "Walk through the Batch Normalization transform of Algorithm 1 on a small scalar minibatch: compute the batch mean, the batch variance, the normalized values, and the affine output, and see how the affine scale and shift and the stabilizer epsilon change the result.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How do the raw minibatch values, the centered values, the normalized values, and the affine outputs compare in location and spread?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Compare the computed mechanism and its intermediate values.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-1.question",
+      "claim": "How do the raw minibatch values, the centered values, the normalized values, and the affine outputs compare in location and spread?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-2.question",
+      "claim": "How do the batch mean, batch variance, and the affine scale and shift combine into the final outputs?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-x",
+      "claim": "The scalar activations of one feature across the four examples in the minibatch.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-gamma",
+      "claim": "The learned scale applied to the normalized values in the affine step.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-beta",
+      "claim": "The learned shift added after scaling in the affine step.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-epsilon",
+      "claim": "A small positive constant added to the batch variance before the square root to avoid division by zero.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-mu",
+      "claim": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-mu"
+      ]
+    },
+    {
+      "claim_id": "var-centered",
+      "claim": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-centered"
+      ]
+    },
+    {
+      "claim_id": "var-variance",
+      "claim": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-variance"
+      ]
+    },
+    {
+      "claim_id": "var-x_hat",
+      "claim": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-x_hat"
+      ]
+    },
+    {
+      "claim_id": "var-y",
+      "claim": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-y"
+      ]
+    },
+    {
+      "claim_id": "eq-mu",
+      "claim": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-mu"
+      ]
+    },
+    {
+      "claim_id": "eq-centered",
+      "claim": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-centered"
+      ]
+    },
+    {
+      "claim_id": "eq-variance",
+      "claim": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-variance"
+      ]
+    },
+    {
+      "claim_id": "eq-x_hat",
+      "claim": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-x_hat"
+      ]
+    },
+    {
+      "claim_id": "eq-y",
+      "claim": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-y"
+      ]
+    },
+    {
+      "claim_id": "step-mu",
+      "claim": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-mu"
+      ]
+    },
+    {
+      "claim_id": "step-centered",
+      "claim": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-centered"
+      ]
+    },
+    {
+      "claim_id": "step-variance",
+      "claim": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-variance"
+      ]
+    },
+    {
+      "claim_id": "step-x_hat",
+      "claim": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-x_hat"
+      ]
+    },
+    {
+      "claim_id": "step-y",
+      "claim": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-y"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-x",
+      "claim": "The scalar activations of one feature across the four examples in the minibatch.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-gamma",
+      "claim": "The learned scale applied to the normalized values in the affine step.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-beta",
+      "claim": "The learned shift added after scaling in the affine step.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-epsilon",
+      "claim": "A small positive constant added to the batch variance before the square root to avoid division by zero.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-mu",
+      "claim": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-mu"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-centered",
+      "claim": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-centered"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-variance",
+      "claim": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-variance"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-x_hat",
+      "claim": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-x_hat"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-y",
+      "claim": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ],
+      "computation_refs": [
+        "compute-y"
+      ]
+    },
+    {
+      "claim_id": "control-x.learning_purpose",
+      "claim": "The scalar activations of one feature across the four examples in the minibatch.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-x.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-gamma.learning_purpose",
+      "claim": "The learned scale applied to the normalized values in the affine step.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-gamma.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-beta.learning_purpose",
+      "claim": "The learned shift added after scaling in the affine step.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-beta.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-epsilon.learning_purpose",
+      "claim": "A small positive constant added to the batch variance before the square root to avoid division by zero.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-epsilon.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.change",
+      "claim": "Set minibatch values x to [1.0, 2.0, 3.0, 4.0]; Set affine scale gamma to 2.0; Set affine shift beta to 1.0; Set stabilizer epsilon to 0.001.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: batch mean mu = 2.5 (starting value: 2.5); centered values x - mu = [-1.5, -0.5, 0.5, 1.5] (starting value: [-1.5, -0.5, 0.5, 1.5]); batch variance sigma squared = 1.25 (starting value: 1.25); normalized values x hat = [-1.3411045, -0.44703482, 0.44703482, 1.3411045] (starting value: [-1.3411045, -0.44703482, 0.44703482, 1.3411045]); affine outputs y = [-1.6822089, 0.10593037, 1.8940696, 3.6822089] (starting value: [-1.3411045, -0.44703482, 0.44703482, 1.3411045]).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-mu",
+        "compute-centered",
+        "compute-variance",
+        "compute-x_hat",
+        "compute-y"
+      ]
+    },
+    {
+      "claim_id": "explore-1.why",
+      "claim": "The affine step is a deliberate re-parameterization: normalization fixes the batch statistics, and gamma and beta let the layer choose a new scale and location for the next layer.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.change",
+      "claim": "Set minibatch values x to [5.0, 5.0, 5.0, 5.0]; Set affine scale gamma to 2.0; Set affine shift beta to 1.0; Set stabilizer epsilon to 0.001.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: batch mean mu = 5.0 (starting value: 2.5); centered values x - mu = [0.0, 0.0, 0.0, 0.0] (starting value: [-1.5, -0.5, 0.5, 1.5]); batch variance sigma squared = 0.0 (starting value: 1.25); normalized values x hat = [0.0, 0.0, 0.0, 0.0] (starting value: [-1.3411045, -0.44703482, 0.44703482, 1.3411045]); affine outputs y = [1.0, 1.0, 1.0, 1.0] (starting value: [-1.3411045, -0.44703482, 0.44703482, 1.3411045]).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-mu",
+        "compute-centered",
+        "compute-variance",
+        "compute-x_hat",
+        "compute-y"
+      ]
+    },
+    {
+      "claim_id": "explore-2.why",
+      "claim": "With zero variance the numerator is zero, so the stabilizer epsilon only affects the denominator and the normalized values remain zero; the affine shift then sets the entire output.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3",
+        "E6f0138518cc5aa7c8eaf",
+        "E7f359ce1bd83b1b56ce6",
+        "E08481ffd0bbf2f7140af"
+      ],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Section 3, Algorithm 1: explain batch normalization of a small scalar minibatch. Show the batch mean, population variance, normalized values and affine outputs. Let the learner change inputs and the affine scale or shift. Include epsilon and a constant batch edge case. Do not train a network.",
+    "learning_objective_refs": [
+      "Compute the batch mean and batch variance of a scalar minibatch and use them to normalize each value.",
+      "Explain how the affine scale and shift, and the stabilizer epsilon, change the normalized and affine outputs."
+    ],
+    "mechanism_refs": [
+      "eq-mu",
+      "eq-centered",
+      "eq-variance",
+      "eq-x_hat",
+      "eq-y"
+    ],
+    "control_refs": [
+      "control-x",
+      "control-gamma",
+      "control-beta",
+      "control-epsilon"
+    ],
+    "computation_refs": [
+      "compute-mu",
+      "compute-centered",
+      "compute-variance",
+      "compute-x_hat",
+      "compute-y"
+    ],
+    "visual_refs": [
+      "visual-1",
+      "visual-2"
+    ],
+    "exploration_refs": [
+      "explore-1",
+      "explore-2"
+    ]
+  },
+  "metadata": {
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use the stated prerequisites and a bounded worked mechanism for second-year engineering undergraduate.",
+    "defaults": {},
+    "invariant_bindings": {
+      "x_hat": "var-x_hat",
+      "epsilon": "var-epsilon",
+      "variance": "var-variance",
+      "centered": "var-centered"
+    },
+    "control_test_values": {},
+    "equation_scope": {}
+  }
+}

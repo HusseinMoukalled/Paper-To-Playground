@@ -122,6 +122,30 @@ def entropy(x):
     return -math.fsum(y * math.log(y) for y in x if y > 0)
 
 
+def cross_entropy(p, q):
+    p, q = vector(p), vector(q)
+    if len(p) != len(q):
+        raise ValueError('Cross-entropy distribution shape mismatch')
+    for values in (p, q):
+        if any(x < 0 or x > 1 for x in values) or not math.isclose(total(values), 1, abs_tol=NUMERIC_TOLERANCE):
+            raise ValueError('Cross-entropy requires probability distributions')
+    if any(a > 0 and b == 0 for a, b in zip(p, q)):
+        raise ValueError('Cross-entropy is infinite where q=0 and p>0')
+    return -math.fsum(a * math.log(b) for a, b in zip(p, q) if a > 0)
+
+
+def take(x, count):
+    x = vector(x)
+    count = numeric(count)
+    if not float(count).is_integer() or not 1 <= count <= len(x):
+        raise ValueError('Prefix length must be an integer between one and the vector length')
+    return x[:int(count)]
+
+
+def xlogx(x):
+    return unary(lambda y: 0.0 if y == 0 else y * math.log(y), x)
+
+
 def power(a, b):
     if abs(b) > 128 or (a == 0 and b < 0) or (a < 0 and not float(b).is_integer()):
         raise ValueError("Power outside the real bounded domain")
@@ -166,6 +190,9 @@ OPERATIONS = {
     "normalize": Operation(1, normalize, "unit Euclidean vector"),
     "softmax": Operation(1, softmax, "stable probability distribution"),
     "entropy": Operation(1, entropy, "distribution entropy in nats, 0 log 0 = 0"),
+    "cross_entropy": Operation(2, cross_entropy, "cross-entropy H(p,q)=-sum(p_i*ln(q_i)) in nats; no added entropy term"),
+    "xlogx": Operation(1, xlogx, "elementwise x*natural_log(x), with zero mapped to zero; nonnegative input"),
+    "take": Operation(2, take, "first n entries of a numeric vector; integer n in 1..vector length"),
     "approx_equal": Operation(2, approx_equal, "tolerance-based equality"),
 }
 

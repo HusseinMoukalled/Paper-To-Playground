@@ -1,0 +1,189 @@
+{
+  "title": "Dropout: Training-Time Masking and Test-Time Weight Scaling",
+  "purpose": "Show how a binary dropout mask zeroes activations during training, and how the paper's test-time convention compensates by scaling weights rather than sampling masks.",
+  "scope": "A single fixed activation vector with an editable binary mask and retention probability. We compute the masked training activation and the paper's test-time scaled activation. We do not train, sample random masks, or evaluate Monte-Carlo model averaging.",
+  "intuition": "During training, each unit is kept with probability p and otherwise set to zero, so the expected activation of a kept unit is p times its original value. At test time the paper avoids sampling masks and instead scales the weights down by p, which makes the deterministic test activation match that same expected value.",
+  "learning_objectives": [
+    "Compute the training-time masked activation from an activation vector and a binary mask.",
+    "Distinguish the paper's test-time weight-scaling convention from training-time masking, and label any alternative scaling convention explicitly."
+  ],
+  "prerequisites": [
+    "Elementwise multiplication of vectors",
+    "Expected value of a Bernoulli random variable"
+  ],
+  "assumptions": [
+    "The activation vector is a fixed illustrative example, not a random sample.",
+    "The mask is a fixed binary pattern used to illustrate one training step; it is not drawn at random."
+  ],
+  "limitations": [
+    "Only one fixed mask is shown; the paper's training procedure draws a fresh independent mask per example and per unit.",
+    "The test-time scaling is applied here directly to activations for comparison; in the paper it is applied to the weights of the trained network."
+  ],
+  "misconception": "Dropout is not simply deleting units at test time. At test time the paper uses a deterministic scaled network, not a random mask.",
+  "edge_cases": [
+    "If the retention probability p is 1, no unit is dropped and the test-time scaling factor is 1.",
+    "If the mask has all zeros, the masked training activation is the zero vector, while the test-time scaled activation is still nonzero."
+  ],
+  "evidence_refs": [
+    "E6a0892dd751edadbc967",
+    "E35e54071714358685eb8"
+  ],
+  "inputs": [
+    {
+      "name": "a",
+      "label": "a",
+      "meaning": "Fixed activation vector before dropout, with one entry per unit.",
+      "type": "vector",
+      "domain": "real",
+      "value": [
+        2.0,
+        -1.0,
+        0.5,
+        3.0
+      ],
+      "editable": false,
+      "minimum": null,
+      "maximum": null,
+      "step": null,
+      "units": null,
+      "evidence_refs": []
+    },
+    {
+      "name": "m",
+      "label": "m",
+      "meaning": "Binary dropout mask for one training step: 1 keeps the unit, 0 drops it.",
+      "type": "vector",
+      "domain": "integer",
+      "value": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "editable": true,
+      "minimum": 0,
+      "maximum": 1,
+      "step": 1,
+      "units": null,
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ]
+    },
+    {
+      "name": "p",
+      "label": "p",
+      "meaning": "Retention probability: probability that a unit is kept during training.",
+      "type": "scalar",
+      "domain": "unit_interval",
+      "value": 0.5,
+      "editable": true,
+      "minimum": 0.05,
+      "maximum": 1.0,
+      "step": 0.05,
+      "units": null,
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "a_train",
+      "label": "masked training activation",
+      "expression": "a * m",
+      "meaning": "Elementwise product of the activation vector with the binary mask; dropped units become zero.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ]
+    },
+    {
+      "name": "a_test_paper",
+      "label": "test-time activation under paper weight scaling",
+      "expression": "a * p",
+      "meaning": "The paper's test-time convention scales the trained weights by p, which is equivalent here to scaling the activations by p.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ]
+    },
+    {
+      "name": "a_test_alt",
+      "label": "test-time activation under alternative 1/p scaling",
+      "expression": "a / p",
+      "meaning": "An alternative convention that scales by 1/p instead of p; this is not the paper's convention and is shown only for contrast.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": []
+    },
+    {
+      "name": "expected_train",
+      "label": "expected training activation",
+      "expression": "a * p",
+      "meaning": "Expected value of the masked training activation when each unit is kept independently with probability p.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ]
+    }
+  ],
+  "invariants": [
+    "approx_equal(a_test_paper, expected_train)"
+  ],
+  "visuals": [
+    {
+      "type": "bars",
+      "question": "How do the original activations, the masked training activations, and the paper's test-time scaled activations compare entry by entry?",
+      "refs": [
+        "a",
+        "a_train",
+        "a_test_paper"
+      ]
+    },
+    {
+      "type": "comparison",
+      "question": "How does the paper's p-scaling differ from the alternative 1/p scaling at test time?",
+      "refs": [
+        "a_test_paper",
+        "a_test_alt"
+      ]
+    }
+  ],
+  "explorations": [
+    {
+      "title": "Mask pattern changes training activations but not test-time scaling",
+      "setup": {
+        "m": [
+          0,
+          1,
+          0,
+          1
+        ],
+        "p": 0.5
+      },
+      "observe": "The masked training activation changes to [0, -1, 0, 3], while the paper's test-time activation remains [1, -0.5, 0.25, 1.5].",
+      "why": "The mask only affects which units are zeroed during training. The test-time scaling depends only on p and the original activations, so it is unchanged by the mask pattern."
+    },
+    {
+      "title": "Retention probability changes the test-time scaling factor",
+      "setup": {
+        "m": [
+          1,
+          0,
+          1,
+          1
+        ],
+        "p": 0.8
+      },
+      "observe": "The paper's test-time activation becomes [1.6, -0.8, 0.4, 2.4], while the masked training activation stays [2, 0, 0.5, 3].",
+      "why": "Increasing p raises the expected fraction of kept units, so the paper's test-time scaling factor p increases. The training mask is fixed in this exploration, so the masked training activation does not change."
+    }
+  ]
+}

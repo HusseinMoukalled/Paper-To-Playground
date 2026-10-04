@@ -47,7 +47,8 @@ class AdversarialTests(unittest.TestCase):
                     "log": [1e-300], "sin": [0], "cos": [0], "sum": [[0]], "mean": [[0]],
                     "min": [[0]], "max": [[0]], "dot": [[0], [0]], "matmul": [[[0]], [[0]]],
                     "transpose": [[[0]]], "norm": [[0]], "normalize": [[1e-300]],
-                    "softmax": [[1e300, -1e300]], "entropy": [[0, 1]], "approx_equal": [[0, 0]]}
+                    "softmax": [[1e300, -1e300]], "entropy": [[0, 1]], "approx_equal": [[0, 0]],
+                    'xlogx': [[0, 1]], 'take': [[0], 1], 'cross_entropy': [[0, 1], [0, 1]]}
         boundary["approx_equal"] = [0, 0]
         self.assertEqual(set(boundary), set(OPERATIONS))
         from playground.computation.operations import finite
@@ -82,6 +83,17 @@ class AdversarialTests(unittest.TestCase):
         ir = explanation()
         equation = replace(ir.scientific_model.equations[0], expression="y = a*x + b")
         check_equation_consistency(replace(ir, scientific_model=replace(ir.scientific_model, equations=(equation,))))
+        # Repeated reader notation on an unused output is harmless. A symbol
+        # actually used in the RHS must still resolve unambiguously.
+        variables = tuple(replace(v, source_symbol='x') if v.id == 'var-y' else v
+                          for v in ir.scientific_model.variables)
+        check_equation_consistency(replace(ir, scientific_model=replace(ir.scientific_model, variables=variables)))
+        ambiguous = replace(ir.computations[0], expression='a*u+b',
+                            metadata={**ir.computations[0].metadata,
+                                      'bindings': {'a': 'var-a', 'u': 'var-x', 'b': 'var-b'}})
+        with self.assertRaisesRegex(ValueError, "Ambiguous equation symbol 'x'"):
+            check_equation_consistency(replace(ir, computations=(ambiguous,),
+                                               scientific_model=replace(ir.scientific_model, variables=variables)))
         bad = replace(ir.computations[0], expression="a*x-b")
         with self.assertRaises(ValueError):
             check_equation_consistency(replace(ir, computations=(bad,)))

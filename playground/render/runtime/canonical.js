@@ -37,6 +37,9 @@
     if (name==='sin'||name==='cos') { const walk=x=>Array.isArray(x)?x.map(walk):numeric(x)?Math[name](x):fail('Numeric trigonometric input required'); return walk(args[0]); }
     if (name==='sum'||name==='mean') { const a=leaves(args[0]); if (!a.every(numeric)) fail('Numeric reduction required'); const s=total(a); return name==='mean'?s/a.length:s; }
     if (name==='entropy') { const a=vector(args[0]), s=total(a); if (a.some(x=>x<0||x>1)||Math.abs(s-1)>Math.max(1e-8,1e-8*Math.abs(s))) fail('Entropy requires a distribution'); return -total(a.map(x=>x===0?0:x*Math.log(x))); }
+    if (name==='cross_entropy') { const [p,q]=args;vector(p);vector(q);if(p.length!==q.length)fail('Cross-entropy shape mismatch');for(const a of [p,q]){const s=total(a);if(a.some(x=>x<0||x>1)||Math.abs(s-1)>Math.max(1e-8,1e-8*Math.abs(s)))fail('Cross-entropy requires distributions');}if(p.some((x,i)=>x>0&&q[i]===0))fail('Infinite cross-entropy');return -total(p.map((x,i)=>x===0?0:x*Math.log(q[i]))); }
+    if (name==='xlogx') { const walk=x=>Array.isArray(x)?x.map(walk):numeric(x)&&x>=0?(x===0?0:x*Math.log(x)):fail('Nonnegative xlogx input required'); return walk(args[0]); }
+    if (name==='take') { const a=vector(args[0]),n=args[1];if(!numeric(n)||!Number.isInteger(n)||n<1||n>a.length)fail('Prefix length outside vector');return a.slice(0,n); }
     if (name==='dot') return dot(...args);
     if (name==='softmax') {const a=vector(args[0]),peak=Math.max(...a),terms=a.map(x=>Math.exp(x-peak)),z=total(terms);return terms.map(x=>x/z);}
     if (name==='approx_equal') return approx(args[0],args[1]);

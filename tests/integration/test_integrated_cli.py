@@ -58,7 +58,7 @@ class IntegratedCliTests(unittest.TestCase):
             self.assertEqual(sum(p['messages'][0]['content'].startswith('TASK:') for p in requests),1)
             self.assertEqual(requests[0]['model'],'caller-model')
             output = root/'out'
-            self.assertEqual({p.name for p in output.iterdir()},{'index.html','trace.jsonl'})
+            self.assertEqual({p.name for p in output.iterdir()},{'index.html','trace.jsonl','candidate.ir.json'})
             events = [json.loads(x) for x in (output/'trace.jsonl').read_text(encoding='utf-8').splitlines()]
             self.assertEqual(events[-1]['action'],'run_completed')
             self.assertTrue(events[-1]['details']['promoted'])

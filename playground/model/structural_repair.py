@@ -68,7 +68,25 @@ def normalize_wire_conventions(ir):
         used.add(key)
         changes += key != record.claim_id
         records.append(replace(record,claim_id=key))
-    return replace(candidate,grounding_records=tuple(records)),changes
+    # Invariants use the same scientific aliases as computations. Resolve only
+    # uniquely declared names; never guess an ambiguous mathematical binding.
+    from playground.computation.parser import parse, IDENTIFIER
+    metadata = dict(candidate.metadata)
+    bindings = metadata.get('invariant_bindings', {})
+    if isinstance(bindings, dict):
+        valid_bindings = {key: value for key, value in bindings.items() if IDENTIFIER.fullmatch(key)}
+        changes += len(bindings) - len(valid_bindings)
+        for expression in candidate.scientific_model.invariants:
+            try:
+                names = parse(expression).references
+            except ValueError:
+                continue  # The scientific validator reports invalid predicates.
+            for name in names - valid_bindings.keys():
+                if name in aliases and len(aliases[name]) == 1:
+                    valid_bindings[name] = next(iter(aliases[name]))
+                    changes += 1
+        metadata['invariant_bindings'] = valid_bindings
+    return replace(candidate,grounding_records=tuple(records),metadata=metadata),changes
 
 
 def reconcile_equation_links(ir):

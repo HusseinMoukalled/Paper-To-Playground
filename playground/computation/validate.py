@@ -29,6 +29,26 @@ def control_value(control, value, *, strict=False, scientific_type=None):
         raise ValueError("Unknown categorical option")
     if control.control_type == "toggle" and type(value) is not bool:
         raise ValueError("Toggle requires boolean")
+    if control.control_type in {'vector', 'matrix'}:
+        def bounded(entry):
+            if isinstance(entry, list):
+                return [bounded(x) for x in entry]
+            if isinstance(entry, bool) or not isinstance(entry, (int, float)):
+                raise ValueError('Array control requires numeric entries')
+            outside = (control.minimum is not None and entry < control.minimum or
+                       control.maximum is not None and entry > control.maximum)
+            if outside:
+                if rule == 'clamp' and not strict:
+                    if control.minimum is not None:
+                        entry = max(entry, control.minimum)
+                    if control.maximum is not None:
+                        entry = min(entry, control.maximum)
+                elif rule != 'warn' or strict:
+                    raise ValueError('Array entry outside declared range')
+            return entry
+        if not isinstance(value, list):
+            raise ValueError('Array control requires an array')
+        value = bounded(value)
     if control.control_type in {"slider", "number"}:
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ValueError("Numeric control requires a number")
@@ -63,7 +83,11 @@ def prepare_inputs(ir, setup=None, *, strict=False):
         if key not in variables:
             raise ValueError("Default references unknown variable")
         var = variables[key]
-        validate_value(value, var.type, var.shape, var.domain)
+        try:
+            validate_value(value, var.type, var.shape, var.domain)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(f"Input {key} needs type={var.type}, shape={var.shape}, domain={var.domain}; "
+                             f"received {value!r}: {exc}") from exc
     return inputs
 
 
@@ -104,7 +128,7 @@ def validate_computation(ir, *, budget=None):
             values, history = execute(ir, prepare_inputs(ir, setup, strict=True), guard=guard)
             failed = [expr for expr, passed in check_invariants(ir, values, guard=guard) if not passed]
             if failed:
-                raise ValueError("Scientific invariant failed")
+                raise ValueError(f"Scientific invariant failed: {failed}. Check this predicate against all valid control states.")
             # Declarative history is validated too, not just the last step.
             for records in history.values():
                 from playground.computation.operations import finite
@@ -122,16 +146,21 @@ def validate_computation(ir, *, budget=None):
     if baseline:
         for control in ir.lesson_spec.controls:
             variants = [v for label, v in results.items() if label.startswith(control.id + ":")]
+            from playground.computation.probes import array_probes
+            from playground.ir.serialization import to_mapping
+            variable = next(v for v in ir.scientific_model.variables if v.id == control.scientific_variable)
+            probes = array_probes(to_mapping(control), to_mapping(variable))
             # Array controls can declare test_values in metadata without model-generated code.
-            for value in ir.metadata.get("control_test_values", {}).get(control.id, []):
+            for value in ir.metadata.get("control_test_values", {}).get(control.id, []) + probes:
                 try:
                     tested, _ = execute(ir, prepare_inputs(ir, {control.id: value}, strict=True), guard=guard)
-                    if not all(passed for _, passed in check_invariants(ir, tested, guard=guard)):
-                        raise ValueError("Control test invariant failed")
+                    failed = [expr for expr, passed in check_invariants(ir, tested, guard=guard) if not passed]
+                    if failed:
+                        raise ValueError(f"Control test invariant failed: {failed}")
                     variants.append(tested)
-                except (ValueError, TypeError, KeyError, ZeroDivisionError, OverflowError):
+                except (ValueError, TypeError, KeyError, ZeroDivisionError, OverflowError) as exc:
                     findings.append(ValidationFinding(S.FAIL, "CONTROL_TEST_INVALID", "computation",
-                                                      "Declared control test failed", control.id))
+                                                      "Control probe failed: " + str(exc), control.id))
             if not variants:
                 findings.append(ValidationFinding(S.FAIL, "CONTROL_UNTESTED", "computation",
                                                   "Control requires representative test values", control.id))

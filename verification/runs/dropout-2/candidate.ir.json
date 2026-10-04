@@ -1,0 +1,1302 @@
+{
+  "scientific_model": {
+    "concept": "Dropout: Training-Time Masking and Test-Time Weight Scaling",
+    "purpose": "Show how a binary dropout mask zeroes activations during training and how the paper's test-time convention compensates by scaling weights, using a small fixed activation vector and an editable mask and retention probability.",
+    "focus_alignment": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+    "variables": [
+      {
+        "id": "var-a",
+        "source_symbol": "a",
+        "display_symbol": "a",
+        "meaning": "Pre-dropout activation vector for one example.",
+        "type": "vector",
+        "shape": [
+          4
+        ],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "PEDAGOGICAL"
+      },
+      {
+        "id": "var-m",
+        "source_symbol": "m",
+        "display_symbol": "m",
+        "meaning": "Binary dropout mask; 1 keeps the unit, 0 drops it.",
+        "type": "vector",
+        "shape": [
+          4
+        ],
+        "domain": "integer",
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "PEDAGOGICAL"
+      },
+      {
+        "id": "var-p",
+        "source_symbol": "p",
+        "display_symbol": "p",
+        "meaning": "Retention probability (probability that a unit is kept during training).",
+        "type": "scalar",
+        "shape": [],
+        "domain": "unit_interval",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-masked_activation",
+        "source_symbol": "masked_activation",
+        "display_symbol": "masked activation (training)",
+        "meaning": "Elementwise product of the activation vector and the binary mask, giving the training-time activation after dropout.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-test_scale",
+        "source_symbol": "test_scale",
+        "display_symbol": "test-time weight scale",
+        "meaning": "The paper's test-time convention scales weights by the retention probability p, not by 1/p. This is the factor applied to weights at test time.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "unit_interval",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-alt_scale",
+        "source_symbol": "alt_scale",
+        "display_symbol": "alternative activation scale (1/p)",
+        "meaning": "An alternative convention that scales activations by 1/p at test time. This is labeled as an alternative and is not the paper's weight-scaling convention.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "positive",
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-test_activation_paper",
+        "source_symbol": "test_activation_paper",
+        "display_symbol": "test activation under paper convention",
+        "meaning": "Test-time activation when weights are scaled by p; equivalently the activation is multiplied by p.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-test_activation_alt",
+        "source_symbol": "test_activation_alt",
+        "display_symbol": "test activation under alternative convention",
+        "meaning": "Test-time activation under the alternative 1/p activation-scaling convention, shown for contrast.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-masked_activation",
+        "expression": "a * m",
+        "meaning": "Elementwise product of the activation vector and the binary mask, giving the training-time activation after dropout.",
+        "variable_refs": [
+          "var-a",
+          "var-m",
+          "var-masked_activation"
+        ],
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-test_scale",
+        "expression": "p",
+        "meaning": "The paper's test-time convention scales weights by the retention probability p, not by 1/p. This is the factor applied to weights at test time.",
+        "variable_refs": [
+          "var-p",
+          "var-test_scale"
+        ],
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-alt_scale",
+        "expression": "1 / p",
+        "meaning": "An alternative convention that scales activations by 1/p at test time. This is labeled as an alternative and is not the paper's weight-scaling convention.",
+        "variable_refs": [
+          "var-p",
+          "var-alt_scale"
+        ],
+        "evidence_refs": [],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-test_activation_paper",
+        "expression": "a * test_scale",
+        "meaning": "Test-time activation when weights are scaled by p; equivalently the activation is multiplied by p.",
+        "variable_refs": [
+          "var-a",
+          "var-test_scale",
+          "var-test_activation_paper"
+        ],
+        "evidence_refs": [
+          "E6a0892dd751edadbc967"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-test_activation_alt",
+        "expression": "a * alt_scale",
+        "meaning": "Test-time activation under the alternative 1/p activation-scaling convention, shown for contrast.",
+        "variable_refs": [
+          "var-a",
+          "var-alt_scale",
+          "var-test_activation_alt"
+        ],
+        "evidence_refs": [],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-masked_activation",
+        "order": 0,
+        "description": "Elementwise product of the activation vector and the binary mask, giving the training-time activation after dropout.",
+        "equation_refs": [
+          "eq-masked_activation"
+        ],
+        "input_refs": [
+          "var-a",
+          "var-m"
+        ],
+        "output_refs": [
+          "var-masked_activation"
+        ]
+      },
+      {
+        "id": "step-test_scale",
+        "order": 1,
+        "description": "The paper's test-time convention scales weights by the retention probability p, not by 1/p. This is the factor applied to weights at test time.",
+        "equation_refs": [
+          "eq-test_scale"
+        ],
+        "input_refs": [
+          "var-p"
+        ],
+        "output_refs": [
+          "var-test_scale"
+        ]
+      },
+      {
+        "id": "step-alt_scale",
+        "order": 2,
+        "description": "An alternative convention that scales activations by 1/p at test time. This is labeled as an alternative and is not the paper's weight-scaling convention.",
+        "equation_refs": [
+          "eq-alt_scale"
+        ],
+        "input_refs": [
+          "var-p"
+        ],
+        "output_refs": [
+          "var-alt_scale"
+        ]
+      },
+      {
+        "id": "step-test_activation_paper",
+        "order": 3,
+        "description": "Test-time activation when weights are scaled by p; equivalently the activation is multiplied by p.",
+        "equation_refs": [
+          "eq-test_activation_paper"
+        ],
+        "input_refs": [
+          "var-a",
+          "var-test_scale"
+        ],
+        "output_refs": [
+          "var-test_activation_paper"
+        ]
+      },
+      {
+        "id": "step-test_activation_alt",
+        "order": 4,
+        "description": "Test-time activation under the alternative 1/p activation-scaling convention, shown for contrast.",
+        "equation_refs": [
+          "eq-test_activation_alt"
+        ],
+        "input_refs": [
+          "var-a",
+          "var-alt_scale"
+        ],
+        "output_refs": [
+          "var-test_activation_alt"
+        ]
+      }
+    ],
+    "assumptions": [
+      "The mask is a fixed user-supplied binary vector, not a random sample; it represents one possible dropout pattern.",
+      "The activation vector is a single layer's pre-dropout activations for one example."
+    ],
+    "limitations": [
+      "We do not simulate the random sampling of masks or the Monte-Carlo model averaging described in the paper.",
+      "We do not train a network or measure error rates; only the forward-pass arithmetic is shown."
+    ],
+    "misconceptions": [
+      "Dropout is often thought to scale activations at test time. In the paper's convention, test-time compensation is applied to the weights, not to the activations."
+    ],
+    "invariants": [
+      "approx_equal(test_scale, p)"
+    ],
+    "edge_cases": [
+      "Retention probability p = 1 means no units are dropped and the scaling factor is 1.",
+      "A mask with all zeros removes every activation, giving a zero training activation vector."
+    ],
+    "provenance": [
+      "E35e54071714358685eb8",
+      "E6a0892dd751edadbc967"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "A single forward-pass activation vector with a user-supplied binary mask. We compute the masked training activation and the paper's test-time weight-scaling factor. We do not train, sample random masks, or evaluate a network."
+  },
+  "lesson_spec": {
+    "central_learning_question": "Show how a binary dropout mask zeroes activations during training and how the paper's test-time convention compensates by scaling weights, using a small fixed activation vector and an editable mask and retention probability.",
+    "learning_objectives": [
+      "Compute the masked training activation from an activation vector, a binary mask, and a retention probability.",
+      "Distinguish the paper's test-time weight-scaling convention from the training-time masking and label an alternative scaling convention explicitly."
+    ],
+    "audience_prerequisites": [
+      "Elementwise multiplication of vectors",
+      "Expected value of a Bernoulli random variable"
+    ],
+    "intuition": "During training, dropout randomly removes units by multiplying activations with a binary mask. At test time the paper avoids sampling by scaling the weights down by the retention probability, so the expected activation magnitude matches the training-time expectation.",
+    "teaching_sequence": [
+      "Inspect the inputs and equations.",
+      "Change each scientific input and compare the live intermediates.",
+      "Apply both exploration setups and explain the difference."
+    ],
+    "symbol_explanations": {
+      "var-a": "Pre-dropout activation vector for one example.",
+      "var-m": "Binary dropout mask; 1 keeps the unit, 0 drops it.",
+      "var-p": "Retention probability (probability that a unit is kept during training).",
+      "var-masked_activation": "Elementwise product of the activation vector and the binary mask, giving the training-time activation after dropout.",
+      "var-test_scale": "The paper's test-time convention scales weights by the retention probability p, not by 1/p. This is the factor applied to weights at test time.",
+      "var-alt_scale": "An alternative convention that scales activations by 1/p at test time. This is labeled as an alternative and is not the paper's weight-scaling convention.",
+      "var-test_activation_paper": "Test-time activation when weights are scaled by p; equivalently the activation is multiplied by p.",
+      "var-test_activation_alt": "Test-time activation under the alternative 1/p activation-scaling convention, shown for contrast."
+    },
+    "controls": [
+      {
+        "id": "control-m",
+        "label": "m",
+        "scientific_variable": "var-m",
+        "control_type": "vector",
+        "default": [
+          1,
+          0,
+          1,
+          1
+        ],
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-masked_activation"
+        ],
+        "learning_purpose": "Binary dropout mask; 1 keeps the unit, 0 drops it.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0,
+        "maximum": 1,
+        "step": 1,
+        "options": []
+      },
+      {
+        "id": "control-p",
+        "label": "p",
+        "scientific_variable": "var-p",
+        "control_type": "slider",
+        "default": 0.8,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-test_scale",
+          "var-alt_scale",
+          "var-test_activation_paper",
+          "var-test_activation_alt"
+        ],
+        "learning_purpose": "Retention probability (probability that a unit is kept during training).",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0.05,
+        "maximum": 1.0,
+        "step": 0.05,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-masked_activation",
+      "var-test_scale",
+      "var-alt_scale",
+      "var-test_activation_paper",
+      "var-test_activation_alt"
+    ],
+    "visual_question": "How do the original activations, the masked training activations, and the two test-time activations compare entry by entry?",
+    "visual_intent": "Compare the computed mechanism and its intermediate values.",
+    "guided_explorations": [
+      {
+        "id": "explore-1",
+        "title": "Baseline: moderate retention with one dropped unit",
+        "change": "Set m to [1, 0, 1, 1]; Set p to 0.8.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: masked activation (training) = [2.0, -0.0, 0.5, 3.0] (starting value: [2.0, -0.0, 0.5, 3.0]); test-time weight scale = 0.8 (starting value: 0.8); alternative activation scale (1/p) = 1.25 (starting value: 1.25); test activation under paper convention = [1.6, -0.8, 0.4, 2.4] (starting value: [1.6, -0.8, 0.4, 2.4]); test activation under alternative convention = [2.5, -1.25, 0.625, 3.75] (starting value: [2.5, -1.25, 0.625, 3.75]).",
+        "why": "The mask zeroes the second unit during training. The paper's test-time convention scales weights by p = 0.8, so activations are multiplied by 0.8. The alternative convention scales activations by 1/p = 1.25, which is larger than the original activations.",
+        "setup": {
+          "control-m": [
+            1,
+            0,
+            1,
+            1
+          ],
+          "control-p": 0.8
+        }
+      },
+      {
+        "id": "explore-2",
+        "title": "High retention with no dropped units",
+        "change": "Set m to [1, 1, 1, 1]; Set p to 0.95.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: masked activation (training) = [2.0, -1.0, 0.5, 3.0] (starting value: [2.0, -0.0, 0.5, 3.0]); test-time weight scale = 0.95 (starting value: 0.8); alternative activation scale (1/p) = 1.0526316 (starting value: 1.25); test activation under paper convention = [1.9, -0.95, 0.475, 2.85] (starting value: [1.6, -0.8, 0.4, 2.4]); test activation under alternative convention = [2.1052632, -1.0526316, 0.52631579, 3.1578947] (starting value: [2.5, -1.25, 0.625, 3.75]).",
+        "why": "With p close to 1, the paper's test-time scale is close to 1, so test activations are close to the original. The alternative 1/p scale is also close to 1 but slightly larger. No units are dropped, so the training activation equals the original.",
+        "setup": {
+          "control-m": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "control-p": 0.95
+        }
+      }
+    ],
+    "limitation_or_assumption": "We do not simulate the random sampling of masks or the Monte-Carlo model averaging described in the paper.",
+    "misconception": "Dropout is often thought to scale activations at test time. In the paper's convention, test-time compensation is applied to the weights, not to the activations.",
+    "source_grounding_plan": [
+      "Source citations support the scientific explanation; computed values are derived from explicit toy inputs."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-masked_activation",
+      "expression": "a * m",
+      "output_type": "vector",
+      "input_refs": [
+        "var-a",
+        "var-m"
+      ],
+      "output_refs": [
+        "var-masked_activation"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "a": "var-a",
+          "m": "var-m"
+        },
+        "equation_refs": [
+          "eq-masked_activation"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "multiply",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "a",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "m",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-test_scale",
+      "expression": "p",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-p"
+      ],
+      "output_refs": [
+        "var-test_scale"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "p": "var-p"
+        },
+        "equation_refs": [
+          "eq-test_scale"
+        ],
+        "canonical_ast": {
+          "kind": "variable",
+          "value": "p",
+          "args": []
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-alt_scale",
+      "expression": "1 / p",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-p"
+      ],
+      "output_refs": [
+        "var-alt_scale"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "p": "var-p"
+        },
+        "equation_refs": [
+          "eq-alt_scale"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "divide",
+          "args": [
+            {
+              "kind": "literal",
+              "value": 1,
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "p",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-test_activation_paper",
+      "expression": "a * test_scale",
+      "output_type": "vector",
+      "input_refs": [
+        "var-a",
+        "var-test_scale"
+      ],
+      "output_refs": [
+        "var-test_activation_paper"
+      ],
+      "dependencies": [
+        "compute-test_scale"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "a": "var-a",
+          "test_scale": "var-test_scale"
+        },
+        "equation_refs": [
+          "eq-test_activation_paper"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "multiply",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "a",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "test_scale",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-test_activation_alt",
+      "expression": "a * alt_scale",
+      "output_type": "vector",
+      "input_refs": [
+        "var-a",
+        "var-alt_scale"
+      ],
+      "output_refs": [
+        "var-test_activation_alt"
+      ],
+      "dependencies": [
+        "compute-alt_scale"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "a": "var-a",
+          "alt_scale": "var-alt_scale"
+        },
+        "equation_refs": [
+          "eq-test_activation_alt"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "multiply",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "a",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "alt_scale",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-1",
+      "visual_type": "bars",
+      "question": "How do the original activations, the masked training activations, and the two test-time activations compare entry by entry?",
+      "data_refs": [
+        "var-a",
+        "var-masked_activation",
+        "var-test_activation_paper",
+        "var-test_activation_alt"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "visual-2",
+      "visual_type": "scalar",
+      "question": "What are the paper's test-time weight scale and the alternative activation scale?",
+      "data_refs": [
+        "var-test_scale",
+        "var-alt_scale"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "Dropout: Training-Time Masking and Test-Time Weight Scaling",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Show how a binary dropout mask zeroes activations during training and how the paper's test-time convention compensates by scaling weights, using a small fixed activation vector and an editable mask and retention probability.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "A single forward-pass activation vector with a user-supplied binary mask. We compute the masked training activation and the paper's test-time weight-scaling factor. We do not train, sample random masks, or evaluate a network.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "During training, dropout randomly removes units by multiplying activations with a binary mask. At test time the paper avoids sampling by scaling the weights down by the retention probability, so the expected activation magnitude matches the training-time expectation.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "We do not simulate the random sampling of masks or the Monte-Carlo model averaging described in the paper.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "Dropout is often thought to scale activations at test time. In the paper's convention, test-time compensation is applied to the weights, not to the activations.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "The mask is a fixed user-supplied binary vector, not a random sample; it represents one possible dropout pattern.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.1",
+      "claim": "The activation vector is a single layer's pre-dropout activations for one example.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "We do not simulate the random sampling of masks or the Monte-Carlo model averaging described in the paper.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.1",
+      "claim": "We do not train a network or measure error rates; only the forward-pass arithmetic is shown.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "Dropout is often thought to scale activations at test time. In the paper's convention, test-time compensation is applied to the weights, not to the activations.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "Retention probability p = 1 means no units are dropped and the scaling factor is 1.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.1",
+      "claim": "A mask with all zeros removes every activation, giving a zero training activation vector.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the inputs and equations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Change each scientific input and compare the live intermediates.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.2",
+      "claim": "Apply both exploration setups and explain the difference.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "Source citations support the scientific explanation; computed values are derived from explicit toy inputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Compute the masked training activation from an activation vector, a binary mask, and a retention probability.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.1",
+      "claim": "Distinguish the paper's test-time weight-scaling convention from the training-time masking and label an alternative scaling convention explicitly.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Elementwise multiplication of vectors",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.1",
+      "claim": "Expected value of a Bernoulli random variable",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "Show how a binary dropout mask zeroes activations during training and how the paper's test-time convention compensates by scaling weights, using a small fixed activation vector and an editable mask and retention probability.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How do the original activations, the masked training activations, and the two test-time activations compare entry by entry?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Compare the computed mechanism and its intermediate values.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-1.question",
+      "claim": "How do the original activations, the masked training activations, and the two test-time activations compare entry by entry?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-2.question",
+      "claim": "What are the paper's test-time weight scale and the alternative activation scale?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-a",
+      "claim": "Pre-dropout activation vector for one example.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-m",
+      "claim": "Binary dropout mask; 1 keeps the unit, 0 drops it.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-p",
+      "claim": "Retention probability (probability that a unit is kept during training).",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-masked_activation",
+      "claim": "Elementwise product of the activation vector and the binary mask, giving the training-time activation after dropout.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-masked_activation"
+      ]
+    },
+    {
+      "claim_id": "var-test_scale",
+      "claim": "The paper's test-time convention scales weights by the retention probability p, not by 1/p. This is the factor applied to weights at test time.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-test_scale"
+      ]
+    },
+    {
+      "claim_id": "var-alt_scale",
+      "claim": "An alternative convention that scales activations by 1/p at test time. This is labeled as an alternative and is not the paper's weight-scaling convention.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-alt_scale"
+      ]
+    },
+    {
+      "claim_id": "var-test_activation_paper",
+      "claim": "Test-time activation when weights are scaled by p; equivalently the activation is multiplied by p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-test_activation_paper"
+      ]
+    },
+    {
+      "claim_id": "var-test_activation_alt",
+      "claim": "Test-time activation under the alternative 1/p activation-scaling convention, shown for contrast.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-test_activation_alt"
+      ]
+    },
+    {
+      "claim_id": "eq-masked_activation",
+      "claim": "Elementwise product of the activation vector and the binary mask, giving the training-time activation after dropout.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-masked_activation"
+      ]
+    },
+    {
+      "claim_id": "eq-test_scale",
+      "claim": "The paper's test-time convention scales weights by the retention probability p, not by 1/p. This is the factor applied to weights at test time.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-test_scale"
+      ]
+    },
+    {
+      "claim_id": "eq-alt_scale",
+      "claim": "An alternative convention that scales activations by 1/p at test time. This is labeled as an alternative and is not the paper's weight-scaling convention.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-alt_scale"
+      ]
+    },
+    {
+      "claim_id": "eq-test_activation_paper",
+      "claim": "Test-time activation when weights are scaled by p; equivalently the activation is multiplied by p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-test_activation_paper"
+      ]
+    },
+    {
+      "claim_id": "eq-test_activation_alt",
+      "claim": "Test-time activation under the alternative 1/p activation-scaling convention, shown for contrast.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-test_activation_alt"
+      ]
+    },
+    {
+      "claim_id": "step-masked_activation",
+      "claim": "Elementwise product of the activation vector and the binary mask, giving the training-time activation after dropout.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-masked_activation"
+      ]
+    },
+    {
+      "claim_id": "step-test_scale",
+      "claim": "The paper's test-time convention scales weights by the retention probability p, not by 1/p. This is the factor applied to weights at test time.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-test_scale"
+      ]
+    },
+    {
+      "claim_id": "step-alt_scale",
+      "claim": "An alternative convention that scales activations by 1/p at test time. This is labeled as an alternative and is not the paper's weight-scaling convention.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-alt_scale"
+      ]
+    },
+    {
+      "claim_id": "step-test_activation_paper",
+      "claim": "Test-time activation when weights are scaled by p; equivalently the activation is multiplied by p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-test_activation_paper"
+      ]
+    },
+    {
+      "claim_id": "step-test_activation_alt",
+      "claim": "Test-time activation under the alternative 1/p activation-scaling convention, shown for contrast.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-test_activation_alt"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-a",
+      "claim": "Pre-dropout activation vector for one example.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-m",
+      "claim": "Binary dropout mask; 1 keeps the unit, 0 drops it.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-p",
+      "claim": "Retention probability (probability that a unit is kept during training).",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-masked_activation",
+      "claim": "Elementwise product of the activation vector and the binary mask, giving the training-time activation after dropout.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-masked_activation"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-test_scale",
+      "claim": "The paper's test-time convention scales weights by the retention probability p, not by 1/p. This is the factor applied to weights at test time.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-test_scale"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-alt_scale",
+      "claim": "An alternative convention that scales activations by 1/p at test time. This is labeled as an alternative and is not the paper's weight-scaling convention.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-alt_scale"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-test_activation_paper",
+      "claim": "Test-time activation when weights are scaled by p; equivalently the activation is multiplied by p.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967"
+      ],
+      "computation_refs": [
+        "compute-test_activation_paper"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-test_activation_alt",
+      "claim": "Test-time activation under the alternative 1/p activation-scaling convention, shown for contrast.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-test_activation_alt"
+      ]
+    },
+    {
+      "claim_id": "control-m.learning_purpose",
+      "claim": "Binary dropout mask; 1 keeps the unit, 0 drops it.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-m.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-p.learning_purpose",
+      "claim": "Retention probability (probability that a unit is kept during training).",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-p.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.change",
+      "claim": "Set m to [1, 0, 1, 1]; Set p to 0.8.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: masked activation (training) = [2.0, -0.0, 0.5, 3.0] (starting value: [2.0, -0.0, 0.5, 3.0]); test-time weight scale = 0.8 (starting value: 0.8); alternative activation scale (1/p) = 1.25 (starting value: 1.25); test activation under paper convention = [1.6, -0.8, 0.4, 2.4] (starting value: [1.6, -0.8, 0.4, 2.4]); test activation under alternative convention = [2.5, -1.25, 0.625, 3.75] (starting value: [2.5, -1.25, 0.625, 3.75]).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-masked_activation",
+        "compute-test_scale",
+        "compute-alt_scale",
+        "compute-test_activation_paper",
+        "compute-test_activation_alt"
+      ]
+    },
+    {
+      "claim_id": "explore-1.why",
+      "claim": "The mask zeroes the second unit during training. The paper's test-time convention scales weights by p = 0.8, so activations are multiplied by 0.8. The alternative convention scales activations by 1/p = 1.25, which is larger than the original activations.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.change",
+      "claim": "Set m to [1, 1, 1, 1]; Set p to 0.95.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: masked activation (training) = [2.0, -1.0, 0.5, 3.0] (starting value: [2.0, -0.0, 0.5, 3.0]); test-time weight scale = 0.95 (starting value: 0.8); alternative activation scale (1/p) = 1.0526316 (starting value: 1.25); test activation under paper convention = [1.9, -0.95, 0.475, 2.85] (starting value: [1.6, -0.8, 0.4, 2.4]); test activation under alternative convention = [2.1052632, -1.0526316, 0.52631579, 3.1578947] (starting value: [2.5, -1.25, 0.625, 3.75]).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-masked_activation",
+        "compute-test_scale",
+        "compute-alt_scale",
+        "compute-test_activation_paper",
+        "compute-test_activation_alt"
+      ]
+    },
+    {
+      "claim_id": "explore-2.why",
+      "claim": "With p close to 1, the paper's test-time scale is close to 1, so test activations are close to the original. The alternative 1/p scale is also close to 1 but slightly larger. No units are dropped, so the training activation equals the original.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E6a0892dd751edadbc967",
+        "E35e54071714358685eb8"
+      ],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+    "learning_objective_refs": [
+      "Compute the masked training activation from an activation vector, a binary mask, and a retention probability.",
+      "Distinguish the paper's test-time weight-scaling convention from the training-time masking and label an alternative scaling convention explicitly."
+    ],
+    "mechanism_refs": [
+      "eq-masked_activation",
+      "eq-test_scale",
+      "eq-alt_scale",
+      "eq-test_activation_paper",
+      "eq-test_activation_alt"
+    ],
+    "control_refs": [
+      "control-m",
+      "control-p"
+    ],
+    "computation_refs": [
+      "compute-masked_activation",
+      "compute-test_scale",
+      "compute-alt_scale",
+      "compute-test_activation_paper",
+      "compute-test_activation_alt"
+    ],
+    "visual_refs": [
+      "visual-1",
+      "visual-2"
+    ],
+    "exploration_refs": [
+      "explore-1",
+      "explore-2"
+    ]
+  },
+  "metadata": {
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use the stated prerequisites and a bounded worked mechanism for second-year engineering undergraduate.",
+    "defaults": {
+      "var-a": [
+        2.0,
+        -1.0,
+        0.5,
+        3.0
+      ]
+    },
+    "invariant_bindings": {
+      "test_scale": "var-test_scale",
+      "p": "var-p"
+    },
+    "control_test_values": {},
+    "equation_scope": {}
+  }
+}

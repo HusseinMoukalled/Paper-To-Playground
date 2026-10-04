@@ -14,6 +14,16 @@ from tests.fixtures.runtime_fixtures import fixture_ir
 
 
 class ArtifactValidationTests(unittest.TestCase):
+    def test_browser_probes_respect_integer_scientific_domains(self):
+        from playground.validation.browser import alternative_values
+        control = {'default': 4, 'control_type': 'number', 'minimum': 1,
+                   'maximum': 4, 'step': 1}
+        probes = alternative_values(control, integer=True)
+        self.assertTrue(probes)
+        self.assertTrue(all(isinstance(v, int) and 1 <= v <= 4 for v in probes))
+        self.assertIn(1, probes)
+        self.assertIn(2.5, alternative_values(control))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.ir = fixture_ir()

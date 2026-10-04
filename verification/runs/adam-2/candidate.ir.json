@@ -1,0 +1,1939 @@
+{
+  "scientific_model": {
+    "concept": "One Adam Update: Moments, Bias Correction, and the Parameter Step",
+    "purpose": "Walk through a single scalar Adam timestep exactly as in Algorithm 1: form the first and second moment estimates from a toy prior state and the current gradient, apply bias correction, and compute the parameter update.",
+    "focus_alignment": "Section 2, Algorithm 1: explain one scalar Adam update, including first and second moment estimates, bias correction and the parameter update. Let the learner vary the gradient and learning rate and display intermediate values. Use explicit toy prior moments and a positive step count; do not train a model.",
+    "variables": [
+      {
+        "id": "var-g",
+        "source_symbol": "g",
+        "display_symbol": "g",
+        "meaning": "Current gradient of the loss with respect to the scalar parameter at this timestep.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-alpha",
+        "source_symbol": "alpha",
+        "display_symbol": "alpha",
+        "meaning": "Learning rate (stepsize) multiplying the bias-corrected moment ratio.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "positive",
+        "units": null,
+        "evidence_refs": [
+          "E9b92bf94d9fd9edf0ceb"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-beta1",
+        "source_symbol": "beta1",
+        "display_symbol": "beta1",
+        "meaning": "Exponential decay rate for the first moment estimate.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "unit_interval",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-beta2",
+        "source_symbol": "beta2",
+        "display_symbol": "beta2",
+        "meaning": "Exponential decay rate for the second moment estimate.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "unit_interval",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-epsilon",
+        "source_symbol": "epsilon",
+        "display_symbol": "epsilon",
+        "meaning": "Small constant added to the bias-corrected second moment inside the square root for numerical stability.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "positive",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-m_prev",
+        "source_symbol": "m_prev",
+        "display_symbol": "m_{t-1}",
+        "meaning": "Toy first moment estimate carried in from the previous timestep.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-v_prev",
+        "source_symbol": "v_prev",
+        "display_symbol": "v_{t-1}",
+        "meaning": "Toy second moment estimate carried in from the previous timestep.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-t",
+        "source_symbol": "t",
+        "display_symbol": "t",
+        "meaning": "Positive timestep index used in the bias-correction powers.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "integer",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-theta_prev",
+        "source_symbol": "theta_prev",
+        "display_symbol": "theta_{t-1}",
+        "meaning": "Toy parameter value before this update, used to display the new parameter after subtracting the update.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [],
+        "knowledge_class": "PEDAGOGICAL"
+      },
+      {
+        "id": "var-m_t",
+        "source_symbol": "m_t",
+        "display_symbol": "m_t",
+        "meaning": "First moment estimate: exponential moving average of the gradient, combining the decayed prior moment with the new gradient.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-v_t",
+        "source_symbol": "v_t",
+        "display_symbol": "v_t",
+        "meaning": "Second moment estimate: exponential moving average of the squared gradient.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-m_hat",
+        "source_symbol": "m_hat",
+        "display_symbol": "m_hat_t",
+        "meaning": "Bias-corrected first moment: divides by 1 - beta1^t to remove the zero-initialization bias.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-v_hat",
+        "source_symbol": "v_hat",
+        "display_symbol": "v_hat_t",
+        "meaning": "Bias-corrected second moment: divides by 1 - beta2^t to remove the zero-initialization bias.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-update",
+        "source_symbol": "update",
+        "display_symbol": "delta_t",
+        "meaning": "Parameter update: learning rate times the bias-corrected moment ratio, with epsilon inside the denominator for stability.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7",
+          "E9b92bf94d9fd9edf0ceb"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-theta_new",
+        "source_symbol": "theta_new",
+        "display_symbol": "theta_t",
+        "meaning": "New parameter value after subtracting the update, since the gradient points toward increasing loss.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-m_t",
+        "expression": "beta1 * m_prev + (1 - beta1) * g",
+        "meaning": "First moment estimate: exponential moving average of the gradient, combining the decayed prior moment with the new gradient.",
+        "variable_refs": [
+          "var-beta1",
+          "var-g",
+          "var-m_prev",
+          "var-m_t"
+        ],
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-v_t",
+        "expression": "beta2 * v_prev + (1 - beta2) * g * g",
+        "meaning": "Second moment estimate: exponential moving average of the squared gradient.",
+        "variable_refs": [
+          "var-beta2",
+          "var-g",
+          "var-v_prev",
+          "var-v_t"
+        ],
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-m_hat",
+        "expression": "m_t / (1 - beta1 ** t)",
+        "meaning": "Bias-corrected first moment: divides by 1 - beta1^t to remove the zero-initialization bias.",
+        "variable_refs": [
+          "var-beta1",
+          "var-m_t",
+          "var-t",
+          "var-m_hat"
+        ],
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-v_hat",
+        "expression": "v_t / (1 - beta2 ** t)",
+        "meaning": "Bias-corrected second moment: divides by 1 - beta2^t to remove the zero-initialization bias.",
+        "variable_refs": [
+          "var-beta2",
+          "var-t",
+          "var-v_t",
+          "var-v_hat"
+        ],
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-update",
+        "expression": "alpha * m_hat / (sqrt(v_hat) + epsilon)",
+        "meaning": "Parameter update: learning rate times the bias-corrected moment ratio, with epsilon inside the denominator for stability.",
+        "variable_refs": [
+          "var-alpha",
+          "var-epsilon",
+          "var-m_hat",
+          "var-v_hat",
+          "var-update"
+        ],
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7",
+          "E9b92bf94d9fd9edf0ceb"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-theta_new",
+        "expression": "theta_prev - update",
+        "meaning": "New parameter value after subtracting the update, since the gradient points toward increasing loss.",
+        "variable_refs": [
+          "var-theta_prev",
+          "var-update",
+          "var-theta_new"
+        ],
+        "evidence_refs": [
+          "Ef987bd28c4b4873f99c7"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-m_t",
+        "order": 0,
+        "description": "First moment estimate: exponential moving average of the gradient, combining the decayed prior moment with the new gradient.",
+        "equation_refs": [
+          "eq-m_t"
+        ],
+        "input_refs": [
+          "var-beta1",
+          "var-g",
+          "var-m_prev"
+        ],
+        "output_refs": [
+          "var-m_t"
+        ]
+      },
+      {
+        "id": "step-v_t",
+        "order": 1,
+        "description": "Second moment estimate: exponential moving average of the squared gradient.",
+        "equation_refs": [
+          "eq-v_t"
+        ],
+        "input_refs": [
+          "var-beta2",
+          "var-g",
+          "var-v_prev"
+        ],
+        "output_refs": [
+          "var-v_t"
+        ]
+      },
+      {
+        "id": "step-m_hat",
+        "order": 2,
+        "description": "Bias-corrected first moment: divides by 1 - beta1^t to remove the zero-initialization bias.",
+        "equation_refs": [
+          "eq-m_hat"
+        ],
+        "input_refs": [
+          "var-beta1",
+          "var-m_t",
+          "var-t"
+        ],
+        "output_refs": [
+          "var-m_hat"
+        ]
+      },
+      {
+        "id": "step-v_hat",
+        "order": 3,
+        "description": "Bias-corrected second moment: divides by 1 - beta2^t to remove the zero-initialization bias.",
+        "equation_refs": [
+          "eq-v_hat"
+        ],
+        "input_refs": [
+          "var-beta2",
+          "var-t",
+          "var-v_t"
+        ],
+        "output_refs": [
+          "var-v_hat"
+        ]
+      },
+      {
+        "id": "step-update",
+        "order": 4,
+        "description": "Parameter update: learning rate times the bias-corrected moment ratio, with epsilon inside the denominator for stability.",
+        "equation_refs": [
+          "eq-update"
+        ],
+        "input_refs": [
+          "var-alpha",
+          "var-epsilon",
+          "var-m_hat",
+          "var-v_hat"
+        ],
+        "output_refs": [
+          "var-update"
+        ]
+      },
+      {
+        "id": "step-theta_new",
+        "order": 5,
+        "description": "New parameter value after subtracting the update, since the gradient points toward increasing loss.",
+        "equation_refs": [
+          "eq-theta_new"
+        ],
+        "input_refs": [
+          "var-theta_prev",
+          "var-update"
+        ],
+        "output_refs": [
+          "var-theta_new"
+        ]
+      }
+    ],
+    "assumptions": [
+      "The gradient g is supplied for this single step; no backpropagation or loss function is modeled.",
+      "The prior moments m_prev and v_prev are toy values representing the state after t-1 steps, not learned quantities."
+    ],
+    "limitations": [
+      "Only one scalar parameter and one timestep are shown; multi-parameter behavior and long-run convergence are out of scope.",
+      "The paper's effective-stepsize bounds and SNR discussion are not reproduced here; this lesson covers the update arithmetic only."
+    ],
+    "misconceptions": [
+      "Bias correction is not an optional tweak: without dividing by 1 - beta1^t and 1 - beta2^t, the moments are systematically too small early in training, so the first steps would be far smaller than the learning rate suggests."
+    ],
+    "invariants": [
+      "approx_equal(v_t, beta2 * v_prev + (1 - beta2) * g * g)",
+      "approx_equal(update, alpha * m_hat / (sqrt(v_hat) + epsilon))"
+    ],
+    "edge_cases": [
+      "A zero gradient with zero prior moments gives zero corrected moments and a zero update, so the parameter does not move.",
+      "A very small second-moment estimate makes the denominator small, so the update magnitude can approach the learning rate even for a modest gradient."
+    ],
+    "provenance": [
+      "E00217b51dfe0363014ab",
+      "E726d672da4016a1b6224",
+      "E9b92bf94d9fd9edf0ceb",
+      "Eaca9dc5055ad8f099a63",
+      "Eb3d3592b9f1d5be7bc2e",
+      "Ef987bd28c4b4873f99c7"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "One scalar parameter, one timestep t >= 1, with explicit toy prior moments m_prev and v_prev. No training loop, no model, no data pipeline. The gradient g is treated as given for this step."
+  },
+  "lesson_spec": {
+    "central_learning_question": "Walk through a single scalar Adam timestep exactly as in Algorithm 1: form the first and second moment estimates from a toy prior state and the current gradient, apply bias correction, and compute the parameter update.",
+    "learning_objectives": [
+      "Compute the first and second moment estimates and their bias-corrected versions for one scalar Adam step.",
+      "Compute the parameter update and explain how the learning rate, gradient, and prior moments control its sign and magnitude."
+    ],
+    "audience_prerequisites": [
+      "Exponential moving averages: new = beta * old + (1 - beta) * current.",
+      "Basic calculus idea that a gradient points in the direction of steepest increase, so updates subtract it."
+    ],
+    "intuition": "Adam keeps a running average of gradients (first moment) and of squared gradients (second moment). Because both averages start at zero, they are biased toward zero early on; dividing by 1 - beta^t removes that bias. The update then moves the parameter by a step whose size is roughly the learning rate, scaled by the ratio of the corrected mean to the corrected root-mean-square gradient.",
+    "teaching_sequence": [
+      "Inspect the inputs and equations.",
+      "Change each scientific input and compare the live intermediates.",
+      "Apply both exploration setups and explain the difference."
+    ],
+    "symbol_explanations": {
+      "var-g": "Current gradient of the loss with respect to the scalar parameter at this timestep.",
+      "var-alpha": "Learning rate (stepsize) multiplying the bias-corrected moment ratio.",
+      "var-beta1": "Exponential decay rate for the first moment estimate.",
+      "var-beta2": "Exponential decay rate for the second moment estimate.",
+      "var-epsilon": "Small constant added to the bias-corrected second moment inside the square root for numerical stability.",
+      "var-m_prev": "Toy first moment estimate carried in from the previous timestep.",
+      "var-v_prev": "Toy second moment estimate carried in from the previous timestep.",
+      "var-t": "Positive timestep index used in the bias-correction powers.",
+      "var-theta_prev": "Toy parameter value before this update, used to display the new parameter after subtracting the update.",
+      "var-m_t": "First moment estimate: exponential moving average of the gradient, combining the decayed prior moment with the new gradient.",
+      "var-v_t": "Second moment estimate: exponential moving average of the squared gradient.",
+      "var-m_hat": "Bias-corrected first moment: divides by 1 - beta1^t to remove the zero-initialization bias.",
+      "var-v_hat": "Bias-corrected second moment: divides by 1 - beta2^t to remove the zero-initialization bias.",
+      "var-update": "Parameter update: learning rate times the bias-corrected moment ratio, with epsilon inside the denominator for stability.",
+      "var-theta_new": "New parameter value after subtracting the update, since the gradient points toward increasing loss."
+    },
+    "controls": [
+      {
+        "id": "control-g",
+        "label": "g",
+        "scientific_variable": "var-g",
+        "control_type": "slider",
+        "default": 0.4,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-m_t",
+          "var-v_t",
+          "var-m_hat",
+          "var-v_hat",
+          "var-update",
+          "var-theta_new"
+        ],
+        "learning_purpose": "Current gradient of the loss with respect to the scalar parameter at this timestep.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": -2.0,
+        "maximum": 2.0,
+        "step": 0.05,
+        "options": []
+      },
+      {
+        "id": "control-alpha",
+        "label": "alpha",
+        "scientific_variable": "var-alpha",
+        "control_type": "slider",
+        "default": 0.01,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-update",
+          "var-theta_new"
+        ],
+        "learning_purpose": "Learning rate (stepsize) multiplying the bias-corrected moment ratio.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0.001,
+        "maximum": 0.1,
+        "step": 0.001,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-m_t",
+      "var-v_t",
+      "var-m_hat",
+      "var-v_hat",
+      "var-update",
+      "var-theta_new"
+    ],
+    "visual_question": "How does the current gradient g flow through the first and second moment estimates into the final update?",
+    "visual_intent": "Compare the computed mechanism and its intermediate values.",
+    "guided_explorations": [
+      {
+        "id": "explore-1",
+        "title": "Gradient sign and magnitude",
+        "change": "Set g to -0.8; Set alpha to 0.01.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: m_t = -0.08 (starting value: 0.04); v_t = 0.00064 (starting value: 0.00016); m_hat_t = -0.8 (starting value: 0.4); v_hat_t = 0.64 (starting value: 0.16); delta_t = -0.0099999999 (starting value: 0.0099999998); theta_t = 0.0099999999 (starting value: -0.0099999998).",
+        "why": "The first moment tracks the sign of the gradient, and the update inherits that sign. The second moment grows with the square of the gradient, so the denominator changes more slowly than the numerator, letting a larger gradient produce a larger step.",
+        "setup": {
+          "control-g": -0.8,
+          "control-alpha": 0.01
+        }
+      },
+      {
+        "id": "explore-2",
+        "title": "Learning rate scaling",
+        "change": "Set g to 0.4; Set alpha to 0.05.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: m_t = 0.04 (starting value: 0.04); v_t = 0.00016 (starting value: 0.00016); m_hat_t = 0.4 (starting value: 0.4); v_hat_t = 0.16 (starting value: 0.16); delta_t = 0.049999999 (starting value: 0.0099999998); theta_t = -0.049999999 (starting value: -0.0099999998).",
+        "why": "The learning rate multiplies the bias-corrected moment ratio directly, so it scales the step without altering the moment estimates or their correction.",
+        "setup": {
+          "control-g": 0.4,
+          "control-alpha": 0.05
+        }
+      }
+    ],
+    "limitation_or_assumption": "Only one scalar parameter and one timestep are shown; multi-parameter behavior and long-run convergence are out of scope.",
+    "misconception": "Bias correction is not an optional tweak: without dividing by 1 - beta1^t and 1 - beta2^t, the moments are systematically too small early in training, so the first steps would be far smaller than the learning rate suggests.",
+    "source_grounding_plan": [
+      "Source citations support the scientific explanation; computed values are derived from explicit toy inputs."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-m_t",
+      "expression": "beta1 * m_prev + (1 - beta1) * g",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-beta1",
+        "var-g",
+        "var-m_prev"
+      ],
+      "output_refs": [
+        "var-m_t"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "beta1": "var-beta1",
+          "g": "var-g",
+          "m_prev": "var-m_prev"
+        },
+        "equation_refs": [
+          "eq-m_t"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "add",
+          "args": [
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "beta1",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "m_prev",
+                  "args": []
+                }
+              ]
+            },
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "call",
+                  "value": "subtract",
+                  "args": [
+                    {
+                      "kind": "literal",
+                      "value": 1,
+                      "args": []
+                    },
+                    {
+                      "kind": "variable",
+                      "value": "beta1",
+                      "args": []
+                    }
+                  ]
+                },
+                {
+                  "kind": "variable",
+                  "value": "g",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-v_t",
+      "expression": "beta2 * v_prev + (1 - beta2) * g * g",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-beta2",
+        "var-g",
+        "var-v_prev"
+      ],
+      "output_refs": [
+        "var-v_t"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "beta2": "var-beta2",
+          "g": "var-g",
+          "v_prev": "var-v_prev"
+        },
+        "equation_refs": [
+          "eq-v_t"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "add",
+          "args": [
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "beta2",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "v_prev",
+                  "args": []
+                }
+              ]
+            },
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "call",
+                  "value": "multiply",
+                  "args": [
+                    {
+                      "kind": "call",
+                      "value": "subtract",
+                      "args": [
+                        {
+                          "kind": "literal",
+                          "value": 1,
+                          "args": []
+                        },
+                        {
+                          "kind": "variable",
+                          "value": "beta2",
+                          "args": []
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "variable",
+                      "value": "g",
+                      "args": []
+                    }
+                  ]
+                },
+                {
+                  "kind": "variable",
+                  "value": "g",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-m_hat",
+      "expression": "m_t / (1 - beta1 ** t)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-beta1",
+        "var-m_t",
+        "var-t"
+      ],
+      "output_refs": [
+        "var-m_hat"
+      ],
+      "dependencies": [
+        "compute-m_t"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "beta1": "var-beta1",
+          "m_t": "var-m_t",
+          "t": "var-t"
+        },
+        "equation_refs": [
+          "eq-m_hat"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "divide",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "m_t",
+              "args": []
+            },
+            {
+              "kind": "call",
+              "value": "subtract",
+              "args": [
+                {
+                  "kind": "literal",
+                  "value": 1,
+                  "args": []
+                },
+                {
+                  "kind": "call",
+                  "value": "power",
+                  "args": [
+                    {
+                      "kind": "variable",
+                      "value": "beta1",
+                      "args": []
+                    },
+                    {
+                      "kind": "variable",
+                      "value": "t",
+                      "args": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-v_hat",
+      "expression": "v_t / (1 - beta2 ** t)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-beta2",
+        "var-t",
+        "var-v_t"
+      ],
+      "output_refs": [
+        "var-v_hat"
+      ],
+      "dependencies": [
+        "compute-v_t"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "beta2": "var-beta2",
+          "t": "var-t",
+          "v_t": "var-v_t"
+        },
+        "equation_refs": [
+          "eq-v_hat"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "divide",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "v_t",
+              "args": []
+            },
+            {
+              "kind": "call",
+              "value": "subtract",
+              "args": [
+                {
+                  "kind": "literal",
+                  "value": 1,
+                  "args": []
+                },
+                {
+                  "kind": "call",
+                  "value": "power",
+                  "args": [
+                    {
+                      "kind": "variable",
+                      "value": "beta2",
+                      "args": []
+                    },
+                    {
+                      "kind": "variable",
+                      "value": "t",
+                      "args": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-update",
+      "expression": "alpha * m_hat / (sqrt(v_hat) + epsilon)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-alpha",
+        "var-epsilon",
+        "var-m_hat",
+        "var-v_hat"
+      ],
+      "output_refs": [
+        "var-update"
+      ],
+      "dependencies": [
+        "compute-m_hat",
+        "compute-v_hat"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "alpha": "var-alpha",
+          "epsilon": "var-epsilon",
+          "m_hat": "var-m_hat",
+          "v_hat": "var-v_hat"
+        },
+        "equation_refs": [
+          "eq-update"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "divide",
+          "args": [
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "alpha",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "m_hat",
+                  "args": []
+                }
+              ]
+            },
+            {
+              "kind": "call",
+              "value": "add",
+              "args": [
+                {
+                  "kind": "call",
+                  "value": "sqrt",
+                  "args": [
+                    {
+                      "kind": "variable",
+                      "value": "v_hat",
+                      "args": []
+                    }
+                  ]
+                },
+                {
+                  "kind": "variable",
+                  "value": "epsilon",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-theta_new",
+      "expression": "theta_prev - update",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-theta_prev",
+        "var-update"
+      ],
+      "output_refs": [
+        "var-theta_new"
+      ],
+      "dependencies": [
+        "compute-update"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "theta_prev": "var-theta_prev",
+          "update": "var-update"
+        },
+        "equation_refs": [
+          "eq-theta_new"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "subtract",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "theta_prev",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "update",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-1",
+      "visual_type": "flow",
+      "question": "How does the current gradient g flow through the first and second moment estimates into the final update?",
+      "data_refs": [
+        "var-g",
+        "var-m_t",
+        "var-v_t",
+        "var-m_hat",
+        "var-v_hat",
+        "var-update"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "visual-2",
+      "visual_type": "comparison",
+      "question": "How do the raw moments m_t and v_t compare with their bias-corrected versions m_hat and v_hat at this timestep?",
+      "data_refs": [
+        "var-m_t",
+        "var-v_t",
+        "var-m_hat",
+        "var-v_hat"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "One Adam Update: Moments, Bias Correction, and the Parameter Step",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Walk through a single scalar Adam timestep exactly as in Algorithm 1: form the first and second moment estimates from a toy prior state and the current gradient, apply bias correction, and compute the parameter update.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "Section 2, Algorithm 1: explain one scalar Adam update, including first and second moment estimates, bias correction and the parameter update. Let the learner vary the gradient and learning rate and display intermediate values. Use explicit toy prior moments and a positive step count; do not train a model.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "One scalar parameter, one timestep t >= 1, with explicit toy prior moments m_prev and v_prev. No training loop, no model, no data pipeline. The gradient g is treated as given for this step.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "Adam keeps a running average of gradients (first moment) and of squared gradients (second moment). Because both averages start at zero, they are biased toward zero early on; dividing by 1 - beta^t removes that bias. The update then moves the parameter by a step whose size is roughly the learning rate, scaled by the ratio of the corrected mean to the corrected root-mean-square gradient.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "Only one scalar parameter and one timestep are shown; multi-parameter behavior and long-run convergence are out of scope.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "Bias correction is not an optional tweak: without dividing by 1 - beta1^t and 1 - beta2^t, the moments are systematically too small early in training, so the first steps would be far smaller than the learning rate suggests.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "The gradient g is supplied for this single step; no backpropagation or loss function is modeled.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.1",
+      "claim": "The prior moments m_prev and v_prev are toy values representing the state after t-1 steps, not learned quantities.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "Only one scalar parameter and one timestep are shown; multi-parameter behavior and long-run convergence are out of scope.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.1",
+      "claim": "The paper's effective-stepsize bounds and SNR discussion are not reproduced here; this lesson covers the update arithmetic only.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "Bias correction is not an optional tweak: without dividing by 1 - beta1^t and 1 - beta2^t, the moments are systematically too small early in training, so the first steps would be far smaller than the learning rate suggests.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "A zero gradient with zero prior moments gives zero corrected moments and a zero update, so the parameter does not move.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.1",
+      "claim": "A very small second-moment estimate makes the denominator small, so the update magnitude can approach the learning rate even for a modest gradient.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the inputs and equations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Change each scientific input and compare the live intermediates.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.2",
+      "claim": "Apply both exploration setups and explain the difference.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "Source citations support the scientific explanation; computed values are derived from explicit toy inputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Compute the first and second moment estimates and their bias-corrected versions for one scalar Adam step.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.1",
+      "claim": "Compute the parameter update and explain how the learning rate, gradient, and prior moments control its sign and magnitude.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Exponential moving averages: new = beta * old + (1 - beta) * current.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.1",
+      "claim": "Basic calculus idea that a gradient points in the direction of steepest increase, so updates subtract it.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "Walk through a single scalar Adam timestep exactly as in Algorithm 1: form the first and second moment estimates from a toy prior state and the current gradient, apply bias correction, and compute the parameter update.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How does the current gradient g flow through the first and second moment estimates into the final update?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Compare the computed mechanism and its intermediate values.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-1.question",
+      "claim": "How does the current gradient g flow through the first and second moment estimates into the final update?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-2.question",
+      "claim": "How do the raw moments m_t and v_t compare with their bias-corrected versions m_hat and v_hat at this timestep?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-g",
+      "claim": "Current gradient of the loss with respect to the scalar parameter at this timestep.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-alpha",
+      "claim": "Learning rate (stepsize) multiplying the bias-corrected moment ratio.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9b92bf94d9fd9edf0ceb"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-beta1",
+      "claim": "Exponential decay rate for the first moment estimate.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-beta2",
+      "claim": "Exponential decay rate for the second moment estimate.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-epsilon",
+      "claim": "Small constant added to the bias-corrected second moment inside the square root for numerical stability.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-m_prev",
+      "claim": "Toy first moment estimate carried in from the previous timestep.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-v_prev",
+      "claim": "Toy second moment estimate carried in from the previous timestep.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-t",
+      "claim": "Positive timestep index used in the bias-correction powers.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-theta_prev",
+      "claim": "Toy parameter value before this update, used to display the new parameter after subtracting the update.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-m_t",
+      "claim": "First moment estimate: exponential moving average of the gradient, combining the decayed prior moment with the new gradient.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-m_t"
+      ]
+    },
+    {
+      "claim_id": "var-v_t",
+      "claim": "Second moment estimate: exponential moving average of the squared gradient.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-v_t"
+      ]
+    },
+    {
+      "claim_id": "var-m_hat",
+      "claim": "Bias-corrected first moment: divides by 1 - beta1^t to remove the zero-initialization bias.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-m_hat"
+      ]
+    },
+    {
+      "claim_id": "var-v_hat",
+      "claim": "Bias-corrected second moment: divides by 1 - beta2^t to remove the zero-initialization bias.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-v_hat"
+      ]
+    },
+    {
+      "claim_id": "var-update",
+      "claim": "Parameter update: learning rate times the bias-corrected moment ratio, with epsilon inside the denominator for stability.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "E9b92bf94d9fd9edf0ceb"
+      ],
+      "computation_refs": [
+        "compute-update"
+      ]
+    },
+    {
+      "claim_id": "var-theta_new",
+      "claim": "New parameter value after subtracting the update, since the gradient points toward increasing loss.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-theta_new"
+      ]
+    },
+    {
+      "claim_id": "eq-m_t",
+      "claim": "First moment estimate: exponential moving average of the gradient, combining the decayed prior moment with the new gradient.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-m_t"
+      ]
+    },
+    {
+      "claim_id": "eq-v_t",
+      "claim": "Second moment estimate: exponential moving average of the squared gradient.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-v_t"
+      ]
+    },
+    {
+      "claim_id": "eq-m_hat",
+      "claim": "Bias-corrected first moment: divides by 1 - beta1^t to remove the zero-initialization bias.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-m_hat"
+      ]
+    },
+    {
+      "claim_id": "eq-v_hat",
+      "claim": "Bias-corrected second moment: divides by 1 - beta2^t to remove the zero-initialization bias.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-v_hat"
+      ]
+    },
+    {
+      "claim_id": "eq-update",
+      "claim": "Parameter update: learning rate times the bias-corrected moment ratio, with epsilon inside the denominator for stability.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "E9b92bf94d9fd9edf0ceb"
+      ],
+      "computation_refs": [
+        "compute-update"
+      ]
+    },
+    {
+      "claim_id": "eq-theta_new",
+      "claim": "New parameter value after subtracting the update, since the gradient points toward increasing loss.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-theta_new"
+      ]
+    },
+    {
+      "claim_id": "step-m_t",
+      "claim": "First moment estimate: exponential moving average of the gradient, combining the decayed prior moment with the new gradient.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-m_t"
+      ]
+    },
+    {
+      "claim_id": "step-v_t",
+      "claim": "Second moment estimate: exponential moving average of the squared gradient.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-v_t"
+      ]
+    },
+    {
+      "claim_id": "step-m_hat",
+      "claim": "Bias-corrected first moment: divides by 1 - beta1^t to remove the zero-initialization bias.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-m_hat"
+      ]
+    },
+    {
+      "claim_id": "step-v_hat",
+      "claim": "Bias-corrected second moment: divides by 1 - beta2^t to remove the zero-initialization bias.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-v_hat"
+      ]
+    },
+    {
+      "claim_id": "step-update",
+      "claim": "Parameter update: learning rate times the bias-corrected moment ratio, with epsilon inside the denominator for stability.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "E9b92bf94d9fd9edf0ceb"
+      ],
+      "computation_refs": [
+        "compute-update"
+      ]
+    },
+    {
+      "claim_id": "step-theta_new",
+      "claim": "New parameter value after subtracting the update, since the gradient points toward increasing loss.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-theta_new"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-g",
+      "claim": "Current gradient of the loss with respect to the scalar parameter at this timestep.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-alpha",
+      "claim": "Learning rate (stepsize) multiplying the bias-corrected moment ratio.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9b92bf94d9fd9edf0ceb"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-beta1",
+      "claim": "Exponential decay rate for the first moment estimate.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-beta2",
+      "claim": "Exponential decay rate for the second moment estimate.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-epsilon",
+      "claim": "Small constant added to the bias-corrected second moment inside the square root for numerical stability.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-m_prev",
+      "claim": "Toy first moment estimate carried in from the previous timestep.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-v_prev",
+      "claim": "Toy second moment estimate carried in from the previous timestep.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-t",
+      "claim": "Positive timestep index used in the bias-correction powers.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-theta_prev",
+      "claim": "Toy parameter value before this update, used to display the new parameter after subtracting the update.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-m_t",
+      "claim": "First moment estimate: exponential moving average of the gradient, combining the decayed prior moment with the new gradient.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-m_t"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-v_t",
+      "claim": "Second moment estimate: exponential moving average of the squared gradient.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-v_t"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-m_hat",
+      "claim": "Bias-corrected first moment: divides by 1 - beta1^t to remove the zero-initialization bias.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-m_hat"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-v_hat",
+      "claim": "Bias-corrected second moment: divides by 1 - beta2^t to remove the zero-initialization bias.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-v_hat"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-update",
+      "claim": "Parameter update: learning rate times the bias-corrected moment ratio, with epsilon inside the denominator for stability.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "E9b92bf94d9fd9edf0ceb"
+      ],
+      "computation_refs": [
+        "compute-update"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-theta_new",
+      "claim": "New parameter value after subtracting the update, since the gradient points toward increasing loss.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ],
+      "computation_refs": [
+        "compute-theta_new"
+      ]
+    },
+    {
+      "claim_id": "control-g.learning_purpose",
+      "claim": "Current gradient of the loss with respect to the scalar parameter at this timestep.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-g.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-alpha.learning_purpose",
+      "claim": "Learning rate (stepsize) multiplying the bias-corrected moment ratio.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-alpha.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.change",
+      "claim": "Set g to -0.8; Set alpha to 0.01.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: m_t = -0.08 (starting value: 0.04); v_t = 0.00064 (starting value: 0.00016); m_hat_t = -0.8 (starting value: 0.4); v_hat_t = 0.64 (starting value: 0.16); delta_t = -0.0099999999 (starting value: 0.0099999998); theta_t = 0.0099999999 (starting value: -0.0099999998).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-m_t",
+        "compute-v_t",
+        "compute-m_hat",
+        "compute-v_hat",
+        "compute-update",
+        "compute-theta_new"
+      ]
+    },
+    {
+      "claim_id": "explore-1.why",
+      "claim": "The first moment tracks the sign of the gradient, and the update inherits that sign. The second moment grows with the square of the gradient, so the denominator changes more slowly than the numerator, letting a larger gradient produce a larger step.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.change",
+      "claim": "Set g to 0.4; Set alpha to 0.05.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: m_t = 0.04 (starting value: 0.04); v_t = 0.00016 (starting value: 0.00016); m_hat_t = 0.4 (starting value: 0.4); v_hat_t = 0.16 (starting value: 0.16); delta_t = 0.049999999 (starting value: 0.0099999998); theta_t = -0.049999999 (starting value: -0.0099999998).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-m_t",
+        "compute-v_t",
+        "compute-m_hat",
+        "compute-v_hat",
+        "compute-update",
+        "compute-theta_new"
+      ]
+    },
+    {
+      "claim_id": "explore-2.why",
+      "claim": "The learning rate multiplies the bias-corrected moment ratio directly, so it scales the step without altering the moment estimates or their correction.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "Eaca9dc5055ad8f099a63",
+        "E9b92bf94d9fd9edf0ceb",
+        "E00217b51dfe0363014ab",
+        "E726d672da4016a1b6224",
+        "Eb3d3592b9f1d5be7bc2e"
+      ],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Section 2, Algorithm 1: explain one scalar Adam update, including first and second moment estimates, bias correction and the parameter update. Let the learner vary the gradient and learning rate and display intermediate values. Use explicit toy prior moments and a positive step count; do not train a model.",
+    "learning_objective_refs": [
+      "Compute the first and second moment estimates and their bias-corrected versions for one scalar Adam step.",
+      "Compute the parameter update and explain how the learning rate, gradient, and prior moments control its sign and magnitude."
+    ],
+    "mechanism_refs": [
+      "eq-m_t",
+      "eq-v_t",
+      "eq-m_hat",
+      "eq-v_hat",
+      "eq-update",
+      "eq-theta_new"
+    ],
+    "control_refs": [
+      "control-g",
+      "control-alpha"
+    ],
+    "computation_refs": [
+      "compute-m_t",
+      "compute-v_t",
+      "compute-m_hat",
+      "compute-v_hat",
+      "compute-update",
+      "compute-theta_new"
+    ],
+    "visual_refs": [
+      "visual-1",
+      "visual-2"
+    ],
+    "exploration_refs": [
+      "explore-1",
+      "explore-2"
+    ]
+  },
+  "metadata": {
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use the stated prerequisites and a bounded worked mechanism for second-year engineering undergraduate.",
+    "defaults": {
+      "var-beta1": 0.9,
+      "var-beta2": 0.999,
+      "var-epsilon": 1e-08,
+      "var-m_prev": 0.0,
+      "var-v_prev": 0.0,
+      "var-t": 1,
+      "var-theta_prev": 0.0
+    },
+    "invariant_bindings": {
+      "g": "var-g",
+      "v_hat": "var-v_hat",
+      "alpha": "var-alpha",
+      "v_prev": "var-v_prev",
+      "m_hat": "var-m_hat",
+      "v_t": "var-v_t",
+      "beta2": "var-beta2",
+      "epsilon": "var-epsilon",
+      "update": "var-update"
+    },
+    "control_test_values": {},
+    "equation_scope": {}
+  }
+}

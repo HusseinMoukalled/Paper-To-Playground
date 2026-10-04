@@ -1,0 +1,5 @@
+{
+  "source_url": "https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf",
+  "focus": "Section 6: explain discrete entropy in bits using a small editable probability distribution and a variable number of outcomes. Show probabilities, individual contributions and total entropy. Compare certainty with four equally likely outcomes. Handle zero probabilities correctly.",
+  "audience": "second-year engineering undergraduate"
+}

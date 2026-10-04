@@ -1,0 +1,5 @@
+{
+  "source_url": "https://arxiv.org/pdf/1412.6980",
+  "focus": "Section 2, Algorithm 1: explain one scalar Adam update, including first and second moment estimates, bias correction and the parameter update. Let the learner vary the gradient and learning rate and display intermediate values. Use explicit toy prior moments and a positive step count; do not train a model.",
+  "audience": "second-year engineering undergraduate"
+}

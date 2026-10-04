@@ -108,7 +108,8 @@ class SourceStageIntegrationTests(unittest.TestCase):
                 + 'The gain defines the feedback coupling. ' * 250
                 + '</p><p>y = gain * x (6)</p><p>The output is a scalar.</p></html>').encode()
         result = build_evidence(CaseInput('https://paper.invalid', 'Equation 6', 'student'),
-            transport=httpx.MockTransport(lambda request: httpx.Response(200, content=data)))
+            transport=httpx.MockTransport(lambda request: httpx.Response(200, content=data)),
+            settings=SourceSettings(max_evidence_tokens=8000))
         self.assertEqual(result.validation_report.status, ValidationStatus.WARN)
         self.assertEqual(result.evidence_pack.retrieval_confidence, RetrievalConfidence.LOW)
         self.assertIn('EVIDENCE_CONTEXT_OMITTED', [f.code for f in result.validation_report.findings])

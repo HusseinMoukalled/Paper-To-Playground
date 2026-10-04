@@ -1,0 +1,5 @@
+{
+  "source_url": "https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf",
+  "focus": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+  "audience": "second-year engineering undergraduate"
+}

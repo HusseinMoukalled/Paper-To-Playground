@@ -1,0 +1,1631 @@
+{
+  "scientific_model": {
+    "concept": "Discrete entropy in bits: probabilities, contributions, and the effect of outcome count",
+    "purpose": "Teach how the discrete entropy H = -sum p_i log p_i is computed in bits for a small editable probability distribution, how each outcome contributes -p_i log2 p_i, and how the total changes when the number of equally likely outcomes changes.",
+    "focus_alignment": "Section 6: explain discrete entropy in bits using a small editable probability distribution and a variable number of outcomes. Show probabilities, individual contributions and total entropy. Compare certainty with four equally likely outcomes. Handle zero probabilities correctly.",
+    "variables": [
+      {
+        "id": "var-p",
+        "source_symbol": "p",
+        "display_symbol": "p",
+        "meaning": "Probability vector over four possible outcomes; only the first n entries are active.",
+        "type": "distribution",
+        "shape": [
+          4
+        ],
+        "domain": "probability",
+        "units": null,
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "Eaa0923866eed10f7b351"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-n",
+        "source_symbol": "n",
+        "display_symbol": "n",
+        "meaning": "Number of active outcomes taken from the start of the probability vector.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "integer",
+        "units": "outcomes",
+        "evidence_refs": [
+          "Eb1855ff82142e3aaf002",
+          "E5a67f67e702bbad36a32"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-p_active_raw",
+        "source_symbol": "p_active_raw",
+        "display_symbol": "p_active_raw",
+        "meaning": "Select the first n probabilities as the active outcomes.",
+        "type": "vector",
+        "shape": [],
+        "domain": "probability",
+        "units": null,
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-p_active",
+        "source_symbol": "p_active",
+        "display_symbol": "p_active",
+        "meaning": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+        "type": "distribution",
+        "shape": [],
+        "domain": "probability",
+        "units": null,
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-contributions_nats",
+        "source_symbol": "contributions_nats",
+        "display_symbol": "contributions_nats",
+        "meaning": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+        "type": "vector",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": "nats",
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "E3de28585b51737147fb4"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-H_nats",
+        "source_symbol": "H_nats",
+        "display_symbol": "H_nats",
+        "meaning": "Total entropy in nats as the sum of individual contributions.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": "nats",
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "Eaa0923866eed10f7b351"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-H_bits",
+        "source_symbol": "H_bits",
+        "display_symbol": "H_bits",
+        "meaning": "Convert entropy from nats to bits by dividing by ln(2).",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": "bits",
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "E3de28585b51737147fb4"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-contributions_bits",
+        "source_symbol": "contributions_bits",
+        "display_symbol": "contributions_bits",
+        "meaning": "Each outcome's entropy contribution in bits.",
+        "type": "vector",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": "bits",
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "E3de28585b51737147fb4"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-p_active_raw",
+        "expression": "take(p, n)",
+        "meaning": "Select the first n probabilities as the active outcomes.",
+        "variable_refs": [
+          "var-n",
+          "var-p",
+          "var-p_active_raw"
+        ],
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-p_active",
+        "expression": "p_active_raw / sum(p_active_raw) if sum(p_active_raw) > 0 else p_active_raw * 0 + 1 / n",
+        "meaning": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+        "variable_refs": [
+          "var-n",
+          "var-p_active_raw",
+          "var-p_active"
+        ],
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-contributions_nats",
+        "expression": "-xlogx(p_active)",
+        "meaning": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+        "variable_refs": [
+          "var-p_active",
+          "var-contributions_nats"
+        ],
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "E3de28585b51737147fb4"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-H_nats",
+        "expression": "sum(contributions_nats)",
+        "meaning": "Total entropy in nats as the sum of individual contributions.",
+        "variable_refs": [
+          "var-contributions_nats",
+          "var-H_nats"
+        ],
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "Eaa0923866eed10f7b351"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-H_bits",
+        "expression": "H_nats / log(2)",
+        "meaning": "Convert entropy from nats to bits by dividing by ln(2).",
+        "variable_refs": [
+          "var-H_nats",
+          "var-H_bits"
+        ],
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "E3de28585b51737147fb4"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-contributions_bits",
+        "expression": "contributions_nats / log(2)",
+        "meaning": "Each outcome's entropy contribution in bits.",
+        "variable_refs": [
+          "var-contributions_nats",
+          "var-contributions_bits"
+        ],
+        "evidence_refs": [
+          "E801dea2b6fdfcc4ff04d",
+          "E3de28585b51737147fb4"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-p_active_raw",
+        "order": 0,
+        "description": "Select the first n probabilities as the active outcomes.",
+        "equation_refs": [
+          "eq-p_active_raw"
+        ],
+        "input_refs": [
+          "var-n",
+          "var-p"
+        ],
+        "output_refs": [
+          "var-p_active_raw"
+        ]
+      },
+      {
+        "id": "step-p_active",
+        "order": 1,
+        "description": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+        "equation_refs": [
+          "eq-p_active"
+        ],
+        "input_refs": [
+          "var-n",
+          "var-p_active_raw"
+        ],
+        "output_refs": [
+          "var-p_active"
+        ]
+      },
+      {
+        "id": "step-contributions_nats",
+        "order": 2,
+        "description": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+        "equation_refs": [
+          "eq-contributions_nats"
+        ],
+        "input_refs": [
+          "var-p_active"
+        ],
+        "output_refs": [
+          "var-contributions_nats"
+        ]
+      },
+      {
+        "id": "step-H_nats",
+        "order": 3,
+        "description": "Total entropy in nats as the sum of individual contributions.",
+        "equation_refs": [
+          "eq-H_nats"
+        ],
+        "input_refs": [
+          "var-contributions_nats"
+        ],
+        "output_refs": [
+          "var-H_nats"
+        ]
+      },
+      {
+        "id": "step-H_bits",
+        "order": 4,
+        "description": "Convert entropy from nats to bits by dividing by ln(2).",
+        "equation_refs": [
+          "eq-H_bits"
+        ],
+        "input_refs": [
+          "var-H_nats"
+        ],
+        "output_refs": [
+          "var-H_bits"
+        ]
+      },
+      {
+        "id": "step-contributions_bits",
+        "order": 5,
+        "description": "Each outcome's entropy contribution in bits.",
+        "equation_refs": [
+          "eq-contributions_bits"
+        ],
+        "input_refs": [
+          "var-contributions_nats"
+        ],
+        "output_refs": [
+          "var-contributions_bits"
+        ]
+      }
+    ],
+    "assumptions": [
+      "The active distribution is the first n entries of a fixed four-outcome probability vector, renormalized if the active entries do not sum to one.",
+      "Entropy is reported in bits, using the natural-log form converted by dividing by ln(2)."
+    ],
+    "limitations": [
+      "Only the first n outcomes of a fixed four-outcome vector are used; the lesson does not explore arbitrary distributions beyond this bounded family.",
+      "The lesson shows a single entropy calculation, not the full axiomatic derivation or coding interpretation."
+    ],
+    "misconceptions": [
+      "A common mistake is to think a zero-probability outcome still adds uncertainty or that entropy is the average of -log2(p_i) rather than the probability-weighted sum."
+    ],
+    "invariants": [
+      "approx_equal(sum(p_active), 1)"
+    ],
+    "edge_cases": [
+      "If the active probabilities sum to zero, the lesson uses an explicitly explained uniform teaching fallback over the active length so the distribution remains valid.",
+      "If n = 1, the single active outcome has probability 1 and entropy is 0 bits, representing certainty."
+    ],
+    "provenance": [
+      "E3de28585b51737147fb4",
+      "E5a67f67e702bbad36a32",
+      "E69a85db684aea15e6c60",
+      "E801dea2b6fdfcc4ff04d",
+      "Eaa0923866eed10f7b351",
+      "Eb1855ff82142e3aaf002",
+      "Ebf4337e0161cce3def58"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "A bounded, single-distribution calculation of Shannon entropy in bits using natural logarithms converted by 1/log(2). The lesson covers the first n outcomes of a fixed four-outcome probability vector, individual contributions, total entropy, and the zero-probability convention 0 log 0 = 0. It does not cover joint or conditional entropy, coding theorems, or continuous distributions."
+  },
+  "lesson_spec": {
+    "central_learning_question": "Teach how the discrete entropy H = -sum p_i log p_i is computed in bits for a small editable probability distribution, how each outcome contributes -p_i log2 p_i, and how the total changes when the number of equally likely outcomes changes.",
+    "learning_objectives": [
+      "Compute the entropy in bits of a small discrete distribution from its probabilities and individual contributions.",
+      "Explain how increasing the number of equally likely outcomes changes entropy and why a zero-probability outcome contributes zero."
+    ],
+    "audience_prerequisites": [
+      "Basic probability: probabilities are nonnegative and sum to one.",
+      "Logarithms: log2(x) = ln(x)/ln(2), and the convention 0 log 0 = 0."
+    ],
+    "intuition": "Entropy measures how much choice or uncertainty a probability distribution represents. An outcome that is certain contributes nothing; spreading probability over more equally likely outcomes increases the total. Each outcome's contribution is its probability times the information -log2(p_i) of learning that outcome occurred.",
+    "teaching_sequence": [
+      "Inspect the inputs and equations.",
+      "Change each scientific input and compare the live intermediates.",
+      "Apply both exploration setups and explain the difference."
+    ],
+    "symbol_explanations": {
+      "var-p": "Probability vector over four possible outcomes; only the first n entries are active.",
+      "var-n": "Number of active outcomes taken from the start of the probability vector.",
+      "var-p_active_raw": "Select the first n probabilities as the active outcomes.",
+      "var-p_active": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+      "var-contributions_nats": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+      "var-H_nats": "Total entropy in nats as the sum of individual contributions.",
+      "var-H_bits": "Convert entropy from nats to bits by dividing by ln(2).",
+      "var-contributions_bits": "Each outcome's entropy contribution in bits."
+    },
+    "controls": [
+      {
+        "id": "control-p",
+        "label": "p",
+        "scientific_variable": "var-p",
+        "control_type": "vector",
+        "default": [
+          0.25,
+          0.25,
+          0.25,
+          0.25
+        ],
+        "units": null,
+        "validation_rule": "normalize",
+        "effect_targets": [
+          "var-p_active_raw",
+          "var-p_active",
+          "var-contributions_nats",
+          "var-H_nats",
+          "var-H_bits",
+          "var-contributions_bits"
+        ],
+        "learning_purpose": "Probability vector over four possible outcomes; only the first n entries are active.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": null,
+        "maximum": null,
+        "step": null,
+        "options": []
+      },
+      {
+        "id": "control-n",
+        "label": "n",
+        "scientific_variable": "var-n",
+        "control_type": "slider",
+        "default": 4,
+        "units": "outcomes",
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-p_active_raw",
+          "var-p_active",
+          "var-contributions_nats",
+          "var-H_nats",
+          "var-H_bits",
+          "var-contributions_bits"
+        ],
+        "learning_purpose": "Number of active outcomes taken from the start of the probability vector.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 1,
+        "maximum": 4,
+        "step": 1,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-p_active_raw",
+      "var-p_active",
+      "var-contributions_nats",
+      "var-H_nats",
+      "var-H_bits",
+      "var-contributions_bits"
+    ],
+    "visual_question": "How do the individual contributions -p_i log2(p_i) compare across active outcomes, and how do they sum to H_bits?",
+    "visual_intent": "Compare the computed mechanism and its intermediate values.",
+    "guided_explorations": [
+      {
+        "id": "explore-1",
+        "title": "Certainty with one outcome",
+        "change": "Set p to [1.0, 0.0, 0.0, 0.0]; Set n to 1.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: p_active_raw = [1.0] (starting value: [0.25, 0.25, 0.25, 0.25]); p_active = [1.0] (starting value: [0.25, 0.25, 0.25, 0.25]); contributions_nats = [-0.0] nats (starting value: [0.34657359, 0.34657359, 0.34657359, 0.34657359] nats); H_nats = 0.0 nats (starting value: 1.3862944 nats); H_bits = 0.0 bits (starting value: 2.0 bits); contributions_bits = [-0.0] bits (starting value: [0.5, 0.5, 0.5, 0.5] bits).",
+        "why": "A single certain outcome has no uncertainty, so its probability-weighted information contribution is zero.",
+        "setup": {
+          "control-p": [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "control-n": 1
+        }
+      },
+      {
+        "id": "explore-2",
+        "title": "Four equally likely outcomes",
+        "change": "Set p to [0.25, 0.25, 0.25, 0.25]; Set n to 4.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: p_active_raw = [0.25, 0.25, 0.25, 0.25] (starting value: [0.25, 0.25, 0.25, 0.25]); p_active = [0.25, 0.25, 0.25, 0.25] (starting value: [0.25, 0.25, 0.25, 0.25]); contributions_nats = [0.34657359, 0.34657359, 0.34657359, 0.34657359] nats (starting value: [0.34657359, 0.34657359, 0.34657359, 0.34657359] nats); H_nats = 1.3862944 nats (starting value: 1.3862944 nats); H_bits = 2.0 bits (starting value: 2.0 bits); contributions_bits = [0.5, 0.5, 0.5, 0.5] bits (starting value: [0.5, 0.5, 0.5, 0.5] bits).",
+        "why": "Spreading probability equally over four outcomes gives each outcome the same contribution, and the total is larger than in the certainty case because there is more choice.",
+        "setup": {
+          "control-p": [
+            0.25,
+            0.25,
+            0.25,
+            0.25
+          ],
+          "control-n": 4
+        }
+      }
+    ],
+    "limitation_or_assumption": "Only the first n outcomes of a fixed four-outcome vector are used; the lesson does not explore arbitrary distributions beyond this bounded family.",
+    "misconception": "A common mistake is to think a zero-probability outcome still adds uncertainty or that entropy is the average of -log2(p_i) rather than the probability-weighted sum.",
+    "source_grounding_plan": [
+      "Source citations support the scientific explanation; computed values are derived from explicit toy inputs."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-p_active_raw",
+      "expression": "take(p, n)",
+      "output_type": "vector",
+      "input_refs": [
+        "var-n",
+        "var-p"
+      ],
+      "output_refs": [
+        "var-p_active_raw"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "n": "var-n",
+          "p": "var-p"
+        },
+        "equation_refs": [
+          "eq-p_active_raw"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "take",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "p",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "n",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-p_active",
+      "expression": "p_active_raw / sum(p_active_raw) if sum(p_active_raw) > 0 else p_active_raw * 0 + 1 / n",
+      "output_type": "distribution",
+      "input_refs": [
+        "var-n",
+        "var-p_active_raw"
+      ],
+      "output_refs": [
+        "var-p_active"
+      ],
+      "dependencies": [
+        "compute-p_active_raw"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "n": "var-n",
+          "p_active_raw": "var-p_active_raw"
+        },
+        "equation_refs": [
+          "eq-p_active"
+        ],
+        "canonical_ast": {
+          "kind": "if",
+          "value": null,
+          "args": [
+            {
+              "kind": "compare",
+              "value": "gt",
+              "args": [
+                {
+                  "kind": "call",
+                  "value": "sum",
+                  "args": [
+                    {
+                      "kind": "variable",
+                      "value": "p_active_raw",
+                      "args": []
+                    }
+                  ]
+                },
+                {
+                  "kind": "literal",
+                  "value": 0,
+                  "args": []
+                }
+              ]
+            },
+            {
+              "kind": "call",
+              "value": "divide",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "p_active_raw",
+                  "args": []
+                },
+                {
+                  "kind": "call",
+                  "value": "sum",
+                  "args": [
+                    {
+                      "kind": "variable",
+                      "value": "p_active_raw",
+                      "args": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "call",
+              "value": "add",
+              "args": [
+                {
+                  "kind": "call",
+                  "value": "multiply",
+                  "args": [
+                    {
+                      "kind": "variable",
+                      "value": "p_active_raw",
+                      "args": []
+                    },
+                    {
+                      "kind": "literal",
+                      "value": 0,
+                      "args": []
+                    }
+                  ]
+                },
+                {
+                  "kind": "call",
+                  "value": "divide",
+                  "args": [
+                    {
+                      "kind": "literal",
+                      "value": 1,
+                      "args": []
+                    },
+                    {
+                      "kind": "variable",
+                      "value": "n",
+                      "args": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-contributions_nats",
+      "expression": "-xlogx(p_active)",
+      "output_type": "vector",
+      "input_refs": [
+        "var-p_active"
+      ],
+      "output_refs": [
+        "var-contributions_nats"
+      ],
+      "dependencies": [
+        "compute-p_active"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "p_active": "var-p_active"
+        },
+        "equation_refs": [
+          "eq-contributions_nats"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "negate",
+          "args": [
+            {
+              "kind": "call",
+              "value": "xlogx",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "p_active",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-H_nats",
+      "expression": "sum(contributions_nats)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-contributions_nats"
+      ],
+      "output_refs": [
+        "var-H_nats"
+      ],
+      "dependencies": [
+        "compute-contributions_nats"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "contributions_nats": "var-contributions_nats"
+        },
+        "equation_refs": [
+          "eq-H_nats"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "sum",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "contributions_nats",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-H_bits",
+      "expression": "H_nats / log(2)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-H_nats"
+      ],
+      "output_refs": [
+        "var-H_bits"
+      ],
+      "dependencies": [
+        "compute-H_nats"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "H_nats": "var-H_nats"
+        },
+        "equation_refs": [
+          "eq-H_bits"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "divide",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "H_nats",
+              "args": []
+            },
+            {
+              "kind": "call",
+              "value": "log",
+              "args": [
+                {
+                  "kind": "literal",
+                  "value": 2,
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-contributions_bits",
+      "expression": "contributions_nats / log(2)",
+      "output_type": "vector",
+      "input_refs": [
+        "var-contributions_nats"
+      ],
+      "output_refs": [
+        "var-contributions_bits"
+      ],
+      "dependencies": [
+        "compute-contributions_nats"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "contributions_nats": "var-contributions_nats"
+        },
+        "equation_refs": [
+          "eq-contributions_bits"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "divide",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "contributions_nats",
+              "args": []
+            },
+            {
+              "kind": "call",
+              "value": "log",
+              "args": [
+                {
+                  "kind": "literal",
+                  "value": 2,
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-1",
+      "visual_type": "bars",
+      "question": "How do the individual contributions -p_i log2(p_i) compare across active outcomes, and how do they sum to H_bits?",
+      "data_refs": [
+        "var-p_active",
+        "var-contributions_bits",
+        "var-H_bits"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "visual-2",
+      "visual_type": "comparison",
+      "question": "How does H_bits change when n is 1 (certainty) versus n is 4 with equal probabilities?",
+      "data_refs": [
+        "var-n",
+        "var-p_active",
+        "var-H_bits"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "Discrete entropy in bits: probabilities, contributions, and the effect of outcome count",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Teach how the discrete entropy H = -sum p_i log p_i is computed in bits for a small editable probability distribution, how each outcome contributes -p_i log2 p_i, and how the total changes when the number of equally likely outcomes changes.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "Section 6: explain discrete entropy in bits using a small editable probability distribution and a variable number of outcomes. Show probabilities, individual contributions and total entropy. Compare certainty with four equally likely outcomes. Handle zero probabilities correctly.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "A bounded, single-distribution calculation of Shannon entropy in bits using natural logarithms converted by 1/log(2). The lesson covers the first n outcomes of a fixed four-outcome probability vector, individual contributions, total entropy, and the zero-probability convention 0 log 0 = 0. It does not cover joint or conditional entropy, coding theorems, or continuous distributions.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "Entropy measures how much choice or uncertainty a probability distribution represents. An outcome that is certain contributes nothing; spreading probability over more equally likely outcomes increases the total. Each outcome's contribution is its probability times the information -log2(p_i) of learning that outcome occurred.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "Only the first n outcomes of a fixed four-outcome vector are used; the lesson does not explore arbitrary distributions beyond this bounded family.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "A common mistake is to think a zero-probability outcome still adds uncertainty or that entropy is the average of -log2(p_i) rather than the probability-weighted sum.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "The active distribution is the first n entries of a fixed four-outcome probability vector, renormalized if the active entries do not sum to one.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.1",
+      "claim": "Entropy is reported in bits, using the natural-log form converted by dividing by ln(2).",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "Only the first n outcomes of a fixed four-outcome vector are used; the lesson does not explore arbitrary distributions beyond this bounded family.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.1",
+      "claim": "The lesson shows a single entropy calculation, not the full axiomatic derivation or coding interpretation.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "A common mistake is to think a zero-probability outcome still adds uncertainty or that entropy is the average of -log2(p_i) rather than the probability-weighted sum.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "If the active probabilities sum to zero, the lesson uses an explicitly explained uniform teaching fallback over the active length so the distribution remains valid.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.1",
+      "claim": "If n = 1, the single active outcome has probability 1 and entropy is 0 bits, representing certainty.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the inputs and equations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Change each scientific input and compare the live intermediates.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.2",
+      "claim": "Apply both exploration setups and explain the difference.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "Source citations support the scientific explanation; computed values are derived from explicit toy inputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Compute the entropy in bits of a small discrete distribution from its probabilities and individual contributions.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.1",
+      "claim": "Explain how increasing the number of equally likely outcomes changes entropy and why a zero-probability outcome contributes zero.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Basic probability: probabilities are nonnegative and sum to one.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.1",
+      "claim": "Logarithms: log2(x) = ln(x)/ln(2), and the convention 0 log 0 = 0.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "Teach how the discrete entropy H = -sum p_i log p_i is computed in bits for a small editable probability distribution, how each outcome contributes -p_i log2 p_i, and how the total changes when the number of equally likely outcomes changes.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How do the individual contributions -p_i log2(p_i) compare across active outcomes, and how do they sum to H_bits?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Compare the computed mechanism and its intermediate values.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-1.question",
+      "claim": "How do the individual contributions -p_i log2(p_i) compare across active outcomes, and how do they sum to H_bits?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-2.question",
+      "claim": "How does H_bits change when n is 1 (certainty) versus n is 4 with equal probabilities?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-p",
+      "claim": "Probability vector over four possible outcomes; only the first n entries are active.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-n",
+      "claim": "Number of active outcomes taken from the start of the probability vector.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Eb1855ff82142e3aaf002",
+        "E5a67f67e702bbad36a32"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-p_active_raw",
+      "claim": "Select the first n probabilities as the active outcomes.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ],
+      "computation_refs": [
+        "compute-p_active_raw"
+      ]
+    },
+    {
+      "claim_id": "var-p_active",
+      "claim": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ],
+      "computation_refs": [
+        "compute-p_active"
+      ]
+    },
+    {
+      "claim_id": "var-contributions_nats",
+      "claim": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-contributions_nats"
+      ]
+    },
+    {
+      "claim_id": "var-H_nats",
+      "claim": "Total entropy in nats as the sum of individual contributions.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ],
+      "computation_refs": [
+        "compute-H_nats"
+      ]
+    },
+    {
+      "claim_id": "var-H_bits",
+      "claim": "Convert entropy from nats to bits by dividing by ln(2).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-H_bits"
+      ]
+    },
+    {
+      "claim_id": "var-contributions_bits",
+      "claim": "Each outcome's entropy contribution in bits.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-contributions_bits"
+      ]
+    },
+    {
+      "claim_id": "eq-p_active_raw",
+      "claim": "Select the first n probabilities as the active outcomes.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ],
+      "computation_refs": [
+        "compute-p_active_raw"
+      ]
+    },
+    {
+      "claim_id": "eq-p_active",
+      "claim": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ],
+      "computation_refs": [
+        "compute-p_active"
+      ]
+    },
+    {
+      "claim_id": "eq-contributions_nats",
+      "claim": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-contributions_nats"
+      ]
+    },
+    {
+      "claim_id": "eq-H_nats",
+      "claim": "Total entropy in nats as the sum of individual contributions.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ],
+      "computation_refs": [
+        "compute-H_nats"
+      ]
+    },
+    {
+      "claim_id": "eq-H_bits",
+      "claim": "Convert entropy from nats to bits by dividing by ln(2).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-H_bits"
+      ]
+    },
+    {
+      "claim_id": "eq-contributions_bits",
+      "claim": "Each outcome's entropy contribution in bits.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-contributions_bits"
+      ]
+    },
+    {
+      "claim_id": "step-p_active_raw",
+      "claim": "Select the first n probabilities as the active outcomes.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ],
+      "computation_refs": [
+        "compute-p_active_raw"
+      ]
+    },
+    {
+      "claim_id": "step-p_active",
+      "claim": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ],
+      "computation_refs": [
+        "compute-p_active"
+      ]
+    },
+    {
+      "claim_id": "step-contributions_nats",
+      "claim": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-contributions_nats"
+      ]
+    },
+    {
+      "claim_id": "step-H_nats",
+      "claim": "Total entropy in nats as the sum of individual contributions.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ],
+      "computation_refs": [
+        "compute-H_nats"
+      ]
+    },
+    {
+      "claim_id": "step-H_bits",
+      "claim": "Convert entropy from nats to bits by dividing by ln(2).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-H_bits"
+      ]
+    },
+    {
+      "claim_id": "step-contributions_bits",
+      "claim": "Each outcome's entropy contribution in bits.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-contributions_bits"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-p",
+      "claim": "Probability vector over four possible outcomes; only the first n entries are active.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-n",
+      "claim": "Number of active outcomes taken from the start of the probability vector.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Eb1855ff82142e3aaf002",
+        "E5a67f67e702bbad36a32"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-p_active_raw",
+      "claim": "Select the first n probabilities as the active outcomes.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ],
+      "computation_refs": [
+        "compute-p_active_raw"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-p_active",
+      "claim": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ],
+      "computation_refs": [
+        "compute-p_active"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-contributions_nats",
+      "claim": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-contributions_nats"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-H_nats",
+      "claim": "Total entropy in nats as the sum of individual contributions.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ],
+      "computation_refs": [
+        "compute-H_nats"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-H_bits",
+      "claim": "Convert entropy from nats to bits by dividing by ln(2).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-H_bits"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-contributions_bits",
+      "claim": "Each outcome's entropy contribution in bits.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ],
+      "computation_refs": [
+        "compute-contributions_bits"
+      ]
+    },
+    {
+      "claim_id": "control-p.learning_purpose",
+      "claim": "Probability vector over four possible outcomes; only the first n entries are active.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-p.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-n.learning_purpose",
+      "claim": "Number of active outcomes taken from the start of the probability vector.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-n.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.change",
+      "claim": "Set p to [1.0, 0.0, 0.0, 0.0]; Set n to 1.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: p_active_raw = [1.0] (starting value: [0.25, 0.25, 0.25, 0.25]); p_active = [1.0] (starting value: [0.25, 0.25, 0.25, 0.25]); contributions_nats = [-0.0] nats (starting value: [0.34657359, 0.34657359, 0.34657359, 0.34657359] nats); H_nats = 0.0 nats (starting value: 1.3862944 nats); H_bits = 0.0 bits (starting value: 2.0 bits); contributions_bits = [-0.0] bits (starting value: [0.5, 0.5, 0.5, 0.5] bits).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-p_active_raw",
+        "compute-p_active",
+        "compute-contributions_nats",
+        "compute-H_nats",
+        "compute-H_bits",
+        "compute-contributions_bits"
+      ]
+    },
+    {
+      "claim_id": "explore-1.why",
+      "claim": "A single certain outcome has no uncertainty, so its probability-weighted information contribution is zero.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.change",
+      "claim": "Set p to [0.25, 0.25, 0.25, 0.25]; Set n to 4.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: p_active_raw = [0.25, 0.25, 0.25, 0.25] (starting value: [0.25, 0.25, 0.25, 0.25]); p_active = [0.25, 0.25, 0.25, 0.25] (starting value: [0.25, 0.25, 0.25, 0.25]); contributions_nats = [0.34657359, 0.34657359, 0.34657359, 0.34657359] nats (starting value: [0.34657359, 0.34657359, 0.34657359, 0.34657359] nats); H_nats = 1.3862944 nats (starting value: 1.3862944 nats); H_bits = 2.0 bits (starting value: 2.0 bits); contributions_bits = [0.5, 0.5, 0.5, 0.5] bits (starting value: [0.5, 0.5, 0.5, 0.5] bits).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-p_active_raw",
+        "compute-p_active",
+        "compute-contributions_nats",
+        "compute-H_nats",
+        "compute-H_bits",
+        "compute-contributions_bits"
+      ]
+    },
+    {
+      "claim_id": "explore-2.why",
+      "claim": "Spreading probability equally over four outcomes gives each outcome the same contribution, and the total is larger than in the certainty case because there is more choice.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "Eb1855ff82142e3aaf002",
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4",
+        "E5a67f67e702bbad36a32",
+        "Eaa0923866eed10f7b351",
+        "Ebf4337e0161cce3def58"
+      ],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Section 6: explain discrete entropy in bits using a small editable probability distribution and a variable number of outcomes. Show probabilities, individual contributions and total entropy. Compare certainty with four equally likely outcomes. Handle zero probabilities correctly.",
+    "learning_objective_refs": [
+      "Compute the entropy in bits of a small discrete distribution from its probabilities and individual contributions.",
+      "Explain how increasing the number of equally likely outcomes changes entropy and why a zero-probability outcome contributes zero."
+    ],
+    "mechanism_refs": [
+      "eq-p_active_raw",
+      "eq-p_active",
+      "eq-contributions_nats",
+      "eq-H_nats",
+      "eq-H_bits",
+      "eq-contributions_bits"
+    ],
+    "control_refs": [
+      "control-p",
+      "control-n"
+    ],
+    "computation_refs": [
+      "compute-p_active_raw",
+      "compute-p_active",
+      "compute-contributions_nats",
+      "compute-H_nats",
+      "compute-H_bits",
+      "compute-contributions_bits"
+    ],
+    "visual_refs": [
+      "visual-1",
+      "visual-2"
+    ],
+    "exploration_refs": [
+      "explore-1",
+      "explore-2"
+    ]
+  },
+  "metadata": {
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use the stated prerequisites and a bounded worked mechanism for second-year engineering undergraduate.",
+    "defaults": {},
+    "invariant_bindings": {
+      "p_active": "var-p_active"
+    },
+    "control_test_values": {},
+    "equation_scope": {}
+  }
+}

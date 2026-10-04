@@ -89,7 +89,7 @@ def close_enough(a, b, tolerance=NUMERIC_TOLERANCE) -> bool:
     return type(a) is type(b) and a == b
 
 
-def alternative_values(control: dict) -> list:
+def alternative_values(control: dict, *, integer=False) -> list:
     """Deterministic interior/boundary probes; avoid assuming one endpoint matters."""
     default = control['default']
     kind = control['control_type']
@@ -113,6 +113,8 @@ def alternative_values(control: dict) -> list:
         return [candidate]
     values = []
     for value in (lo, hi, (lo + hi) / 2 if lo is not None and hi is not None else None, default + (control['step'] or 1)):
+        if integer and value is not None:
+            value = round(value)
         if value is not None and value != default and value not in values and (lo is None or value >= lo) and (hi is None or value <= hi):
             values.append(value)
     return values
@@ -158,6 +160,8 @@ def validate_browser(path: str | Path, *, reference_evaluator: ReferenceEvaluato
             index = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
             excerpt[key] = {'baseline': a[max(0, index - 60):index + 120], 'after_reset': b[max(0, index - 60):index + 120]}
         return {'state_keys': changed_state, 'ui': snapshot['ui'] if snapshot['ui'] != baseline['ui'] else None,
+                'state_values': {k: {'baseline': baseline['state'].get(k), 'after_reset': snapshot['state'][k]}
+                                 for k in changed_state[:5]},
                 'error': snapshot['error'], 'visuals': changed_visuals, 'excerpt': excerpt}
 
     errors: list[str] = []
@@ -197,7 +201,9 @@ def validate_browser(path: str | Path, *, reference_evaluator: ReferenceEvaluato
                         value = json.loads(value)
                     elif spec['control_type'] not in {'select', 'toggle'}:
                         value = float(value)
-                    require(close_enough(value, state[control['id']], tolerance), 'BROWSER_REPRESENTATION_MISMATCH', 'Control and scientific state disagree.', spec['id'])
+                    require(close_enough(value, state[control['id']], tolerance), 'BROWSER_REPRESENTATION_MISMATCH',
+                            'Control and scientific state disagree.', spec['id'],
+                            {'displayed': value, 'scientific_state': state[control['id']]})
                 rendered = page.locator('[data-visual-id]').evaluate_all('(els)=>els.map(el=>({id:el.dataset.visualId, values:JSON.parse(el.dataset.values), html:el.innerHTML}))')
                 for item, visual in zip(rendered, m['visuals']):
                     require(close_enough(item['values'], [state[r] for r in visual['data_refs']], tolerance), 'BROWSER_REPRESENTATION_MISMATCH', 'Visual encodes values that differ from scientific state.', visual['id'])
@@ -216,8 +222,13 @@ def validate_browser(path: str | Path, *, reference_evaluator: ReferenceEvaluato
             for control in m['controls']:
                 changed_output = changed_visual = False
                 declared = m.get('metadata', {}).get('control_test_values', {}).get(control['id'], [])
-                candidates = (declared if control['control_type'] in {'vector', 'matrix'} and declared
-                              else alternative_values(control))
+                from playground.computation.probes import array_probes
+                variable = next(v for v in m['variables'] if v['id'] == control['scientific_variable'])
+                independent = array_probes(control, variable)
+                candidates = (declared + independent if control['control_type'] in {'vector', 'matrix'}
+                              else alternative_values(control, integer=any(
+                                  v['id'] == control['scientific_variable'] and v.get('domain') == 'integer'
+                                  for v in m['variables'])))
                 for value in candidates:
                     page.locator('[data-role="reset"]').click()
                     set_native_control(page, control, value)

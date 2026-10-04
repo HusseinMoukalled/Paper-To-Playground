@@ -1,0 +1,1236 @@
+{
+  "scientific_model": {
+    "concept": "Lamport Logical Clocks: Local Increments and Receive Updates",
+    "purpose": "Teach how a unit-increment Lamport logical clock assigns integer timestamps to local events and message receives, and why a smaller timestamp alone does not prove that one event causally preceded another.",
+    "focus_alignment": "Explain Lamport logical clocks: local events increment a clock and receiving a message updates the receiver to max(local, message timestamp) plus one for a unit-increment implementation. Use small editable integer clocks and show send/receive ordering. Explain that a smaller timestamp does not prove causality. Do not use physical wall-clock time.",
+    "variables": [
+      {
+        "id": "var-local_clock",
+        "source_symbol": "local_clock",
+        "display_symbol": "Receiver local clock before receive",
+        "meaning": "The receiver's current logical clock value just before the message is received.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "integer",
+        "units": null,
+        "evidence_refs": [
+          "E350f19421fd6cef95dce"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-message_timestamp",
+        "source_symbol": "message_timestamp",
+        "display_symbol": "Message timestamp",
+        "meaning": "The sender's logical clock value attached to the message.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "integer",
+        "units": null,
+        "evidence_refs": [
+          "E350f19421fd6cef95dce"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-local_event_increment",
+        "source_symbol": "local_event_increment",
+        "display_symbol": "Local event increment",
+        "meaning": "The fixed unit increment applied to a process's clock for each local event.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "integer",
+        "units": null,
+        "evidence_refs": [
+          "E2fadd5085823749df9bc"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-max_clock",
+        "source_symbol": "max_clock",
+        "display_symbol": "Larger of local clock and message timestamp",
+        "meaning": "The receiver must not fall behind the sender, so it takes the larger of its own clock and the incoming timestamp.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "integer",
+        "units": null,
+        "evidence_refs": [
+          "E350f19421fd6cef95dce"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-receiver_clock_after_receive",
+        "source_symbol": "receiver_clock_after_receive",
+        "display_symbol": "Receiver clock after receive",
+        "meaning": "The receive event itself is a local event, so the receiver increments the larger clock by one.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "integer",
+        "units": null,
+        "evidence_refs": [
+          "E2fadd5085823749df9bc",
+          "E350f19421fd6cef95dce"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-timestamp_order",
+        "source_symbol": "timestamp_order",
+        "display_symbol": "Timestamp comparison",
+        "meaning": "A negative value means the message timestamp is smaller than the receiver's post-receive clock; this is an ordering observation, not a causality proof.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E4c350639090c7636d460"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-causal_implication_holds",
+        "source_symbol": "causal_implication_holds",
+        "display_symbol": "Causal implication check",
+        "meaning": "If the send causally precedes the receive, the message timestamp must be strictly smaller than the receiver's updated clock. This is the necessary direction of the clock condition.",
+        "type": "boolean",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [
+          "E2fadd5085823749df9bc",
+          "E4c350639090c7636d460"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-max_clock",
+        "expression": "max([local_clock, message_timestamp])",
+        "meaning": "The receiver must not fall behind the sender, so it takes the larger of its own clock and the incoming timestamp.",
+        "variable_refs": [
+          "var-local_clock",
+          "var-message_timestamp",
+          "var-max_clock"
+        ],
+        "evidence_refs": [
+          "E350f19421fd6cef95dce"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-receiver_clock_after_receive",
+        "expression": "max_clock + local_event_increment",
+        "meaning": "The receive event itself is a local event, so the receiver increments the larger clock by one.",
+        "variable_refs": [
+          "var-local_event_increment",
+          "var-max_clock",
+          "var-receiver_clock_after_receive"
+        ],
+        "evidence_refs": [
+          "E2fadd5085823749df9bc",
+          "E350f19421fd6cef95dce"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-timestamp_order",
+        "expression": "message_timestamp - receiver_clock_after_receive",
+        "meaning": "A negative value means the message timestamp is smaller than the receiver's post-receive clock; this is an ordering observation, not a causality proof.",
+        "variable_refs": [
+          "var-message_timestamp",
+          "var-receiver_clock_after_receive",
+          "var-timestamp_order"
+        ],
+        "evidence_refs": [
+          "E4c350639090c7636d460"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-causal_implication_holds",
+        "expression": "message_timestamp < receiver_clock_after_receive",
+        "meaning": "If the send causally precedes the receive, the message timestamp must be strictly smaller than the receiver's updated clock. This is the necessary direction of the clock condition.",
+        "variable_refs": [
+          "var-message_timestamp",
+          "var-receiver_clock_after_receive",
+          "var-causal_implication_holds"
+        ],
+        "evidence_refs": [
+          "E2fadd5085823749df9bc",
+          "E4c350639090c7636d460"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-max_clock",
+        "order": 0,
+        "description": "The receiver must not fall behind the sender, so it takes the larger of its own clock and the incoming timestamp.",
+        "equation_refs": [
+          "eq-max_clock"
+        ],
+        "input_refs": [
+          "var-local_clock",
+          "var-message_timestamp"
+        ],
+        "output_refs": [
+          "var-max_clock"
+        ]
+      },
+      {
+        "id": "step-receiver_clock_after_receive",
+        "order": 1,
+        "description": "The receive event itself is a local event, so the receiver increments the larger clock by one.",
+        "equation_refs": [
+          "eq-receiver_clock_after_receive"
+        ],
+        "input_refs": [
+          "var-local_event_increment",
+          "var-max_clock"
+        ],
+        "output_refs": [
+          "var-receiver_clock_after_receive"
+        ]
+      },
+      {
+        "id": "step-timestamp_order",
+        "order": 2,
+        "description": "A negative value means the message timestamp is smaller than the receiver's post-receive clock; this is an ordering observation, not a causality proof.",
+        "equation_refs": [
+          "eq-timestamp_order"
+        ],
+        "input_refs": [
+          "var-message_timestamp",
+          "var-receiver_clock_after_receive"
+        ],
+        "output_refs": [
+          "var-timestamp_order"
+        ]
+      },
+      {
+        "id": "step-causal_implication_holds",
+        "order": 3,
+        "description": "If the send causally precedes the receive, the message timestamp must be strictly smaller than the receiver's updated clock. This is the necessary direction of the clock condition.",
+        "equation_refs": [
+          "eq-causal_implication_holds"
+        ],
+        "input_refs": [
+          "var-message_timestamp",
+          "var-receiver_clock_after_receive"
+        ],
+        "output_refs": [
+          "var-causal_implication_holds"
+        ]
+      }
+    ],
+    "assumptions": [
+      "Each process increments its logical clock by exactly one for each local event.",
+      "Messages carry the sender's current logical timestamp, and the receive event is a single event at the receiver."
+    ],
+    "limitations": [
+      "The lesson uses a single message exchange between two processes; it does not cover concurrent events, multiple messages, or total-order tie-breaking.",
+      "Logical clocks order events but do not measure physical time or prove causality from timestamp inequality alone."
+    ],
+    "misconceptions": [
+      "A smaller Lamport timestamp does not by itself prove that the earlier-timestamped event caused the later one; it only means the later event could not have causally preceded the earlier one."
+    ],
+    "invariants": [
+      "receiver_clock_after_receive > local_clock",
+      "receiver_clock_after_receive > message_timestamp"
+    ],
+    "edge_cases": [
+      "If the receiver's local clock is already larger than the message timestamp, the receive update still adds one to the local clock.",
+      "If the message timestamp is larger than the receiver's local clock, the receiver jumps to message timestamp + 1."
+    ],
+    "provenance": [
+      "E2fadd5085823749df9bc",
+      "E350f19421fd6cef95dce",
+      "E4c350639090c7636d460"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "A bounded two-process send/receive trace with integer logical clocks. We compute the receiver's updated clock as max(local, message timestamp) + 1 and compare timestamps. We do not model physical time, clock drift, total-order tie-breaking, or full distributed algorithms."
+  },
+  "lesson_spec": {
+    "central_learning_question": "Teach how a unit-increment Lamport logical clock assigns integer timestamps to local events and message receives, and why a smaller timestamp alone does not prove that one event causally preceded another.",
+    "learning_objectives": [
+      "Compute a receiver's updated Lamport clock as max(local clock, message timestamp) + 1 for a unit-increment implementation.",
+      "Explain why timestamp ordering is necessary but not sufficient for causality in a distributed system."
+    ],
+    "audience_prerequisites": [
+      "Basic arithmetic with integers and the max operation.",
+      "The idea of a distributed system as a collection of processes, each with a sequence of events."
+    ],
+    "intuition": "Each process keeps a counter. A local event bumps its own counter by one. When a message arrives, the receiver must not fall behind the sender, so it jumps to one more than the larger of its own counter and the message's timestamp. This guarantees that if event a causally precedes event b, then a's timestamp is smaller. The converse is not guaranteed: a smaller timestamp can occur without any causal path.",
+    "teaching_sequence": [
+      "Inspect the inputs and equations.",
+      "Change each scientific input and compare the live intermediates.",
+      "Apply both exploration setups and explain the difference."
+    ],
+    "symbol_explanations": {
+      "var-local_clock": "The receiver's current logical clock value just before the message is received.",
+      "var-message_timestamp": "The sender's logical clock value attached to the message.",
+      "var-local_event_increment": "The fixed unit increment applied to a process's clock for each local event.",
+      "var-max_clock": "The receiver must not fall behind the sender, so it takes the larger of its own clock and the incoming timestamp.",
+      "var-receiver_clock_after_receive": "The receive event itself is a local event, so the receiver increments the larger clock by one.",
+      "var-timestamp_order": "A negative value means the message timestamp is smaller than the receiver's post-receive clock; this is an ordering observation, not a causality proof.",
+      "var-causal_implication_holds": "If the send causally precedes the receive, the message timestamp must be strictly smaller than the receiver's updated clock. This is the necessary direction of the clock condition."
+    },
+    "controls": [
+      {
+        "id": "control-local_clock",
+        "label": "Receiver local clock before receive",
+        "scientific_variable": "var-local_clock",
+        "control_type": "slider",
+        "default": 3,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-max_clock",
+          "var-receiver_clock_after_receive",
+          "var-timestamp_order",
+          "var-causal_implication_holds"
+        ],
+        "learning_purpose": "The receiver's current logical clock value just before the message is received.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0,
+        "maximum": 20,
+        "step": 1,
+        "options": []
+      },
+      {
+        "id": "control-message_timestamp",
+        "label": "Message timestamp",
+        "scientific_variable": "var-message_timestamp",
+        "control_type": "slider",
+        "default": 5,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-max_clock",
+          "var-receiver_clock_after_receive",
+          "var-timestamp_order",
+          "var-causal_implication_holds"
+        ],
+        "learning_purpose": "The sender's logical clock value attached to the message.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0,
+        "maximum": 20,
+        "step": 1,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-max_clock",
+      "var-receiver_clock_after_receive",
+      "var-timestamp_order",
+      "var-causal_implication_holds"
+    ],
+    "visual_question": "How do the receiver's local clock, the message timestamp, and the receiver's post-receive clock compare?",
+    "visual_intent": "Compare the computed mechanism and its intermediate values.",
+    "guided_explorations": [
+      {
+        "id": "explore-1",
+        "title": "Receiver ahead of the message",
+        "change": "Set Receiver local clock before receive to 7; Set Message timestamp to 2.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: Larger of local clock and message timestamp = 7 (starting value: 5); Receiver clock after receive = 8 (starting value: 6); Timestamp comparison = -6 (starting value: -1); Causal implication check = true (starting value: true).",
+        "why": "Because the receiver's local clock already exceeds the message timestamp, the max is the local clock, and the receive event adds one. The message timestamp is smaller, but that alone does not prove the send caused the receive.",
+        "setup": {
+          "control-local_clock": 7,
+          "control-message_timestamp": 2
+        }
+      },
+      {
+        "id": "explore-2",
+        "title": "Message ahead of the receiver",
+        "change": "Set Receiver local clock before receive to 1; Set Message timestamp to 9.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: Larger of local clock and message timestamp = 9 (starting value: 5); Receiver clock after receive = 10 (starting value: 6); Timestamp comparison = -1 (starting value: -1); Causal implication check = true (starting value: true).",
+        "why": "The receiver must not fall behind the sender, so it jumps to the message timestamp plus one. This preserves the necessary condition that a causally preceding send has a smaller timestamp than the receive.",
+        "setup": {
+          "control-local_clock": 1,
+          "control-message_timestamp": 9
+        }
+      }
+    ],
+    "limitation_or_assumption": "The lesson uses a single message exchange between two processes; it does not cover concurrent events, multiple messages, or total-order tie-breaking.",
+    "misconception": "A smaller Lamport timestamp does not by itself prove that the earlier-timestamped event caused the later one; it only means the later event could not have causally preceded the earlier one.",
+    "source_grounding_plan": [
+      "Source citations support the scientific explanation; computed values are derived from explicit toy inputs."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-max_clock",
+      "expression": "max([local_clock, message_timestamp])",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-local_clock",
+        "var-message_timestamp"
+      ],
+      "output_refs": [
+        "var-max_clock"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "local_clock": "var-local_clock",
+          "message_timestamp": "var-message_timestamp"
+        },
+        "equation_refs": [
+          "eq-max_clock"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "max",
+          "args": [
+            {
+              "kind": "array",
+              "value": null,
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "local_clock",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "message_timestamp",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-receiver_clock_after_receive",
+      "expression": "max_clock + local_event_increment",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-local_event_increment",
+        "var-max_clock"
+      ],
+      "output_refs": [
+        "var-receiver_clock_after_receive"
+      ],
+      "dependencies": [
+        "compute-max_clock"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "local_event_increment": "var-local_event_increment",
+          "max_clock": "var-max_clock"
+        },
+        "equation_refs": [
+          "eq-receiver_clock_after_receive"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "add",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "max_clock",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "local_event_increment",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-timestamp_order",
+      "expression": "message_timestamp - receiver_clock_after_receive",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-message_timestamp",
+        "var-receiver_clock_after_receive"
+      ],
+      "output_refs": [
+        "var-timestamp_order"
+      ],
+      "dependencies": [
+        "compute-receiver_clock_after_receive"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "message_timestamp": "var-message_timestamp",
+          "receiver_clock_after_receive": "var-receiver_clock_after_receive"
+        },
+        "equation_refs": [
+          "eq-timestamp_order"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "subtract",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "message_timestamp",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "receiver_clock_after_receive",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-causal_implication_holds",
+      "expression": "message_timestamp < receiver_clock_after_receive",
+      "output_type": "boolean",
+      "input_refs": [
+        "var-message_timestamp",
+        "var-receiver_clock_after_receive"
+      ],
+      "output_refs": [
+        "var-causal_implication_holds"
+      ],
+      "dependencies": [
+        "compute-receiver_clock_after_receive"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "message_timestamp": "var-message_timestamp",
+          "receiver_clock_after_receive": "var-receiver_clock_after_receive"
+        },
+        "equation_refs": [
+          "eq-causal_implication_holds"
+        ],
+        "canonical_ast": {
+          "kind": "compare",
+          "value": "lt",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "message_timestamp",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "receiver_clock_after_receive",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-1",
+      "visual_type": "comparison",
+      "question": "How do the receiver's local clock, the message timestamp, and the receiver's post-receive clock compare?",
+      "data_refs": [
+        "var-local_clock",
+        "var-message_timestamp",
+        "var-receiver_clock_after_receive"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "visual-2",
+      "visual_type": "process",
+      "question": "What is the sequence of clock updates from local event to message receive?",
+      "data_refs": [
+        "var-local_clock",
+        "var-max_clock",
+        "var-receiver_clock_after_receive"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "Lamport Logical Clocks: Local Increments and Receive Updates",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Teach how a unit-increment Lamport logical clock assigns integer timestamps to local events and message receives, and why a smaller timestamp alone does not prove that one event causally preceded another.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "Explain Lamport logical clocks: local events increment a clock and receiving a message updates the receiver to max(local, message timestamp) plus one for a unit-increment implementation. Use small editable integer clocks and show send/receive ordering. Explain that a smaller timestamp does not prove causality. Do not use physical wall-clock time.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "A bounded two-process send/receive trace with integer logical clocks. We compute the receiver's updated clock as max(local, message timestamp) + 1 and compare timestamps. We do not model physical time, clock drift, total-order tie-breaking, or full distributed algorithms.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "Each process keeps a counter. A local event bumps its own counter by one. When a message arrives, the receiver must not fall behind the sender, so it jumps to one more than the larger of its own counter and the message's timestamp. This guarantees that if event a causally precedes event b, then a's timestamp is smaller. The converse is not guaranteed: a smaller timestamp can occur without any causal path.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "The lesson uses a single message exchange between two processes; it does not cover concurrent events, multiple messages, or total-order tie-breaking.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "A smaller Lamport timestamp does not by itself prove that the earlier-timestamped event caused the later one; it only means the later event could not have causally preceded the earlier one.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "Each process increments its logical clock by exactly one for each local event.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.1",
+      "claim": "Messages carry the sender's current logical timestamp, and the receive event is a single event at the receiver.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "The lesson uses a single message exchange between two processes; it does not cover concurrent events, multiple messages, or total-order tie-breaking.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.1",
+      "claim": "Logical clocks order events but do not measure physical time or prove causality from timestamp inequality alone.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "A smaller Lamport timestamp does not by itself prove that the earlier-timestamped event caused the later one; it only means the later event could not have causally preceded the earlier one.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "If the receiver's local clock is already larger than the message timestamp, the receive update still adds one to the local clock.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.1",
+      "claim": "If the message timestamp is larger than the receiver's local clock, the receiver jumps to message timestamp + 1.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the inputs and equations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Change each scientific input and compare the live intermediates.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.2",
+      "claim": "Apply both exploration setups and explain the difference.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "Source citations support the scientific explanation; computed values are derived from explicit toy inputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Compute a receiver's updated Lamport clock as max(local clock, message timestamp) + 1 for a unit-increment implementation.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.1",
+      "claim": "Explain why timestamp ordering is necessary but not sufficient for causality in a distributed system.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Basic arithmetic with integers and the max operation.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.1",
+      "claim": "The idea of a distributed system as a collection of processes, each with a sequence of events.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "Teach how a unit-increment Lamport logical clock assigns integer timestamps to local events and message receives, and why a smaller timestamp alone does not prove that one event causally preceded another.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How do the receiver's local clock, the message timestamp, and the receiver's post-receive clock compare?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Compare the computed mechanism and its intermediate values.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-1.question",
+      "claim": "How do the receiver's local clock, the message timestamp, and the receiver's post-receive clock compare?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-2.question",
+      "claim": "What is the sequence of clock updates from local event to message receive?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-local_clock",
+      "claim": "The receiver's current logical clock value just before the message is received.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-message_timestamp",
+      "claim": "The sender's logical clock value attached to the message.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-local_event_increment",
+      "claim": "The fixed unit increment applied to a process's clock for each local event.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-max_clock",
+      "claim": "The receiver must not fall behind the sender, so it takes the larger of its own clock and the incoming timestamp.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": [
+        "compute-max_clock"
+      ]
+    },
+    {
+      "claim_id": "var-receiver_clock_after_receive",
+      "claim": "The receive event itself is a local event, so the receiver increments the larger clock by one.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": [
+        "compute-receiver_clock_after_receive"
+      ]
+    },
+    {
+      "claim_id": "var-timestamp_order",
+      "claim": "A negative value means the message timestamp is smaller than the receiver's post-receive clock; this is an ordering observation, not a causality proof.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": [
+        "compute-timestamp_order"
+      ]
+    },
+    {
+      "claim_id": "var-causal_implication_holds",
+      "claim": "If the send causally precedes the receive, the message timestamp must be strictly smaller than the receiver's updated clock. This is the necessary direction of the clock condition.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": [
+        "compute-causal_implication_holds"
+      ]
+    },
+    {
+      "claim_id": "eq-max_clock",
+      "claim": "The receiver must not fall behind the sender, so it takes the larger of its own clock and the incoming timestamp.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": [
+        "compute-max_clock"
+      ]
+    },
+    {
+      "claim_id": "eq-receiver_clock_after_receive",
+      "claim": "The receive event itself is a local event, so the receiver increments the larger clock by one.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": [
+        "compute-receiver_clock_after_receive"
+      ]
+    },
+    {
+      "claim_id": "eq-timestamp_order",
+      "claim": "A negative value means the message timestamp is smaller than the receiver's post-receive clock; this is an ordering observation, not a causality proof.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": [
+        "compute-timestamp_order"
+      ]
+    },
+    {
+      "claim_id": "eq-causal_implication_holds",
+      "claim": "If the send causally precedes the receive, the message timestamp must be strictly smaller than the receiver's updated clock. This is the necessary direction of the clock condition.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": [
+        "compute-causal_implication_holds"
+      ]
+    },
+    {
+      "claim_id": "step-max_clock",
+      "claim": "The receiver must not fall behind the sender, so it takes the larger of its own clock and the incoming timestamp.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": [
+        "compute-max_clock"
+      ]
+    },
+    {
+      "claim_id": "step-receiver_clock_after_receive",
+      "claim": "The receive event itself is a local event, so the receiver increments the larger clock by one.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": [
+        "compute-receiver_clock_after_receive"
+      ]
+    },
+    {
+      "claim_id": "step-timestamp_order",
+      "claim": "A negative value means the message timestamp is smaller than the receiver's post-receive clock; this is an ordering observation, not a causality proof.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": [
+        "compute-timestamp_order"
+      ]
+    },
+    {
+      "claim_id": "step-causal_implication_holds",
+      "claim": "If the send causally precedes the receive, the message timestamp must be strictly smaller than the receiver's updated clock. This is the necessary direction of the clock condition.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": [
+        "compute-causal_implication_holds"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-local_clock",
+      "claim": "The receiver's current logical clock value just before the message is received.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-message_timestamp",
+      "claim": "The sender's logical clock value attached to the message.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-local_event_increment",
+      "claim": "The fixed unit increment applied to a process's clock for each local event.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-max_clock",
+      "claim": "The receiver must not fall behind the sender, so it takes the larger of its own clock and the incoming timestamp.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": [
+        "compute-max_clock"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-receiver_clock_after_receive",
+      "claim": "The receive event itself is a local event, so the receiver increments the larger clock by one.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce"
+      ],
+      "computation_refs": [
+        "compute-receiver_clock_after_receive"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-timestamp_order",
+      "claim": "A negative value means the message timestamp is smaller than the receiver's post-receive clock; this is an ordering observation, not a causality proof.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": [
+        "compute-timestamp_order"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-causal_implication_holds",
+      "claim": "If the send causally precedes the receive, the message timestamp must be strictly smaller than the receiver's updated clock. This is the necessary direction of the clock condition.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": [
+        "compute-causal_implication_holds"
+      ]
+    },
+    {
+      "claim_id": "control-local_clock.learning_purpose",
+      "claim": "The receiver's current logical clock value just before the message is received.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-local_clock.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-message_timestamp.learning_purpose",
+      "claim": "The sender's logical clock value attached to the message.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-message_timestamp.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.change",
+      "claim": "Set Receiver local clock before receive to 7; Set Message timestamp to 2.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: Larger of local clock and message timestamp = 7 (starting value: 5); Receiver clock after receive = 8 (starting value: 6); Timestamp comparison = -6 (starting value: -1); Causal implication check = true (starting value: true).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-max_clock",
+        "compute-receiver_clock_after_receive",
+        "compute-timestamp_order",
+        "compute-causal_implication_holds"
+      ]
+    },
+    {
+      "claim_id": "explore-1.why",
+      "claim": "Because the receiver's local clock already exceeds the message timestamp, the max is the local clock, and the receive event adds one. The message timestamp is smaller, but that alone does not prove the send caused the receive.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.change",
+      "claim": "Set Receiver local clock before receive to 1; Set Message timestamp to 9.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: Larger of local clock and message timestamp = 9 (starting value: 5); Receiver clock after receive = 10 (starting value: 6); Timestamp comparison = -1 (starting value: -1); Causal implication check = true (starting value: true).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-max_clock",
+        "compute-receiver_clock_after_receive",
+        "compute-timestamp_order",
+        "compute-causal_implication_holds"
+      ]
+    },
+    {
+      "claim_id": "explore-2.why",
+      "claim": "The receiver must not fall behind the sender, so it jumps to the message timestamp plus one. This preserves the necessary condition that a causally preceding send has a smaller timestamp than the receive.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E2fadd5085823749df9bc",
+        "E350f19421fd6cef95dce",
+        "E4c350639090c7636d460"
+      ],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Explain Lamport logical clocks: local events increment a clock and receiving a message updates the receiver to max(local, message timestamp) plus one for a unit-increment implementation. Use small editable integer clocks and show send/receive ordering. Explain that a smaller timestamp does not prove causality. Do not use physical wall-clock time.",
+    "learning_objective_refs": [
+      "Compute a receiver's updated Lamport clock as max(local clock, message timestamp) + 1 for a unit-increment implementation.",
+      "Explain why timestamp ordering is necessary but not sufficient for causality in a distributed system."
+    ],
+    "mechanism_refs": [
+      "eq-max_clock",
+      "eq-receiver_clock_after_receive",
+      "eq-timestamp_order",
+      "eq-causal_implication_holds"
+    ],
+    "control_refs": [
+      "control-local_clock",
+      "control-message_timestamp"
+    ],
+    "computation_refs": [
+      "compute-max_clock",
+      "compute-receiver_clock_after_receive",
+      "compute-timestamp_order",
+      "compute-causal_implication_holds"
+    ],
+    "visual_refs": [
+      "visual-1",
+      "visual-2"
+    ],
+    "exploration_refs": [
+      "explore-1",
+      "explore-2"
+    ]
+  },
+  "metadata": {
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use the stated prerequisites and a bounded worked mechanism for second-year engineering undergraduate.",
+    "defaults": {
+      "var-local_event_increment": 1
+    },
+    "invariant_bindings": {
+      "local_clock": "var-local_clock",
+      "message_timestamp": "var-message_timestamp",
+      "receiver_clock_after_receive": "var-receiver_clock_after_receive"
+    },
+    "control_test_values": {},
+    "equation_scope": {}
+  }
+}

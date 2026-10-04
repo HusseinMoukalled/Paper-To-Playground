@@ -1,0 +1,1449 @@
+{
+  "scientific_model": {
+    "concept": "Scaled Dot-Product Attention: Scores, Weights, and Weighted Output",
+    "purpose": "Explain the core computation of scaled dot-product attention for a single query: similarity scores, softmax-normalized weights, and the weighted combination of values, including the effect of the 1/sqrt(d_k) scaling.",
+    "focus_alignment": "Section 3.2.1: explain scaled dot-product attention with small editable Q, K and V inputs. Show similarity scores, normalized attention weights and the weighted output. Include scaling on/off, equal scores and a dominant score. Verify weights sum to one.",
+    "variables": [
+      {
+        "id": "var-q",
+        "source_symbol": "q",
+        "display_symbol": "Query vector q",
+        "meaning": "The query vector of dimension d_k = 2 used to compute similarity with each key.",
+        "type": "vector",
+        "shape": [
+          2
+        ],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-K",
+        "source_symbol": "K",
+        "display_symbol": "Key matrix K",
+        "meaning": "Two key vectors stacked as rows; each row is a key of dimension d_k = 2.",
+        "type": "matrix",
+        "shape": [
+          2,
+          2
+        ],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-V",
+        "source_symbol": "V",
+        "display_symbol": "Value matrix V",
+        "meaning": "Two value vectors stacked as rows; each row is a value of dimension d_v = 2.",
+        "type": "matrix",
+        "shape": [
+          2,
+          2
+        ],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-scale_on",
+        "source_symbol": "scale_on",
+        "display_symbol": "Apply 1/sqrt(d_k) scaling",
+        "meaning": "Boolean switch: when true, scores are divided by sqrt(d_k); when false, raw dot-product scores are used.",
+        "type": "boolean",
+        "shape": [],
+        "domain": null,
+        "units": null,
+        "evidence_refs": [
+          "E4ad662dfc8a8fa44fb6c",
+          "Eb91ba47af715ce8d60ae"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-scores",
+        "source_symbol": "scores",
+        "display_symbol": "Raw attention scores",
+        "meaning": "Dot product of the query with each key, producing one score per key.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-scaled_scores",
+        "source_symbol": "scaled_scores",
+        "display_symbol": "Scaled attention scores",
+        "meaning": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ea5174acb5120f8d7af1a",
+          "E4ad662dfc8a8fa44fb6c"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-weights",
+        "source_symbol": "weights",
+        "display_symbol": "Attention weights",
+        "meaning": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+        "type": "distribution",
+        "shape": [],
+        "domain": "probability",
+        "units": null,
+        "evidence_refs": [
+          "Ea5174acb5120f8d7af1a",
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-output",
+        "source_symbol": "output",
+        "display_symbol": "Attention output",
+        "meaning": "Weighted sum of the value vectors, using the attention weights as coefficients.",
+        "type": "vector",
+        "shape": [],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "Ea5174acb5120f8d7af1a",
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-scores",
+        "expression": "matmul(K, q)",
+        "meaning": "Dot product of the query with each key, producing one score per key.",
+        "variable_refs": [
+          "var-K",
+          "var-q",
+          "var-scores"
+        ],
+        "evidence_refs": [
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-scaled_scores",
+        "expression": "scores / sqrt(2) if scale_on else scores",
+        "meaning": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+        "variable_refs": [
+          "var-scale_on",
+          "var-scores",
+          "var-scaled_scores"
+        ],
+        "evidence_refs": [
+          "Ea5174acb5120f8d7af1a",
+          "E4ad662dfc8a8fa44fb6c"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-weights",
+        "expression": "softmax(scaled_scores)",
+        "meaning": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+        "variable_refs": [
+          "var-scaled_scores",
+          "var-weights"
+        ],
+        "evidence_refs": [
+          "Ea5174acb5120f8d7af1a",
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-output",
+        "expression": "matmul(transpose(V), weights)",
+        "meaning": "Weighted sum of the value vectors, using the attention weights as coefficients.",
+        "variable_refs": [
+          "var-V",
+          "var-weights",
+          "var-output"
+        ],
+        "evidence_refs": [
+          "Ea5174acb5120f8d7af1a",
+          "Ef0f5ea2528a21fe64b4b"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-scores",
+        "order": 0,
+        "description": "Dot product of the query with each key, producing one score per key.",
+        "equation_refs": [
+          "eq-scores"
+        ],
+        "input_refs": [
+          "var-K",
+          "var-q"
+        ],
+        "output_refs": [
+          "var-scores"
+        ]
+      },
+      {
+        "id": "step-scaled_scores",
+        "order": 1,
+        "description": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+        "equation_refs": [
+          "eq-scaled_scores"
+        ],
+        "input_refs": [
+          "var-scale_on",
+          "var-scores"
+        ],
+        "output_refs": [
+          "var-scaled_scores"
+        ]
+      },
+      {
+        "id": "step-weights",
+        "order": 2,
+        "description": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+        "equation_refs": [
+          "eq-weights"
+        ],
+        "input_refs": [
+          "var-scaled_scores"
+        ],
+        "output_refs": [
+          "var-weights"
+        ]
+      },
+      {
+        "id": "step-output",
+        "order": 3,
+        "description": "Weighted sum of the value vectors, using the attention weights as coefficients.",
+        "equation_refs": [
+          "eq-output"
+        ],
+        "input_refs": [
+          "var-V",
+          "var-weights"
+        ],
+        "output_refs": [
+          "var-output"
+        ]
+      }
+    ],
+    "assumptions": [
+      "The query, keys, and values are already projected vectors; this lesson does not compute the learned linear projections.",
+      "Only one query is used, so the attention weight vector has one entry per key and the output is a single value vector."
+    ],
+    "limitations": [
+      "The lesson uses d_k = 2 and two keys; real models use larger dimensions and many keys, which changes the numerical scale of scores and weights.",
+      "Masking, dropout, and multi-head concatenation are outside this scope."
+    ],
+    "misconceptions": [
+      "Scaling by 1/sqrt(d_k) is not an arbitrary normalization; it counteracts the growth of dot-product variance with dimension, keeping softmax gradients from becoming extremely small."
+    ],
+    "invariants": [
+      "approx_equal(sum(weights), 1)"
+    ],
+    "edge_cases": [
+      "When all scaled scores are equal, softmax gives uniform weights and the output is the simple average of the value vectors.",
+      "When one scaled score is much larger than the others, its weight approaches one and the output approaches that value vector."
+    ],
+    "provenance": [
+      "E4ad662dfc8a8fa44fb6c",
+      "Ea5174acb5120f8d7af1a",
+      "Eb91ba47af715ce8d60ae",
+      "Ef0f5ea2528a21fe64b4b"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "One query vector q, two key vectors and two value vectors (d_k = d_v = 2). The lesson computes scores, scaled scores, attention weights, and the output vector. It does not cover multi-head attention, masking, training, or learned projections."
+  },
+  "lesson_spec": {
+    "central_learning_question": "Explain the core computation of scaled dot-product attention for a single query: similarity scores, softmax-normalized weights, and the weighted combination of values, including the effect of the 1/sqrt(d_k) scaling.",
+    "learning_objectives": [
+      "Compute attention scores as dot products between a query and each key, and apply the 1/sqrt(d_k) scaling.",
+      "Convert scaled scores to attention weights with softmax, verify they sum to one, and form the weighted output as a convex combination of value vectors."
+    ],
+    "audience_prerequisites": [
+      "Vector dot product and basic matrix-vector multiplication.",
+      "Softmax as a normalized exponential that maps real scores to a probability distribution."
+    ],
+    "intuition": "A query is compared with each key by a dot product. Larger dot products mean the query is more similar to that key. Dividing by sqrt(d_k) keeps these scores from growing with dimension, so the softmax stays in a well-behaved range. The softmax turns scores into weights that sum to one, and the output is the weighted average of the value vectors.",
+    "teaching_sequence": [
+      "Inspect the inputs and equations.",
+      "Change each scientific input and compare the live intermediates.",
+      "Apply both exploration setups and explain the difference."
+    ],
+    "symbol_explanations": {
+      "var-q": "The query vector of dimension d_k = 2 used to compute similarity with each key.",
+      "var-K": "Two key vectors stacked as rows; each row is a key of dimension d_k = 2.",
+      "var-V": "Two value vectors stacked as rows; each row is a value of dimension d_v = 2.",
+      "var-scale_on": "Boolean switch: when true, scores are divided by sqrt(d_k); when false, raw dot-product scores are used.",
+      "var-scores": "Dot product of the query with each key, producing one score per key.",
+      "var-scaled_scores": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+      "var-weights": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+      "var-output": "Weighted sum of the value vectors, using the attention weights as coefficients."
+    },
+    "controls": [
+      {
+        "id": "control-q",
+        "label": "Query vector q",
+        "scientific_variable": "var-q",
+        "control_type": "vector",
+        "default": [
+          1.0,
+          0.0
+        ],
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-scores",
+          "var-scaled_scores",
+          "var-weights",
+          "var-output"
+        ],
+        "learning_purpose": "The query vector of dimension d_k = 2 used to compute similarity with each key.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": -5.0,
+        "maximum": 5.0,
+        "step": 0.1,
+        "options": []
+      },
+      {
+        "id": "control-K",
+        "label": "Key matrix K",
+        "scientific_variable": "var-K",
+        "control_type": "matrix",
+        "default": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-scores",
+          "var-scaled_scores",
+          "var-weights",
+          "var-output"
+        ],
+        "learning_purpose": "Two key vectors stacked as rows; each row is a key of dimension d_k = 2.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": -5.0,
+        "maximum": 5.0,
+        "step": 0.1,
+        "options": []
+      },
+      {
+        "id": "control-V",
+        "label": "Value matrix V",
+        "scientific_variable": "var-V",
+        "control_type": "matrix",
+        "default": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-output"
+        ],
+        "learning_purpose": "Two value vectors stacked as rows; each row is a value of dimension d_v = 2.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": -5.0,
+        "maximum": 5.0,
+        "step": 0.1,
+        "options": []
+      },
+      {
+        "id": "control-scale_on",
+        "label": "Apply 1/sqrt(d_k) scaling",
+        "scientific_variable": "var-scale_on",
+        "control_type": "toggle",
+        "default": true,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-scaled_scores",
+          "var-weights",
+          "var-output"
+        ],
+        "learning_purpose": "Boolean switch: when true, scores are divided by sqrt(d_k); when false, raw dot-product scores are used.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": null,
+        "maximum": null,
+        "step": null,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-scores",
+      "var-scaled_scores",
+      "var-weights",
+      "var-output"
+    ],
+    "visual_question": "How do the attention weights change when the query is more similar to one key than the other?",
+    "visual_intent": "Compare the computed mechanism and its intermediate values.",
+    "guided_explorations": [
+      {
+        "id": "explore-1",
+        "title": "Equal scores with and without scaling",
+        "change": "Set Query vector q to [1.0, 1.0]; Set Key matrix K to [[1.0, 0.0], [0.0, 1.0]]; Set Value matrix V to [[1.0, 0.0], [0.0, 1.0]]; Set Apply 1/sqrt(d_k) scaling to True.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: Raw attention scores = [1.0, 1.0] (starting value: [1.0, 0.0]); Scaled attention scores = [0.70710678, 0.70710678] (starting value: [0.70710678, 0.0]); Attention weights = [0.5, 0.5] (starting value: [0.66976155, 0.33023845]); Attention output = [0.5, 0.5] (starting value: [0.66976155, 0.33023845]).",
+        "why": "Equal scores always produce uniform softmax weights regardless of the common scale factor, because softmax is invariant to adding a constant to all scores. The scaling changes the magnitude of the scores but not their relative differences when they are already equal.",
+        "setup": {
+          "control-q": [
+            1.0,
+            1.0
+          ],
+          "control-K": [
+            [
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0
+            ]
+          ],
+          "control-V": [
+            [
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0
+            ]
+          ],
+          "control-scale_on": true
+        }
+      },
+      {
+        "id": "explore-2",
+        "title": "Dominant score with and without scaling",
+        "change": "Set Query vector q to [3.0, 0.0]; Set Key matrix K to [[1.0, 0.0], [0.0, 1.0]]; Set Value matrix V to [[1.0, 0.0], [0.0, 1.0]]; Set Apply 1/sqrt(d_k) scaling to True.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: Raw attention scores = [3.0, 0.0] (starting value: [1.0, 0.0]); Scaled attention scores = [2.1213203, 0.0] (starting value: [0.70710678, 0.0]); Attention weights = [0.8929582, 0.1070418] (starting value: [0.66976155, 0.33023845]); Attention output = [0.8929582, 0.1070418] (starting value: [0.66976155, 0.33023845]).",
+        "why": "Dividing by sqrt(d_k) reduces the magnitude of the score differences, which makes the softmax less peaked. Without scaling, larger score differences push softmax toward a one-hot distribution, which is the behavior the scaling factor is designed to counteract.",
+        "setup": {
+          "control-q": [
+            3.0,
+            0.0
+          ],
+          "control-K": [
+            [
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0
+            ]
+          ],
+          "control-V": [
+            [
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0
+            ]
+          ],
+          "control-scale_on": true
+        }
+      }
+    ],
+    "limitation_or_assumption": "The lesson uses d_k = 2 and two keys; real models use larger dimensions and many keys, which changes the numerical scale of scores and weights.",
+    "misconception": "Scaling by 1/sqrt(d_k) is not an arbitrary normalization; it counteracts the growth of dot-product variance with dimension, keeping softmax gradients from becoming extremely small.",
+    "source_grounding_plan": [
+      "Source citations support the scientific explanation; computed values are derived from explicit toy inputs."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-scores",
+      "expression": "matmul(K, q)",
+      "output_type": "vector",
+      "input_refs": [
+        "var-K",
+        "var-q"
+      ],
+      "output_refs": [
+        "var-scores"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "K": "var-K",
+          "q": "var-q"
+        },
+        "equation_refs": [
+          "eq-scores"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "matmul",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "K",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "q",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-scaled_scores",
+      "expression": "scores / sqrt(2) if scale_on else scores",
+      "output_type": "vector",
+      "input_refs": [
+        "var-scale_on",
+        "var-scores"
+      ],
+      "output_refs": [
+        "var-scaled_scores"
+      ],
+      "dependencies": [
+        "compute-scores"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "scale_on": "var-scale_on",
+          "scores": "var-scores"
+        },
+        "equation_refs": [
+          "eq-scaled_scores"
+        ],
+        "canonical_ast": {
+          "kind": "if",
+          "value": null,
+          "args": [
+            {
+              "kind": "variable",
+              "value": "scale_on",
+              "args": []
+            },
+            {
+              "kind": "call",
+              "value": "divide",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "scores",
+                  "args": []
+                },
+                {
+                  "kind": "call",
+                  "value": "sqrt",
+                  "args": [
+                    {
+                      "kind": "literal",
+                      "value": 2,
+                      "args": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "variable",
+              "value": "scores",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-weights",
+      "expression": "softmax(scaled_scores)",
+      "output_type": "distribution",
+      "input_refs": [
+        "var-scaled_scores"
+      ],
+      "output_refs": [
+        "var-weights"
+      ],
+      "dependencies": [
+        "compute-scaled_scores"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "scaled_scores": "var-scaled_scores"
+        },
+        "equation_refs": [
+          "eq-weights"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "softmax",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "scaled_scores",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-output",
+      "expression": "matmul(transpose(V), weights)",
+      "output_type": "vector",
+      "input_refs": [
+        "var-V",
+        "var-weights"
+      ],
+      "output_refs": [
+        "var-output"
+      ],
+      "dependencies": [
+        "compute-weights"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "V": "var-V",
+          "weights": "var-weights"
+        },
+        "equation_refs": [
+          "eq-output"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "matmul",
+          "args": [
+            {
+              "kind": "call",
+              "value": "transpose",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "V",
+                  "args": []
+                }
+              ]
+            },
+            {
+              "kind": "variable",
+              "value": "weights",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-1",
+      "visual_type": "bars",
+      "question": "How do the attention weights change when the query is more similar to one key than the other?",
+      "data_refs": [
+        "var-weights",
+        "var-scaled_scores"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "visual-2",
+      "visual_type": "vector",
+      "question": "How does the output vector compare to the individual value vectors when the weights are uniform versus concentrated?",
+      "data_refs": [
+        "var-output",
+        "var-V",
+        "var-weights"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "Scaled Dot-Product Attention: Scores, Weights, and Weighted Output",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Explain the core computation of scaled dot-product attention for a single query: similarity scores, softmax-normalized weights, and the weighted combination of values, including the effect of the 1/sqrt(d_k) scaling.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "Section 3.2.1: explain scaled dot-product attention with small editable Q, K and V inputs. Show similarity scores, normalized attention weights and the weighted output. Include scaling on/off, equal scores and a dominant score. Verify weights sum to one.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "One query vector q, two key vectors and two value vectors (d_k = d_v = 2). The lesson computes scores, scaled scores, attention weights, and the output vector. It does not cover multi-head attention, masking, training, or learned projections.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "A query is compared with each key by a dot product. Larger dot products mean the query is more similar to that key. Dividing by sqrt(d_k) keeps these scores from growing with dimension, so the softmax stays in a well-behaved range. The softmax turns scores into weights that sum to one, and the output is the weighted average of the value vectors.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "The lesson uses d_k = 2 and two keys; real models use larger dimensions and many keys, which changes the numerical scale of scores and weights.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "Scaling by 1/sqrt(d_k) is not an arbitrary normalization; it counteracts the growth of dot-product variance with dimension, keeping softmax gradients from becoming extremely small.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "The query, keys, and values are already projected vectors; this lesson does not compute the learned linear projections.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.1",
+      "claim": "Only one query is used, so the attention weight vector has one entry per key and the output is a single value vector.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "The lesson uses d_k = 2 and two keys; real models use larger dimensions and many keys, which changes the numerical scale of scores and weights.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.1",
+      "claim": "Masking, dropout, and multi-head concatenation are outside this scope.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "Scaling by 1/sqrt(d_k) is not an arbitrary normalization; it counteracts the growth of dot-product variance with dimension, keeping softmax gradients from becoming extremely small.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "When all scaled scores are equal, softmax gives uniform weights and the output is the simple average of the value vectors.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.1",
+      "claim": "When one scaled score is much larger than the others, its weight approaches one and the output approaches that value vector.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the inputs and equations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Change each scientific input and compare the live intermediates.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.2",
+      "claim": "Apply both exploration setups and explain the difference.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "Source citations support the scientific explanation; computed values are derived from explicit toy inputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Compute attention scores as dot products between a query and each key, and apply the 1/sqrt(d_k) scaling.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.1",
+      "claim": "Convert scaled scores to attention weights with softmax, verify they sum to one, and form the weighted output as a convex combination of value vectors.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Vector dot product and basic matrix-vector multiplication.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.1",
+      "claim": "Softmax as a normalized exponential that maps real scores to a probability distribution.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "Explain the core computation of scaled dot-product attention for a single query: similarity scores, softmax-normalized weights, and the weighted combination of values, including the effect of the 1/sqrt(d_k) scaling.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How do the attention weights change when the query is more similar to one key than the other?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Compare the computed mechanism and its intermediate values.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-1.question",
+      "claim": "How do the attention weights change when the query is more similar to one key than the other?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-2.question",
+      "claim": "How does the output vector compare to the individual value vectors when the weights are uniform versus concentrated?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-q",
+      "claim": "The query vector of dimension d_k = 2 used to compute similarity with each key.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-K",
+      "claim": "Two key vectors stacked as rows; each row is a key of dimension d_k = 2.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-V",
+      "claim": "Two value vectors stacked as rows; each row is a value of dimension d_v = 2.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-scale_on",
+      "claim": "Boolean switch: when true, scores are divided by sqrt(d_k); when false, raw dot-product scores are used.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-scores",
+      "claim": "Dot product of the query with each key, producing one score per key.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-scores"
+      ]
+    },
+    {
+      "claim_id": "var-scaled_scores",
+      "claim": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "E4ad662dfc8a8fa44fb6c"
+      ],
+      "computation_refs": [
+        "compute-scaled_scores"
+      ]
+    },
+    {
+      "claim_id": "var-weights",
+      "claim": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-weights"
+      ]
+    },
+    {
+      "claim_id": "var-output",
+      "claim": "Weighted sum of the value vectors, using the attention weights as coefficients.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-output"
+      ]
+    },
+    {
+      "claim_id": "eq-scores",
+      "claim": "Dot product of the query with each key, producing one score per key.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-scores"
+      ]
+    },
+    {
+      "claim_id": "eq-scaled_scores",
+      "claim": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "E4ad662dfc8a8fa44fb6c"
+      ],
+      "computation_refs": [
+        "compute-scaled_scores"
+      ]
+    },
+    {
+      "claim_id": "eq-weights",
+      "claim": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-weights"
+      ]
+    },
+    {
+      "claim_id": "eq-output",
+      "claim": "Weighted sum of the value vectors, using the attention weights as coefficients.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-output"
+      ]
+    },
+    {
+      "claim_id": "step-scores",
+      "claim": "Dot product of the query with each key, producing one score per key.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-scores"
+      ]
+    },
+    {
+      "claim_id": "step-scaled_scores",
+      "claim": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "E4ad662dfc8a8fa44fb6c"
+      ],
+      "computation_refs": [
+        "compute-scaled_scores"
+      ]
+    },
+    {
+      "claim_id": "step-weights",
+      "claim": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-weights"
+      ]
+    },
+    {
+      "claim_id": "step-output",
+      "claim": "Weighted sum of the value vectors, using the attention weights as coefficients.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-output"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-q",
+      "claim": "The query vector of dimension d_k = 2 used to compute similarity with each key.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-K",
+      "claim": "Two key vectors stacked as rows; each row is a key of dimension d_k = 2.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-V",
+      "claim": "Two value vectors stacked as rows; each row is a value of dimension d_v = 2.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-scale_on",
+      "claim": "Boolean switch: when true, scores are divided by sqrt(d_k); when false, raw dot-product scores are used.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-scores",
+      "claim": "Dot product of the query with each key, producing one score per key.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-scores"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-scaled_scores",
+      "claim": "Divide each score by sqrt(d_k) when scaling is enabled; otherwise keep raw scores.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "E4ad662dfc8a8fa44fb6c"
+      ],
+      "computation_refs": [
+        "compute-scaled_scores"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-weights",
+      "claim": "Softmax over the scaled scores, producing a probability distribution over the keys.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-weights"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-output",
+      "claim": "Weighted sum of the value vectors, using the attention weights as coefficients.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b"
+      ],
+      "computation_refs": [
+        "compute-output"
+      ]
+    },
+    {
+      "claim_id": "control-q.learning_purpose",
+      "claim": "The query vector of dimension d_k = 2 used to compute similarity with each key.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-q.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-K.learning_purpose",
+      "claim": "Two key vectors stacked as rows; each row is a key of dimension d_k = 2.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-K.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-V.learning_purpose",
+      "claim": "Two value vectors stacked as rows; each row is a value of dimension d_v = 2.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-V.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-scale_on.learning_purpose",
+      "claim": "Boolean switch: when true, scores are divided by sqrt(d_k); when false, raw dot-product scores are used.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-scale_on.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.change",
+      "claim": "Set Query vector q to [1.0, 1.0]; Set Key matrix K to [[1.0, 0.0], [0.0, 1.0]]; Set Value matrix V to [[1.0, 0.0], [0.0, 1.0]]; Set Apply 1/sqrt(d_k) scaling to True.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: Raw attention scores = [1.0, 1.0] (starting value: [1.0, 0.0]); Scaled attention scores = [0.70710678, 0.70710678] (starting value: [0.70710678, 0.0]); Attention weights = [0.5, 0.5] (starting value: [0.66976155, 0.33023845]); Attention output = [0.5, 0.5] (starting value: [0.66976155, 0.33023845]).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-scores",
+        "compute-scaled_scores",
+        "compute-weights",
+        "compute-output"
+      ]
+    },
+    {
+      "claim_id": "explore-1.why",
+      "claim": "Equal scores always produce uniform softmax weights regardless of the common scale factor, because softmax is invariant to adding a constant to all scores. The scaling changes the magnitude of the scores but not their relative differences when they are already equal.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.change",
+      "claim": "Set Query vector q to [3.0, 0.0]; Set Key matrix K to [[1.0, 0.0], [0.0, 1.0]]; Set Value matrix V to [[1.0, 0.0], [0.0, 1.0]]; Set Apply 1/sqrt(d_k) scaling to True.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: Raw attention scores = [3.0, 0.0] (starting value: [1.0, 0.0]); Scaled attention scores = [2.1213203, 0.0] (starting value: [0.70710678, 0.0]); Attention weights = [0.8929582, 0.1070418] (starting value: [0.66976155, 0.33023845]); Attention output = [0.8929582, 0.1070418] (starting value: [0.66976155, 0.33023845]).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-scores",
+        "compute-scaled_scores",
+        "compute-weights",
+        "compute-output"
+      ]
+    },
+    {
+      "claim_id": "explore-2.why",
+      "claim": "Dividing by sqrt(d_k) reduces the magnitude of the score differences, which makes the softmax less peaked. Without scaling, larger score differences push softmax toward a one-hot distribution, which is the behavior the scaling factor is designed to counteract.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Ea5174acb5120f8d7af1a",
+        "Ef0f5ea2528a21fe64b4b",
+        "E4ad662dfc8a8fa44fb6c",
+        "Eb91ba47af715ce8d60ae"
+      ],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Section 3.2.1: explain scaled dot-product attention with small editable Q, K and V inputs. Show similarity scores, normalized attention weights and the weighted output. Include scaling on/off, equal scores and a dominant score. Verify weights sum to one.",
+    "learning_objective_refs": [
+      "Compute attention scores as dot products between a query and each key, and apply the 1/sqrt(d_k) scaling.",
+      "Convert scaled scores to attention weights with softmax, verify they sum to one, and form the weighted output as a convex combination of value vectors."
+    ],
+    "mechanism_refs": [
+      "eq-scores",
+      "eq-scaled_scores",
+      "eq-weights",
+      "eq-output"
+    ],
+    "control_refs": [
+      "control-q",
+      "control-K",
+      "control-V",
+      "control-scale_on"
+    ],
+    "computation_refs": [
+      "compute-scores",
+      "compute-scaled_scores",
+      "compute-weights",
+      "compute-output"
+    ],
+    "visual_refs": [
+      "visual-1",
+      "visual-2"
+    ],
+    "exploration_refs": [
+      "explore-1",
+      "explore-2"
+    ]
+  },
+  "metadata": {
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use the stated prerequisites and a bounded worked mechanism for second-year engineering undergraduate.",
+    "defaults": {},
+    "invariant_bindings": {
+      "weights": "var-weights"
+    },
+    "control_test_values": {},
+    "equation_scope": {}
+  }
+}

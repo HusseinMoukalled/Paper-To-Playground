@@ -29,7 +29,7 @@ def source_link(value: str) -> str:
     return escape(value)
 
 
-def _control(control: dict, index: int) -> str:
+def _control(control: dict, index: int, *, integer=False) -> str:
     key = f'input-{index}'
     value_id, hint_id = f'value-{index}', f'hint-{index}'
     kind = control['control_type']
@@ -42,15 +42,16 @@ def _control(control: dict, index: int) -> str:
         input_html = f'<select {attrs}>' + ''.join(f'<option value="{escape(x)}">{escape(x)}</option>' for x in control['options']) + '</select>'
     elif kind in {'vector', 'matrix'}:
         # The textarea stays the validated source of truth; the runtime layers an editable number grid on it.
-        input_html = f'<textarea {attrs} rows="2" spellcheck="false" class="array-source">{escape(safe_json(control["default"]))}</textarea>'
+        input_html = f'<textarea {attrs} tabindex="-1" rows="2" spellcheck="false" class="array-source">{escape(safe_json(control["default"]))}</textarea>'
         grid = f'<div class="array-grid" data-grid-for="{key}" aria-hidden="true"></div>'
     elif kind == 'toggle':
         input_html = f'<input {attrs} type="checkbox"' + (' checked' if control['default'] else '') + '>'
     else:
         input_type = 'range' if kind in {'slider', 'range'} else 'number'
-        domain = ''.join(f' {a}="{escape(control[b])}"' for a, b in [('min', 'minimum'), ('max', 'maximum'), ('step', 'step')] if control[b] is not None)
-        if control['step'] is None:
-            domain += ' step="any"'
+        domain = ''.join(f' {a}="{escape(control[b])}"' for a, b in [('min', 'minimum'), ('max', 'maximum')] if control[b] is not None)
+        # Native ranges round off-grid values on assignment. Continuous inputs
+        # must preserve scientific defaults/presets, including irrational values.
+        domain += f' step="{escape(control["step"] or 1) if integer else "any"}"'
         input_html = f'<input {attrs} type="{input_type}" value="{escape(control["default"])}"{domain}>'
         if input_type == 'range':
             lo, hi = control['minimum'], control['maximum']
@@ -66,7 +67,9 @@ def render_html(ir: ExplanationIR, *, asts: Mapping[str, dict] | None = None) ->
     try:
         m = build_manifest(ir, asts=asts)
         lesson, science = m['lesson_spec'], m['scientific_model']
-        controls = ''.join(_control(c, i) for i, c in enumerate(m['controls']))
+        variables = {v['id']: v for v in m['variables']}
+        controls = ''.join(_control(c, i, integer=variables[c['scientific_variable']].get('domain') == 'integer')
+                           for i, c in enumerate(m['controls']))
         symbols = ''.join(f'<dt data-variable-id="{escape(v["id"])}" data-symbol="{escape(v["display_symbol"])}">{escape(v["display_symbol"])}</dt><dd>{escape(v["meaning"])}'
                           + (f' · {escape(v["units"])}' if v['units'] else '')
                           + f' <span class="badge">{escape(v["knowledge_class"])}</span></dd>' for v in m['variables'])

@@ -1,0 +1,272 @@
+{
+  "title": "One Adam Update: Moments, Bias Correction, and the Parameter Step",
+  "purpose": "Walk through a single scalar Adam timestep exactly as in Algorithm 1: form the first and second moment estimates from a toy prior state and the current gradient, apply bias correction, and compute the parameter update.",
+  "scope": "One scalar parameter, one timestep t >= 1, with explicit toy prior moments m_prev and v_prev. No training loop, no model, no data pipeline. The gradient g is treated as given (a single observed gradient), not derived from a loss.",
+  "intuition": "Adam keeps a running average of gradients (first moment) and of squared gradients (second moment). Because both averages start at zero, they are biased toward zero early on; dividing by 1 - beta^t removes that bias. The update then moves the parameter by the learning rate times the bias-corrected first moment divided by the square root of the bias-corrected second moment, so the step size is roughly controlled by the learning rate.",
+  "learning_objectives": [
+    "Compute the first and second moment estimates and their bias-corrected versions for one scalar Adam step.",
+    "Compute the parameter update and explain how the learning rate and gradient magnitude set the step size."
+  ],
+  "prerequisites": [
+    "Exponential moving averages: new = beta * old + (1 - beta) * current.",
+    "Basic algebra with square roots and powers, and the meaning of a learning rate."
+  ],
+  "assumptions": [
+    "The gradient g is a single scalar observation at timestep t; no mini-batch or loss function is modeled.",
+    "The prior moments m_prev and v_prev are given toy values representing the state before this step."
+  ],
+  "limitations": [
+    "Only one scalar parameter and one timestep are shown; multi-parameter behavior and long-run convergence are out of scope.",
+    "The gradient is supplied directly rather than computed from a loss, so no automatic differentiation or data is involved."
+  ],
+  "misconception": "Bias correction is not an optional tweak: without dividing by 1 - beta1^t and 1 - beta2^t, the moments are systematically too small early in training and the step is distorted.",
+  "edge_cases": [
+    "A zero gradient with zero prior moments gives zero moments and a zero update.",
+    "A very small second moment makes the denominator small, so the update can be large even for a modest gradient."
+  ],
+  "evidence_refs": [
+    "Ef987bd28c4b4873f99c7",
+    "Eaca9dc5055ad8f099a63",
+    "E9b92bf94d9fd9edf0ceb",
+    "E00217b51dfe0363014ab",
+    "E726d672da4016a1b6224",
+    "Eb3d3592b9f1d5be7bc2e"
+  ],
+  "inputs": [
+    {
+      "name": "g",
+      "label": "g",
+      "meaning": "Current scalar gradient observation at this timestep.",
+      "type": "scalar",
+      "domain": "real",
+      "value": 0.5,
+      "editable": true,
+      "minimum": -5,
+      "maximum": 5,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "alpha",
+      "label": "alpha",
+      "meaning": "Learning rate (stepsize) multiplying the bias-corrected moment ratio.",
+      "type": "scalar",
+      "domain": "positive",
+      "value": 0.01,
+      "editable": true,
+      "minimum": 0.001,
+      "maximum": 0.5,
+      "step": 0.001,
+      "units": null,
+      "evidence_refs": [
+        "E9b92bf94d9fd9edf0ceb"
+      ]
+    },
+    {
+      "name": "beta1",
+      "label": "beta1",
+      "meaning": "Exponential decay rate for the first moment estimate.",
+      "type": "scalar",
+      "domain": "unit_interval",
+      "value": 0.9,
+      "editable": false,
+      "minimum": 0,
+      "maximum": 1,
+      "step": 0.01,
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "beta2",
+      "label": "beta2",
+      "meaning": "Exponential decay rate for the second moment estimate.",
+      "type": "scalar",
+      "domain": "unit_interval",
+      "value": 0.999,
+      "editable": false,
+      "minimum": 0,
+      "maximum": 1,
+      "step": 0.001,
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "epsilon",
+      "label": "epsilon",
+      "meaning": "Small constant added to the bias-corrected second moment inside the denominator for numerical stability.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "value": 1e-08,
+      "editable": false,
+      "minimum": 0,
+      "maximum": 0.001,
+      "step": 1e-08,
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "t",
+      "label": "t",
+      "meaning": "Timestep index, a positive integer used in the bias-correction powers.",
+      "type": "scalar",
+      "domain": "integer",
+      "value": 1,
+      "editable": false,
+      "minimum": 1,
+      "maximum": 100,
+      "step": 1,
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "m_prev",
+      "label": "m_prev",
+      "meaning": "Toy first moment estimate carried into this step (state before the update).",
+      "type": "scalar",
+      "domain": "real",
+      "value": 0.0,
+      "editable": false,
+      "minimum": -5,
+      "maximum": 5,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": []
+    },
+    {
+      "name": "v_prev",
+      "label": "v_prev",
+      "meaning": "Toy second moment estimate carried into this step (state before the update).",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "value": 0.0,
+      "editable": false,
+      "minimum": 0,
+      "maximum": 25,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": []
+    }
+  ],
+  "steps": [
+    {
+      "name": "m_t",
+      "label": "m_t",
+      "expression": "beta1 * m_prev + (1 - beta1) * g",
+      "meaning": "First moment estimate: exponential moving average of the gradient.",
+      "type": "scalar",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "v_t",
+      "label": "v_t",
+      "expression": "beta2 * v_prev + (1 - beta2) * g * g",
+      "meaning": "Second moment estimate: exponential moving average of the squared gradient.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "m_hat",
+      "label": "m_hat",
+      "expression": "m_t / (1 - beta1 ** t)",
+      "meaning": "Bias-corrected first moment: divide by 1 - beta1^t to remove the zero-initialization bias.",
+      "type": "scalar",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "v_hat",
+      "label": "v_hat",
+      "expression": "v_t / (1 - beta2 ** t)",
+      "meaning": "Bias-corrected second moment: divide by 1 - beta2^t.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7"
+      ]
+    },
+    {
+      "name": "update",
+      "label": "update",
+      "expression": "alpha * m_hat / (sqrt(v_hat) + epsilon)",
+      "meaning": "Parameter update: learning rate times bias-corrected first moment divided by the square root of the bias-corrected second moment plus epsilon.",
+      "type": "scalar",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "Ef987bd28c4b4873f99c7",
+        "E9b92bf94d9fd9edf0ceb"
+      ]
+    }
+  ],
+  "invariants": [
+    "v_t >= 0",
+    "v_hat >= 0"
+  ],
+  "visuals": [
+    {
+      "type": "flow",
+      "question": "How does the gradient g flow through the first and second moment estimates into the final update?",
+      "refs": [
+        "g",
+        "m_t",
+        "v_t",
+        "m_hat",
+        "v_hat",
+        "update"
+      ]
+    },
+    {
+      "type": "comparison",
+      "question": "How do the raw moments m_t and v_t compare with their bias-corrected versions m_hat and v_hat at this timestep?",
+      "refs": [
+        "m_t",
+        "v_t",
+        "m_hat",
+        "v_hat"
+      ]
+    }
+  ],
+  "explorations": [
+    {
+      "title": "Effect of gradient magnitude",
+      "setup": {
+        "g": 2.0,
+        "alpha": 0.01
+      },
+      "observe": "With a larger gradient, m_t, v_t, m_hat, v_hat and the update all change; the update scales roughly with the gradient direction while the denominator grows with its magnitude.",
+      "why": "The first moment is linear in g, while the second moment is quadratic in g, so the ratio m_hat / sqrt(v_hat) reflects the signal-to-noise balance rather than the raw gradient size."
+    },
+    {
+      "title": "Effect of learning rate",
+      "setup": {
+        "g": 0.5,
+        "alpha": 0.1
+      },
+      "observe": "Changing alpha leaves the moment estimates and their bias corrections unchanged but scales the final update proportionally.",
+      "why": "The learning rate multiplies the bias-corrected moment ratio, so it sets the overall step size without altering the moment statistics."
+    }
+  ]
+}

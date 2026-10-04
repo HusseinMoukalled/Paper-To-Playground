@@ -1,0 +1,227 @@
+{
+  "title": "Batch Normalization of a Scalar Minibatch: Mean, Variance, Normalize, Affine",
+  "purpose": "Walk through the Batch Normalization transform of Algorithm 1 on a small scalar minibatch: compute the batch mean, the batch variance, the normalized values, and the affine output, and see how the affine scale and shift and the stabilizer epsilon change the result.",
+  "scope": "A single scalar feature over a fixed-size minibatch of four values, using the batch statistics of that minibatch (training-time behavior). No network, no training, no running averages, no backpropagation, and no per-channel or convolutional treatment.",
+  "intuition": "Batch Normalization re-centers each minibatch to zero mean and unit variance, then lets the layer re-scale and re-shift the result with learned parameters. The normalization step removes the batch's location and spread; the affine step restores a representation the next layer can use.",
+  "learning_objectives": [
+    "Compute the batch mean and batch variance of a scalar minibatch and use them to normalize each value.",
+    "Explain how the affine scale and shift, and the stabilizer epsilon, change the normalized and affine outputs."
+  ],
+  "prerequisites": [
+    "Arithmetic mean and variance of a finite list of numbers.",
+    "Elementwise vector arithmetic: subtract a scalar, divide by a scalar, multiply by a scalar."
+  ],
+  "assumptions": [
+    "The minibatch is the population used for the statistics, so the variance divides by the batch size m rather than by m-1.",
+    "The same scalar feature is measured on every example, so the batch mean and variance are scalars."
+  ],
+  "limitations": [
+    "Only the training-time transform is shown; inference-time Batch Normalization uses fixed running statistics, which are not computed here.",
+    "A four-value minibatch is a teaching simplification; real minibatches are larger and the statistics are noisier or smoother accordingly."
+  ],
+  "misconception": "Normalization does not make the outputs zero-mean and unit-variance once the affine scale and shift are applied; the affine step deliberately undoes that standardization.",
+  "edge_cases": [
+    "A constant minibatch has zero variance, so the normalized values are 0/(sqrt(epsilon)) = 0 and the affine output collapses to the shift.",
+    "A very small epsilon makes the normalized values large when the batch variance is small, which is why epsilon is kept positive."
+  ],
+  "evidence_refs": [
+    "E875dd2ad00c67d852ed3",
+    "E6f0138518cc5aa7c8eaf",
+    "E7f359ce1bd83b1b56ce6",
+    "E08481ffd0bbf2f7140af"
+  ],
+  "inputs": [
+    {
+      "name": "x",
+      "label": "minibatch values x",
+      "meaning": "The scalar activations of one feature across the four examples in the minibatch.",
+      "type": "vector",
+      "domain": "real",
+      "value": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "editable": true,
+      "minimum": null,
+      "maximum": null,
+      "step": null,
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "gamma",
+      "label": "affine scale gamma",
+      "meaning": "The learned scale applied to the normalized values in the affine step.",
+      "type": "scalar",
+      "domain": "real",
+      "value": 1.0,
+      "editable": true,
+      "minimum": -3.0,
+      "maximum": 3.0,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "beta",
+      "label": "affine shift beta",
+      "meaning": "The learned shift added after scaling in the affine step.",
+      "type": "scalar",
+      "domain": "real",
+      "value": 0.0,
+      "editable": true,
+      "minimum": -3.0,
+      "maximum": 3.0,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "epsilon",
+      "label": "stabilizer epsilon",
+      "meaning": "A small positive constant added to the batch variance before the square root to avoid division by zero.",
+      "type": "scalar",
+      "domain": "positive",
+      "value": 0.001,
+      "editable": true,
+      "minimum": 0.0001,
+      "maximum": 0.1,
+      "step": 0.0001,
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "mu",
+      "label": "batch mean mu",
+      "expression": "mean(x)",
+      "meaning": "The arithmetic mean of the minibatch values, the location removed by normalization.",
+      "type": "scalar",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "centered",
+      "label": "centered values x - mu",
+      "expression": "x - mu",
+      "meaning": "Each minibatch value with the batch mean subtracted, so the centered batch has mean zero.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "variance",
+      "label": "batch variance sigma squared",
+      "expression": "mean(centered * centered)",
+      "meaning": "The population variance of the minibatch, the average squared deviation from the batch mean.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "x_hat",
+      "label": "normalized values x hat",
+      "expression": "centered / sqrt(variance + epsilon)",
+      "meaning": "The centered values divided by the batch standard deviation with the stabilizer added, giving zero-mean unit-variance values before the affine step.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "y",
+      "label": "affine outputs y",
+      "expression": "gamma * x_hat + beta",
+      "meaning": "The final Batch Normalization output: the normalized values scaled by gamma and shifted by beta.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    }
+  ],
+  "invariants": [
+    "approx_equal(mean(centered), 0)",
+    "approx_equal(mean(x_hat * x_hat), variance / (variance + epsilon))"
+  ],
+  "visuals": [
+    {
+      "type": "bars",
+      "question": "How do the raw minibatch values, the centered values, the normalized values, and the affine outputs compare in location and spread?",
+      "refs": [
+        "x",
+        "centered",
+        "x_hat",
+        "y"
+      ]
+    },
+    {
+      "type": "scalar",
+      "question": "How do the batch mean, batch variance, and the affine scale and shift combine into the final outputs?",
+      "refs": [
+        "mu",
+        "variance",
+        "gamma",
+        "beta",
+        "y"
+      ]
+    }
+  ],
+  "explorations": [
+    {
+      "title": "Affine scale and shift reshape the normalized batch",
+      "setup": {
+        "x": [
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "gamma": 2.0,
+        "beta": 1.0,
+        "epsilon": 0.001
+      },
+      "observe": "With gamma = 2 and beta = 1, the normalized values are scaled by 2 and shifted by 1, so the affine outputs are no longer zero-mean or unit-variance.",
+      "why": "The affine step is a deliberate re-parameterization: normalization fixes the batch statistics, and gamma and beta let the layer choose a new scale and location for the next layer."
+    },
+    {
+      "title": "A constant minibatch collapses to the shift",
+      "setup": {
+        "x": [
+          5.0,
+          5.0,
+          5.0,
+          5.0
+        ],
+        "gamma": 2.0,
+        "beta": 1.0,
+        "epsilon": 0.001
+      },
+      "observe": "Every value equals 5, so the batch mean is 5 and the batch variance is 0; the centered values are all 0, the normalized values are all 0, and the affine outputs are all beta = 1.",
+      "why": "With zero variance the numerator is zero, so the stabilizer epsilon only affects the denominator and the normalized values remain zero; the affine shift then sets the entire output."
+    }
+  ]
+}

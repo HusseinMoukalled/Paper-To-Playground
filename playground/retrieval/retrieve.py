@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, replace
 
 from playground.budget import RunBudget
@@ -76,8 +77,13 @@ def retrieve_evidence(document, focus: str, audience: str, *, settings: SourceSe
         fail(FailureCode.RETRIEVAL_FAILED, "retrieval", "Cannot retrieve from an empty document.")
     references = tuple(dict.fromkeys(reference_keys(focus)))
     explicit, unresolved = explicit_lookup(document, references)
-    index = BM25Index(document.elements)
-    scores = index.scores(focus)
+    large_section = any(kind == 'section' and len(explicit_lookup(document, ((kind, number),))[0]) > settings.max_evidence_chunks
+                        for kind, number in references)
+    # Section title matches are handled separately in the rank key. Including
+    # the title in every BM25 document rewards tiny PDF fragments repeatedly.
+    index = BM25Index(tuple(replace(e, section_title=None) for e in document.elements) if large_section else document.elements)
+    lexical_focus = re.sub(r'\b(?:section|sec\.?|equation|eq\.?|figure|fig\.?|table)\s*\(?\s*\d+(?:\.\d+)*\)?', '', focus, flags=re.I) if large_section else focus
+    scores = index.scores(lexical_focus)
     query = set(tokenize(focus))
     focus_phrase = " ".join(focus.casefold().split())
     records = []
@@ -86,8 +92,17 @@ def retrieve_evidence(document, focus: str, audience: str, *, settings: SourceSe
         terms = set(tokenize(text))
         exact = bool(focus_phrase and focus_phrase in " ".join(text.casefold().split()))
         heading_overlap = len(query & set(tokenize(element.section_title or "")))
+        # Repeating a section title in a one-character PDF fragment makes BM25
+        # prefer that fragment over the actual definition. Rank substantive
+        # content ahead of glyph debris and the heading itself.
+        if large_section and (len(''.join(c for c in element.content if c.isalpha())) < 20 or element.content == element.section_title):
+            heading_overlap = 0
         coverage = len(query & terms) / len(query) if query else 0
         is_explicit = element.element_id in explicit
+        # On a large requested section, a short sentence with one keyword must
+        # not displace the paragraphs that define and qualify the mechanism.
+        if is_explicit and len(explicit) > settings.max_evidence_chunks and element.element_type.value == 'paragraph':
+            score *= 1 + min(len(element.content), 1200) / 200
         # Noise can only be promoted by an explicitly requested source reference.
         noise = element.metadata.get("noise", False) and not is_explicit
         key = (is_explicit, exact and not noise, heading_overlap if not noise else 0, score)
@@ -107,7 +122,10 @@ def retrieve_evidence(document, focus: str, audience: str, *, settings: SourceSe
     protected_ids = set()
     for reference in references:
         matched, _ = explicit_lookup(document, (reference,))
-        anchor = next((r[1] for r in eligible if r[1].element_id in matched), None)
+        candidates = [r[1] for r in eligible if r[1].element_id in matched]
+        anchor = next((e for e in candidates if not large_section or reference[0] != 'section' or
+                       (e.content != e.section_title and len(e.content) >= 40)),
+                      candidates[0] if candidates else None)
         if anchor is not None and anchor.element_id not in protected_ids:
             protected.append(anchor)
             protected_ids.add(anchor.element_id)

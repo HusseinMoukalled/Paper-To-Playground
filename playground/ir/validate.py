@@ -16,7 +16,7 @@ import re
 MAX_IR_OBJECTS = 128
 
 
-def validate_ir(ir, evidence, *, execute_science=True, budget=None):
+def validate_ir(ir, evidence, *, execute_science=True, budget=None, require_grounding=True):
     if budget and budget.remaining_seconds <= budget.finalization_reserve_seconds:
         budget._raise_budget_failure("IR validation reached the finalization window.")
     findings = []
@@ -94,7 +94,8 @@ def validate_ir(ir, evidence, *, execute_science=True, budget=None):
         fail("MECHANISM_MISSING", "science", "Executable science requires variables and mechanism")
     if not science.limitations or not science.knowledge_classes:
         fail("SCIENCE_INCOMPLETE", "science", "Limitations and knowledge classes required")
-    findings.extend(validate_grounding(ir, evidence))
+    if require_grounding:
+        findings.extend(validate_grounding(ir, evidence))
     for field in ("central_learning_question", "intuition", "visual_question", "visual_intent",
                   "limitation_or_assumption", "misconception"):
         if not getattr(lesson, field).strip():
@@ -148,8 +149,6 @@ def validate_ir(ir, evidence, *, execute_science=True, budget=None):
         if not visual.question or not visual.data_refs:
             fail("VISUAL_INCOMPLETE", "pedagogy", "Visual needs question and scientific data", visual.id)
     findings.extend(validate_coverage(ir, evidence))
-    if any(f.status == S.FAIL for f in findings):
-        return report()
     try:
         compiled = compile_computations(ir)
         output_owners = {}
@@ -173,10 +172,10 @@ def validate_ir(ir, evidence, *, execute_science=True, budget=None):
                     fail("COMPUTATION_DEPENDENCY_MISSING", "computation", "Derived variable requires producer dependency", spec.id)
         try:
             check_equation_consistency(compiled)
-        except (ValueError, KeyError, TypeError):
-            fail("EQUATION_COMPUTATION_MISMATCH", "science", "Equation/executable linkage cannot be deterministically verified")
+        except (ValueError, KeyError, TypeError) as exc:
+            fail("EQUATION_COMPUTATION_MISMATCH", "science", "Equation/executable linkage: " + str(exc))
         if execute_science and not any(f.status == S.FAIL for f in findings):
             findings.extend(validate_computation(compiled, budget=budget).findings)
-    except (ValueError, TypeError, KeyError, RecursionError, OverflowError):
-        fail("COMPUTATION_INVALID", "computation", "Computation compilation or validation failed")
+    except (ValueError, TypeError, KeyError, RecursionError, OverflowError) as exc:
+        fail("COMPUTATION_INVALID", "computation", "Computation compilation or validation: " + str(exc))
     return report()

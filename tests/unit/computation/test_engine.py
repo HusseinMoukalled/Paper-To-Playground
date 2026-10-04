@@ -24,6 +24,12 @@ class ComputationTests(unittest.TestCase):
                 self.assertFalse(any(label.startswith(control.id + ':')
                                      for label, _ in representative_states(candidate)))
                 self.assertEqual(control.default, default)
+                outside = [6, -6] if kind == 'vector' else [[6, -6]]
+                with self.assertRaisesRegex(ValueError, 'Array entry outside'):
+                    control_value(control, outside, strict=True)
+                clamp = replace(control, validation_rule='clamp')
+                expected = [5, -5] if kind == 'vector' else [[5, -5]]
+                self.assertEqual(control_value(clamp, outside), expected)
 
     def test_ast_roundtrip(self):
         node = parse("softmax([a, b, 0])")
@@ -42,6 +48,14 @@ class ComputationTests(unittest.TestCase):
         self.assertEqual(apply("matmul", [[[1, 2], [3, 4]], [2, 1]]), [4, 10])
         self.assertEqual(apply("matmul", [[[1, 0], [0, 1]], [[1, 2], [3, 4]]]), [[1, 2], [3, 4]])
 
+    def test_cross_entropy_uses_only_negative_weighted_log_probabilities(self):
+        import math
+        self.assertAlmostEqual(apply('cross_entropy', [[0.5, 0.5], [0.5, 0.5]]), math.log(2))
+        self.assertAlmostEqual(apply('cross_entropy', [[0.75, 0.25], [0.5, 0.5]]), math.log(2))
+        for p, q in [([0.2, 0.2], [0.5, 0.5]), ([0.5, 0.5], [1, 0]), ([1], [0.5, 0.5])]:
+            with self.subTest(p=p, q=q), self.assertRaises(ValueError):
+                apply('cross_entropy', [p, q])
+
     def test_stable_distribution(self):
         result = apply("softmax", [[10000, 10001, 9999]])
         validate_value(result, "distribution", (3,))
@@ -58,6 +72,8 @@ class ComputationTests(unittest.TestCase):
                  "matmul": ([[[1]], [[2]]], [[2]]), "transpose": ([[[1, 2]]], [[1], [2]]),
                  "norm": ([[3, 4]], 5), "normalize": ([[3, 4]], [0.6, 0.8]),
                  "softmax": ([[0, 0]], [0.5, 0.5]), "entropy": ([[1, 0]], 0),
+                 "cross_entropy": ([[1, 0], [1, 0]], 0),
+                 "xlogx": ([[0, 1]], [0, 0]), "take": ([[2, 3, 4], 2], [2, 3]),
                  "approx_equal": ([1, 1 + 1e-10], True)}
         self.assertEqual(set(cases), set(OPERATIONS))
         for name, (args, expected) in cases.items():
@@ -88,6 +104,18 @@ class ComputationTests(unittest.TestCase):
                                            ([[1], [1, 2]], "matrix", (), None), ([0.2, 0.2], "distribution", (), None)]:
             with self.assertRaises(ValueError):
                 validate_value(value, typ, shape, domain)
+
+    def test_prefix_and_zero_safe_entropy_contributions(self):
+        import math
+        self.assertEqual(apply('take', [[1, 2, 3, 4], 1]), [1])
+        self.assertAlmostEqual(evaluate(parse('-sum(xlogx([0.25,0.25,0.25,0.25]))/log(2)'), {}), 2)
+        self.assertEqual(evaluate(parse('-sum(xlogx([1,0,0,0]))/log(2)'), {}), 0)
+        self.assertAlmostEqual(apply('xlogx', [0.5]), 0.5 * math.log(0.5))
+        for count in (0, -1, 5, 1.5, True, '2'):
+            with self.subTest(count=count), self.assertRaises(ValueError):
+                apply('take', [[1, 2, 3, 4], count])
+        with self.assertRaises(ValueError):
+            apply('xlogx', [-0.1])
 
     def test_default_boundaries_presets_and_invariants(self):
         ir = compile_computations(explanation())

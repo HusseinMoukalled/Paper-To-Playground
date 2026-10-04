@@ -10,7 +10,10 @@ def check_invariants(ir, values, *, guard=None):
     for expression in ir.scientific_model.invariants:
         node = parse(expression)
         if not node.references <= env.keys():
-            raise ValueError("Invariant references do not resolve")
+            missing = sorted(node.references - env.keys())
+            raise ValueError(f"Invariant '{expression}' has unresolved symbols {missing}; "
+                             f"metadata.invariant_bindings currently maps {bindings}. "
+                             "Map the exact identifiers used in the predicate to scientific variable IDs.")
         result = evaluate(node, env, guard=guard)
         if type(result) is not bool:
             raise ValueError("An invariant must return boolean")

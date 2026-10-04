@@ -1,0 +1,203 @@
+{
+  "title": "Discrete Entropy in Bits: Contributions of Individual Outcomes",
+  "purpose": "Teach how the entropy H = -\u03a3 p_i log p_i of a finite discrete distribution is built from per-outcome contributions, how a base-2 logarithm expresses the result in bits, and how zero-probability outcomes contribute nothing.",
+  "scope": "A single finite probability vector of up to four outcomes, with a variable active length n. We compute natural-log contributions, convert to bits, and compare a certainty case with a four-way uniform case. We do not derive Shannon's axioms, prove the maximum-entropy theorem, or treat continuous distributions.",
+  "intuition": "Entropy measures how much choice or uncertainty a probability assignment carries. Each outcome contributes -p_i log p_i: rare outcomes contribute little because they are unlikely, very likely outcomes contribute little because they are nearly certain, and the largest contributions come from outcomes near equal probability. Summing the contributions gives the total uncertainty, and using base-2 logarithms reports it in bits.",
+  "learning_objectives": [
+    "Compute the entropy in bits of a small discrete distribution as the sum of per-outcome contributions -p_i log2 p_i.",
+    "Explain why zero-probability outcomes contribute zero and why the uniform distribution over n outcomes gives log2 n bits."
+  ],
+  "prerequisites": [
+    "Basic probability: a distribution over outcomes sums to one.",
+    "Logarithms: log2 x = ln x / ln 2, and the convention 0 log 0 = 0."
+  ],
+  "assumptions": [
+    "The distribution is finite and discrete, with probabilities that sum to one.",
+    "The logarithm base is 2, so entropy is reported in bits; the paper's constant K is absorbed by this unit choice."
+  ],
+  "limitations": [
+    "Only up to four outcomes are shown; the same formula extends to any finite n but is not demonstrated here.",
+    "The lesson computes entropy for a given distribution; it does not derive the entropy formula from the monotonicity, symmetry, and grouping axioms."
+  ],
+  "misconception": "A common error is to think an outcome with probability zero still contributes a term, or that entropy counts outcomes rather than weighting them by their probabilities. Zero-probability outcomes contribute exactly zero, and entropy is a probability-weighted sum, not a count.",
+  "edge_cases": [
+    "A degenerate distribution with one outcome at probability 1 and the rest at 0 has entropy 0 bits: there is no uncertainty.",
+    "If the active length n is reduced, the truncated probabilities are renormalized; if the remaining mass is zero, a uniform fallback over the active outcomes is used so the distribution remains valid."
+  ],
+  "evidence_refs": [
+    "E69a85db684aea15e6c60",
+    "E801dea2b6fdfcc4ff04d",
+    "E3de28585b51737147fb4",
+    "Eaa0923866eed10f7b351",
+    "Eb1855ff82142e3aaf002",
+    "E5a67f67e702bbad36a32"
+  ],
+  "inputs": [
+    {
+      "name": "p",
+      "label": "p",
+      "meaning": "Probability vector over four possible outcomes; entries must be nonnegative and sum to one.",
+      "type": "distribution",
+      "domain": "probability",
+      "value": [
+        0.5,
+        0.25,
+        0.25,
+        0.0
+      ],
+      "editable": true,
+      "minimum": 0,
+      "maximum": 1,
+      "step": 0.01,
+      "units": null,
+      "evidence_refs": [
+        "E69a85db684aea15e6c60",
+        "E801dea2b6fdfcc4ff04d"
+      ]
+    },
+    {
+      "name": "n",
+      "label": "n",
+      "meaning": "Number of active outcomes considered, from 1 to 4; the first n entries of p are used.",
+      "type": "scalar",
+      "domain": "integer",
+      "value": 4,
+      "editable": true,
+      "minimum": 1,
+      "maximum": 4,
+      "step": 1,
+      "units": null,
+      "evidence_refs": [
+        "Eb1855ff82142e3aaf002",
+        "E5a67f67e702bbad36a32"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "p_active",
+      "label": "p_active",
+      "expression": "take(p, n)",
+      "meaning": "Select the first n probabilities as the active outcomes under consideration.",
+      "type": "vector",
+      "domain": "probability",
+      "units": null,
+      "evidence_refs": [
+        "Eb1855ff82142e3aaf002"
+      ]
+    },
+    {
+      "name": "mass",
+      "label": "\u03a3 p_active",
+      "expression": "sum(p_active)",
+      "meaning": "Total probability mass remaining after truncation; used to renormalize so the active distribution sums to one.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": null,
+      "evidence_refs": []
+    },
+    {
+      "name": "p_norm",
+      "label": "p_norm",
+      "expression": "p_active / mass if mass > 0 else p_active * 0 + 1 / n",
+      "meaning": "Renormalized active distribution; if the remaining mass is zero, fall back to a uniform distribution over the n active outcomes so the distribution is valid.",
+      "type": "distribution",
+      "domain": "probability",
+      "units": null,
+      "evidence_refs": [
+        "E69a85db684aea15e6c60"
+      ]
+    },
+    {
+      "name": "contrib_nats",
+      "label": "-p ln p",
+      "expression": "-xlogx(p_norm)",
+      "meaning": "Per-outcome entropy contributions in nats, using the convention 0 ln 0 = 0 so zero-probability outcomes contribute nothing.",
+      "type": "vector",
+      "domain": "nonnegative",
+      "units": "nats",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ]
+    },
+    {
+      "name": "contrib_bits",
+      "label": "-p log2 p",
+      "expression": "contrib_nats / log(2)",
+      "meaning": "Convert each contribution from nats to bits by dividing by ln 2.",
+      "type": "vector",
+      "domain": "nonnegative",
+      "units": "bits",
+      "evidence_refs": [
+        "Eaa0923866eed10f7b351"
+      ]
+    },
+    {
+      "name": "H_bits",
+      "label": "H (bits)",
+      "expression": "sum(contrib_bits)",
+      "meaning": "Total discrete entropy in bits, the sum of the per-outcome contributions.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": "bits",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ]
+    }
+  ],
+  "invariants": [
+    "approx_equal(sum(p_norm), 1)"
+  ],
+  "visuals": [
+    {
+      "type": "bars",
+      "question": "How large is each outcome's contribution -p_i log2 p_i, and how do they sum to the total entropy?",
+      "refs": [
+        "p_norm",
+        "contrib_bits",
+        "H_bits"
+      ]
+    },
+    {
+      "type": "comparison",
+      "question": "How does the entropy of a certainty distribution compare with the entropy of four equally likely outcomes?",
+      "refs": [
+        "p",
+        "n",
+        "H_bits"
+      ]
+    }
+  ],
+  "explorations": [
+    {
+      "title": "Certainty versus four equally likely outcomes",
+      "setup": {
+        "p": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "n": 4
+      },
+      "observe": "With p = [1, 0, 0, 0] and n = 4, the active distribution is [1, 0, 0, 0]. The contributions are [0, 0, 0, 0] bits, so H_bits = 0 bits. Changing p to [0.25, 0.25, 0.25, 0.25] gives contributions [0.5, 0.5, 0.5, 0.5] bits and H_bits = 2 bits.",
+      "why": "A certain outcome has no uncertainty, so its entropy is zero. Four equally likely outcomes each contribute 0.25 \u00d7 2 = 0.5 bits, and the total is log2 4 = 2 bits, matching the monotonic increase of entropy with the number of equally likely events."
+    },
+    {
+      "title": "Zero probabilities and variable active length",
+      "setup": {
+        "p": [
+          0.5,
+          0.25,
+          0.25,
+          0.0
+        ],
+        "n": 3
+      },
+      "observe": "With p = [0.5, 0.25, 0.25, 0.0] and n = 3, the active distribution is [0.5, 0.25, 0.25]. The contributions are [0.5, 0.5, 0.5] bits, so H_bits = 1.5 bits. The zero-probability fourth outcome contributes 0 bits and is excluded by n = 3.",
+      "why": "The zero-probability outcome contributes nothing because 0 log 0 is defined as 0. Reducing n to 3 removes that outcome and renormalizes the remaining probabilities, which here already sum to one, so the entropy is the sum of the three nonzero contributions."
+    }
+  ]
+}

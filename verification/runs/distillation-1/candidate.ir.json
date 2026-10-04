@@ -1,0 +1,1745 @@
+{
+  "scientific_model": {
+    "concept": "Knowledge Distillation with Temperature: Soft Targets and the T\u00b2 Factor",
+    "purpose": "Explain how a teacher's logits are turned into soft targets by a temperature-scaled softmax, how the student's soft-target cross-entropy is computed, and why the soft-loss term is multiplied by T\u00b2 when combined with a hard-label loss.",
+    "focus_alignment": "Section 2: explain knowledge distillation with small teacher and student logit vectors and adjustable temperature. Show the soft probability distributions and the soft-target cross-entropy or a clearly labeled component of it. Explain the temperature effect and the T-squared factor when combining soft and hard training losses. Do not train models.",
+    "variables": [
+      {
+        "id": "var-teacher_logits",
+        "source_symbol": "teacher_logits",
+        "display_symbol": "v (teacher logits)",
+        "meaning": "Logits of the cumbersome teacher model for one transfer case.",
+        "type": "vector",
+        "shape": [
+          3
+        ],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E1e7a80ebf14f30f94aae"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-student_logits",
+        "source_symbol": "student_logits",
+        "display_symbol": "z (student logits)",
+        "meaning": "Logits of the distilled student model for the same transfer case.",
+        "type": "vector",
+        "shape": [
+          3
+        ],
+        "domain": "real",
+        "units": null,
+        "evidence_refs": [
+          "E1e7a80ebf14f30f94aae"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-temperature",
+        "source_symbol": "temperature",
+        "display_symbol": "T",
+        "meaning": "Softmax temperature used both to generate the teacher's soft targets and to train the student.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "positive",
+        "units": null,
+        "evidence_refs": [
+          "Edc16f7dd3b3b8f22ce68",
+          "E1a97e7d98f4ff5d1a3b4"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-hard_target",
+        "source_symbol": "hard_target",
+        "display_symbol": "y (hard label)",
+        "meaning": "One-hot correct-label distribution over the same classes, used for the hard cross-entropy at T = 1.",
+        "type": "distribution",
+        "shape": [
+          3
+        ],
+        "domain": "probability",
+        "units": null,
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-hard_weight",
+        "source_symbol": "hard_weight",
+        "display_symbol": "\u03b1 (hard-loss weight)",
+        "meaning": "Weight on the hard-label cross-entropy relative to the T\u00b2-scaled soft-target term.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "unit_interval",
+        "units": null,
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "SOURCE_GROUNDED"
+      },
+      {
+        "id": "var-teacher_soft",
+        "source_symbol": "teacher_soft",
+        "display_symbol": "p (teacher soft targets)",
+        "meaning": "Teacher logits divided by T, then softmaxed, giving the soft target distribution p_i = e^{v_i/T} / \u03a3_j e^{v_j/T}.",
+        "type": "distribution",
+        "shape": [],
+        "domain": "probability",
+        "units": null,
+        "evidence_refs": [
+          "Edc16f7dd3b3b8f22ce68",
+          "E1a97e7d98f4ff5d1a3b4"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-student_soft",
+        "source_symbol": "student_soft",
+        "display_symbol": "q (student soft predictions)",
+        "meaning": "Student logits divided by the same T, then softmaxed, giving q_i = e^{z_i/T} / \u03a3_j e^{z_j/T}.",
+        "type": "distribution",
+        "shape": [],
+        "domain": "probability",
+        "units": null,
+        "evidence_refs": [
+          "E1e7a80ebf14f30f94aae",
+          "E1a97e7d98f4ff5d1a3b4"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-soft_ce",
+        "source_symbol": "soft_ce",
+        "display_symbol": "H(p, q)",
+        "meaning": "Soft-target cross-entropy H(p,q) = -\u03a3_i p_i ln q_i in nats, computed at the same temperature T used to make the soft targets.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": "nats",
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-student_hard",
+        "source_symbol": "student_hard",
+        "display_symbol": "q^(1) (student at T = 1)",
+        "meaning": "The same student logits softmaxed at temperature 1, as used for the hard-label cross-entropy.",
+        "type": "distribution",
+        "shape": [],
+        "domain": "probability",
+        "units": null,
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-hard_ce",
+        "source_symbol": "hard_ce",
+        "display_symbol": "H(y, q^(1))",
+        "meaning": "Hard-label cross-entropy H(y, q^(1)) = -\u03a3_i y_i ln q_i^(1) in nats, computed at temperature 1.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": "nats",
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "var-combined_loss",
+        "source_symbol": "combined_loss",
+        "display_symbol": "L",
+        "meaning": "Weighted combination: the soft-target cross-entropy is multiplied by T\u00b2 to compensate the 1/T\u00b2 gradient scaling, and the hard-label cross-entropy is weighted by \u03b1.",
+        "type": "scalar",
+        "shape": [],
+        "domain": "nonnegative",
+        "units": "nats",
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "equations": [
+      {
+        "id": "eq-teacher_soft",
+        "expression": "softmax(teacher_logits/temperature)",
+        "meaning": "Teacher logits divided by T, then softmaxed, giving the soft target distribution p_i = e^{v_i/T} / \u03a3_j e^{v_j/T}.",
+        "variable_refs": [
+          "var-teacher_logits",
+          "var-temperature",
+          "var-teacher_soft"
+        ],
+        "evidence_refs": [
+          "Edc16f7dd3b3b8f22ce68",
+          "E1a97e7d98f4ff5d1a3b4"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-student_soft",
+        "expression": "softmax(student_logits/temperature)",
+        "meaning": "Student logits divided by the same T, then softmaxed, giving q_i = e^{z_i/T} / \u03a3_j e^{z_j/T}.",
+        "variable_refs": [
+          "var-student_logits",
+          "var-temperature",
+          "var-student_soft"
+        ],
+        "evidence_refs": [
+          "E1e7a80ebf14f30f94aae",
+          "E1a97e7d98f4ff5d1a3b4"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-soft_ce",
+        "expression": "cross_entropy(teacher_soft, student_soft)",
+        "meaning": "Soft-target cross-entropy H(p,q) = -\u03a3_i p_i ln q_i in nats, computed at the same temperature T used to make the soft targets.",
+        "variable_refs": [
+          "var-student_soft",
+          "var-teacher_soft",
+          "var-soft_ce"
+        ],
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-student_hard",
+        "expression": "softmax(student_logits)",
+        "meaning": "The same student logits softmaxed at temperature 1, as used for the hard-label cross-entropy.",
+        "variable_refs": [
+          "var-student_logits",
+          "var-student_hard"
+        ],
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-hard_ce",
+        "expression": "cross_entropy(hard_target, student_hard)",
+        "meaning": "Hard-label cross-entropy H(y, q^(1)) = -\u03a3_i y_i ln q_i^(1) in nats, computed at temperature 1.",
+        "variable_refs": [
+          "var-hard_target",
+          "var-student_hard",
+          "var-hard_ce"
+        ],
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "DERIVED"
+      },
+      {
+        "id": "eq-combined_loss",
+        "expression": "temperature*temperature*soft_ce + hard_weight*hard_ce",
+        "meaning": "Weighted combination: the soft-target cross-entropy is multiplied by T\u00b2 to compensate the 1/T\u00b2 gradient scaling, and the hard-label cross-entropy is weighted by \u03b1.",
+        "variable_refs": [
+          "var-hard_ce",
+          "var-hard_weight",
+          "var-soft_ce",
+          "var-temperature",
+          "var-combined_loss"
+        ],
+        "evidence_refs": [
+          "E9459e999a36579d061e9"
+        ],
+        "knowledge_class": "DERIVED"
+      }
+    ],
+    "relationships": [],
+    "mechanism_steps": [
+      {
+        "id": "step-teacher_soft",
+        "order": 0,
+        "description": "Teacher logits divided by T, then softmaxed, giving the soft target distribution p_i = e^{v_i/T} / \u03a3_j e^{v_j/T}.",
+        "equation_refs": [
+          "eq-teacher_soft"
+        ],
+        "input_refs": [
+          "var-teacher_logits",
+          "var-temperature"
+        ],
+        "output_refs": [
+          "var-teacher_soft"
+        ]
+      },
+      {
+        "id": "step-student_soft",
+        "order": 1,
+        "description": "Student logits divided by the same T, then softmaxed, giving q_i = e^{z_i/T} / \u03a3_j e^{z_j/T}.",
+        "equation_refs": [
+          "eq-student_soft"
+        ],
+        "input_refs": [
+          "var-student_logits",
+          "var-temperature"
+        ],
+        "output_refs": [
+          "var-student_soft"
+        ]
+      },
+      {
+        "id": "step-soft_ce",
+        "order": 2,
+        "description": "Soft-target cross-entropy H(p,q) = -\u03a3_i p_i ln q_i in nats, computed at the same temperature T used to make the soft targets.",
+        "equation_refs": [
+          "eq-soft_ce"
+        ],
+        "input_refs": [
+          "var-student_soft",
+          "var-teacher_soft"
+        ],
+        "output_refs": [
+          "var-soft_ce"
+        ]
+      },
+      {
+        "id": "step-student_hard",
+        "order": 3,
+        "description": "The same student logits softmaxed at temperature 1, as used for the hard-label cross-entropy.",
+        "equation_refs": [
+          "eq-student_hard"
+        ],
+        "input_refs": [
+          "var-student_logits"
+        ],
+        "output_refs": [
+          "var-student_hard"
+        ]
+      },
+      {
+        "id": "step-hard_ce",
+        "order": 4,
+        "description": "Hard-label cross-entropy H(y, q^(1)) = -\u03a3_i y_i ln q_i^(1) in nats, computed at temperature 1.",
+        "equation_refs": [
+          "eq-hard_ce"
+        ],
+        "input_refs": [
+          "var-hard_target",
+          "var-student_hard"
+        ],
+        "output_refs": [
+          "var-hard_ce"
+        ]
+      },
+      {
+        "id": "step-combined_loss",
+        "order": 5,
+        "description": "Weighted combination: the soft-target cross-entropy is multiplied by T\u00b2 to compensate the 1/T\u00b2 gradient scaling, and the hard-label cross-entropy is weighted by \u03b1.",
+        "equation_refs": [
+          "eq-combined_loss"
+        ],
+        "input_refs": [
+          "var-hard_ce",
+          "var-hard_weight",
+          "var-soft_ce",
+          "var-temperature"
+        ],
+        "output_refs": [
+          "var-combined_loss"
+        ]
+      }
+    ],
+    "assumptions": [
+      "One transfer case is shown; the paper averages such per-case losses over the transfer set.",
+      "The hard-label distribution is a one-hot vector over the same class index used for the teacher's target class."
+    ],
+    "limitations": [
+      "We compute the loss components, not the gradients dC/dz_i; the 1/T\u00b2 gradient scaling is cited but not derived here.",
+      "The T\u00b2 factor is applied as a fixed multiplier on the soft cross-entropy term; the paper's argument is about gradient magnitudes, and we do not re-derive it from the gradient expression."
+    ],
+    "misconceptions": [
+      "That temperature changes the teacher's knowledge or the class ranking. Temperature only rescales logits before softmax; it changes the sharpness of the distribution, not the ordering of classes."
+    ],
+    "invariants": [
+      "approx_equal(sum(teacher_soft), 1)",
+      "approx_equal(sum(student_soft), 1)",
+      "approx_equal(sum(student_hard), 1)"
+    ],
+    "edge_cases": [
+      "T = 1 makes the soft distribution equal to the ordinary softmax and removes the T\u00b2 rescaling effect (T\u00b2 = 1).",
+      "A very large T drives both distributions toward uniform, so the soft cross-entropy approaches ln(K) and carries little class-specific signal."
+    ],
+    "provenance": [
+      "E1a97e7d98f4ff5d1a3b4",
+      "E1e7a80ebf14f30f94aae",
+      "E45832686cb3376e40271",
+      "E9459e999a36579d061e9",
+      "Edc16f7dd3b3b8f22ce68"
+    ],
+    "knowledge_classes": [
+      "SOURCE_GROUNDED",
+      "DERIVED",
+      "PEDAGOGICAL"
+    ],
+    "demonstration_scope": "A single transfer case with small fixed teacher and student logit vectors. We compute the temperature-scaled softmax distributions, the soft-target cross-entropy component, and the T\u00b2-scaled combination with a hard-label cross-entropy. No model training, no gradient derivation, no multi-example averaging."
+  },
+  "lesson_spec": {
+    "central_learning_question": "Explain how a teacher's logits are turned into soft targets by a temperature-scaled softmax, how the student's soft-target cross-entropy is computed, and why the soft-loss term is multiplied by T\u00b2 when combined with a hard-label loss.",
+    "learning_objectives": [
+      "Compute teacher and student softmax distributions at a chosen temperature T and interpret how T controls their sharpness.",
+      "Compute the soft-target cross-entropy H(p_T, q_T) and the T\u00b2-scaled combination with a hard-label cross-entropy."
+    ],
+    "audience_prerequisites": [
+      "Softmax as a normalized exponential of logits.",
+      "Cross-entropy H(p,q) = -\u03a3 p_i ln q_i in nats."
+    ],
+    "intuition": "A high softmax temperature flattens the teacher's distribution, exposing relative preferences among non-target classes that a hard label hides. The student is trained to match this soft distribution. Because raising T shrinks the soft-loss gradients by roughly 1/T\u00b2, the soft term is multiplied by T\u00b2 so that its influence relative to the hard-label term stays comparable when T is changed.",
+    "teaching_sequence": [
+      "Inspect the inputs and equations.",
+      "Change each scientific input and compare the live intermediates.",
+      "Apply both exploration setups and explain the difference."
+    ],
+    "symbol_explanations": {
+      "var-teacher_logits": "Logits of the cumbersome teacher model for one transfer case.",
+      "var-student_logits": "Logits of the distilled student model for the same transfer case.",
+      "var-temperature": "Softmax temperature used both to generate the teacher's soft targets and to train the student.",
+      "var-hard_target": "One-hot correct-label distribution over the same classes, used for the hard cross-entropy at T = 1.",
+      "var-hard_weight": "Weight on the hard-label cross-entropy relative to the T\u00b2-scaled soft-target term.",
+      "var-teacher_soft": "Teacher logits divided by T, then softmaxed, giving the soft target distribution p_i = e^{v_i/T} / \u03a3_j e^{v_j/T}.",
+      "var-student_soft": "Student logits divided by the same T, then softmaxed, giving q_i = e^{z_i/T} / \u03a3_j e^{z_j/T}.",
+      "var-soft_ce": "Soft-target cross-entropy H(p,q) = -\u03a3_i p_i ln q_i in nats, computed at the same temperature T used to make the soft targets.",
+      "var-student_hard": "The same student logits softmaxed at temperature 1, as used for the hard-label cross-entropy.",
+      "var-hard_ce": "Hard-label cross-entropy H(y, q^(1)) = -\u03a3_i y_i ln q_i^(1) in nats, computed at temperature 1.",
+      "var-combined_loss": "Weighted combination: the soft-target cross-entropy is multiplied by T\u00b2 to compensate the 1/T\u00b2 gradient scaling, and the hard-label cross-entropy is weighted by \u03b1."
+    },
+    "controls": [
+      {
+        "id": "control-teacher_logits",
+        "label": "v (teacher logits)",
+        "scientific_variable": "var-teacher_logits",
+        "control_type": "vector",
+        "default": [
+          3.0,
+          1.0,
+          -1.0
+        ],
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-teacher_soft",
+          "var-soft_ce",
+          "var-combined_loss"
+        ],
+        "learning_purpose": "Logits of the cumbersome teacher model for one transfer case.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": null,
+        "maximum": null,
+        "step": null,
+        "options": []
+      },
+      {
+        "id": "control-student_logits",
+        "label": "z (student logits)",
+        "scientific_variable": "var-student_logits",
+        "control_type": "vector",
+        "default": [
+          2.0,
+          0.5,
+          0.0
+        ],
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-student_soft",
+          "var-soft_ce",
+          "var-student_hard",
+          "var-hard_ce",
+          "var-combined_loss"
+        ],
+        "learning_purpose": "Logits of the distilled student model for the same transfer case.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": null,
+        "maximum": null,
+        "step": null,
+        "options": []
+      },
+      {
+        "id": "control-temperature",
+        "label": "T",
+        "scientific_variable": "var-temperature",
+        "control_type": "slider",
+        "default": 2.0,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-teacher_soft",
+          "var-student_soft",
+          "var-soft_ce",
+          "var-combined_loss"
+        ],
+        "learning_purpose": "Softmax temperature used both to generate the teacher's soft targets and to train the student.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0.5,
+        "maximum": 8.0,
+        "step": 0.5,
+        "options": []
+      },
+      {
+        "id": "control-hard_weight",
+        "label": "\u03b1 (hard-loss weight)",
+        "scientific_variable": "var-hard_weight",
+        "control_type": "slider",
+        "default": 0.3,
+        "units": null,
+        "validation_rule": "reject",
+        "effect_targets": [
+          "var-combined_loss"
+        ],
+        "learning_purpose": "Weight on the hard-label cross-entropy relative to the T\u00b2-scaled soft-target term.",
+        "safe_range_reason": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "step": 0.05,
+        "options": []
+      }
+    ],
+    "important_intermediates": [
+      "var-teacher_soft",
+      "var-student_soft",
+      "var-soft_ce",
+      "var-student_hard",
+      "var-hard_ce",
+      "var-combined_loss"
+    ],
+    "visual_question": "How does raising T flatten the teacher's soft target distribution p compared with the student's q?",
+    "visual_intent": "Compare the computed mechanism and its intermediate values.",
+    "guided_explorations": [
+      {
+        "id": "explore-1",
+        "title": "Low temperature sharpens the soft targets",
+        "change": "Set T to 1.0.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: p (teacher soft targets) = [0.86681333, 0.11731043, 0.01587624] (starting value: [0.66524096, 0.24472847, 0.090030573]); q (student soft predictions) = [0.73612472, 0.16425163, 0.099623648] (starting value: [0.54340561, 0.25668664, 0.19990775]); H(p, q) = 0.51407383 nats (starting value: 0.88347618 nats); q^(1) (student at T = 1) = [0.73612472, 0.16425163, 0.099623648] (starting value: [0.73612472, 0.16425163, 0.099623648]); H(y, q^(1)) = 0.30635571 nats (starting value: 0.30635571 nats); L = 0.60598055 nats (starting value: 3.6258114 nats).",
+        "why": "Dividing logits by a smaller T preserves larger gaps between logits, so the softmax is sharper; the soft cross-entropy then depends mostly on the top class, and the T\u00b2 rescaling is inactive.",
+        "setup": {
+          "control-temperature": 1.0
+        }
+      },
+      {
+        "id": "explore-2",
+        "title": "High temperature softens the targets and amplifies the soft term",
+        "change": "Set T to 6.0.",
+        "observe": "Calculated results for this setup, compared with the starting inputs: p (teacher soft targets) = [0.44844086, 0.32132192, 0.23023722] (starting value: [0.66524096, 0.24472847, 0.090030573]); q (student soft predictions) = [0.40074826, 0.31210306, 0.28714868] (starting value: [0.54340561, 0.25668664, 0.19990775]); H(p, q) = 1.071498 nats (starting value: 0.88347618 nats); q^(1) (student at T = 1) = [0.73612472, 0.16425163, 0.099623648] (starting value: [0.73612472, 0.16425163, 0.099623648]); H(y, q^(1)) = 0.30635571 nats (starting value: 0.30635571 nats); L = 38.665836 nats (starting value: 3.6258114 nats).",
+        "why": "Dividing logits by a large T compresses their differences, so softmax approaches uniform and the soft targets carry less class-specific signal; the T\u00b2 factor grows quadratically, compensating the 1/T\u00b2 gradient scaling so the soft term's relative influence stays comparable when T is tuned.",
+        "setup": {
+          "control-temperature": 6.0
+        }
+      }
+    ],
+    "limitation_or_assumption": "We compute the loss components, not the gradients dC/dz_i; the 1/T\u00b2 gradient scaling is cited but not derived here.",
+    "misconception": "That temperature changes the teacher's knowledge or the class ranking. Temperature only rescales logits before softmax; it changes the sharpness of the distribution, not the ordering of classes.",
+    "source_grounding_plan": [
+      "Source citations support the scientific explanation; computed values are derived from explicit toy inputs."
+    ]
+  },
+  "computations": [
+    {
+      "id": "compute-teacher_soft",
+      "expression": "softmax(teacher_logits/temperature)",
+      "output_type": "distribution",
+      "input_refs": [
+        "var-teacher_logits",
+        "var-temperature"
+      ],
+      "output_refs": [
+        "var-teacher_soft"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "teacher_logits": "var-teacher_logits",
+          "temperature": "var-temperature"
+        },
+        "equation_refs": [
+          "eq-teacher_soft"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "softmax",
+          "args": [
+            {
+              "kind": "call",
+              "value": "divide",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "teacher_logits",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "temperature",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-student_soft",
+      "expression": "softmax(student_logits/temperature)",
+      "output_type": "distribution",
+      "input_refs": [
+        "var-student_logits",
+        "var-temperature"
+      ],
+      "output_refs": [
+        "var-student_soft"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "student_logits": "var-student_logits",
+          "temperature": "var-temperature"
+        },
+        "equation_refs": [
+          "eq-student_soft"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "softmax",
+          "args": [
+            {
+              "kind": "call",
+              "value": "divide",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "student_logits",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "temperature",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-soft_ce",
+      "expression": "cross_entropy(teacher_soft, student_soft)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-student_soft",
+        "var-teacher_soft"
+      ],
+      "output_refs": [
+        "var-soft_ce"
+      ],
+      "dependencies": [
+        "compute-student_soft",
+        "compute-teacher_soft"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "student_soft": "var-student_soft",
+          "teacher_soft": "var-teacher_soft"
+        },
+        "equation_refs": [
+          "eq-soft_ce"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "cross_entropy",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "teacher_soft",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "student_soft",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-student_hard",
+      "expression": "softmax(student_logits)",
+      "output_type": "distribution",
+      "input_refs": [
+        "var-student_logits"
+      ],
+      "output_refs": [
+        "var-student_hard"
+      ],
+      "dependencies": [],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "student_logits": "var-student_logits"
+        },
+        "equation_refs": [
+          "eq-student_hard"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "softmax",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "student_logits",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-hard_ce",
+      "expression": "cross_entropy(hard_target, student_hard)",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-hard_target",
+        "var-student_hard"
+      ],
+      "output_refs": [
+        "var-hard_ce"
+      ],
+      "dependencies": [
+        "compute-student_hard"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "hard_target": "var-hard_target",
+          "student_hard": "var-student_hard"
+        },
+        "equation_refs": [
+          "eq-hard_ce"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "cross_entropy",
+          "args": [
+            {
+              "kind": "variable",
+              "value": "hard_target",
+              "args": []
+            },
+            {
+              "kind": "variable",
+              "value": "student_hard",
+              "args": []
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    },
+    {
+      "id": "compute-combined_loss",
+      "expression": "temperature*temperature*soft_ce + hard_weight*hard_ce",
+      "output_type": "scalar",
+      "input_refs": [
+        "var-hard_ce",
+        "var-hard_weight",
+        "var-soft_ce",
+        "var-temperature"
+      ],
+      "output_refs": [
+        "var-combined_loss"
+      ],
+      "dependencies": [
+        "compute-hard_ce",
+        "compute-soft_ce"
+      ],
+      "metadata": {
+        "kind": "expression",
+        "bindings": {
+          "hard_ce": "var-hard_ce",
+          "hard_weight": "var-hard_weight",
+          "soft_ce": "var-soft_ce",
+          "temperature": "var-temperature"
+        },
+        "equation_refs": [
+          "eq-combined_loss"
+        ],
+        "canonical_ast": {
+          "kind": "call",
+          "value": "add",
+          "args": [
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "call",
+                  "value": "multiply",
+                  "args": [
+                    {
+                      "kind": "variable",
+                      "value": "temperature",
+                      "args": []
+                    },
+                    {
+                      "kind": "variable",
+                      "value": "temperature",
+                      "args": []
+                    }
+                  ]
+                },
+                {
+                  "kind": "variable",
+                  "value": "soft_ce",
+                  "args": []
+                }
+              ]
+            },
+            {
+              "kind": "call",
+              "value": "multiply",
+              "args": [
+                {
+                  "kind": "variable",
+                  "value": "hard_weight",
+                  "args": []
+                },
+                {
+                  "kind": "variable",
+                  "value": "hard_ce",
+                  "args": []
+                }
+              ]
+            }
+          ]
+        },
+        "ast_version": 1
+      }
+    }
+  ],
+  "visuals": [
+    {
+      "id": "visual-1",
+      "visual_type": "bars",
+      "question": "How does raising T flatten the teacher's soft target distribution p compared with the student's q?",
+      "data_refs": [
+        "var-teacher_soft",
+        "var-student_soft",
+        "var-temperature"
+      ],
+      "metadata": {}
+    },
+    {
+      "id": "visual-2",
+      "visual_type": "comparison",
+      "question": "How do the T\u00b2-scaled soft term and the \u03b1-weighted hard term contribute to the combined loss as T changes?",
+      "data_refs": [
+        "var-soft_ce",
+        "var-hard_ce",
+        "var-combined_loss",
+        "var-temperature",
+        "var-hard_weight"
+      ],
+      "metadata": {}
+    }
+  ],
+  "grounding_records": [
+    {
+      "claim_id": "science.concept",
+      "claim": "Knowledge Distillation with Temperature: Soft Targets and the T\u00b2 Factor",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.purpose",
+      "claim": "Explain how a teacher's logits are turned into soft targets by a temperature-scaled softmax, how the student's soft-target cross-entropy is computed, and why the soft-loss term is multiplied by T\u00b2 when combined with a hard-label loss.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.focus_alignment",
+      "claim": "Section 2: explain knowledge distillation with small teacher and student logit vectors and adjustable temperature. Show the soft probability distributions and the soft-target cross-entropy or a clearly labeled component of it. Explain the temperature effect and the T-squared factor when combining soft and hard training losses. Do not train models.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.demonstration_scope",
+      "claim": "A single transfer case with small fixed teacher and student logit vectors. We compute the temperature-scaled softmax distributions, the soft-target cross-entropy component, and the T\u00b2-scaled combination with a hard-label cross-entropy. No model training, no gradient derivation, no multi-example averaging.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.intuition",
+      "claim": "A high softmax temperature flattens the teacher's distribution, exposing relative preferences among non-target classes that a hard label hides. The student is trained to match this soft distribution. Because raising T shrinks the soft-loss gradients by roughly 1/T\u00b2, the soft term is multiplied by T\u00b2 so that its influence relative to the hard-label term stays comparable when T is changed.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.limitation_or_assumption",
+      "claim": "We compute the loss components, not the gradients dC/dz_i; the 1/T\u00b2 gradient scaling is cited but not derived here.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.misconception",
+      "claim": "That temperature changes the teacher's knowledge or the class ranking. Temperature only rescales logits before softmax; it changes the sharpness of the distribution, not the ordering of classes.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.0",
+      "claim": "One transfer case is shown; the paper averages such per-case losses over the transfer set.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.assumptions.1",
+      "claim": "The hard-label distribution is a one-hot vector over the same class index used for the teacher's target class.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.0",
+      "claim": "We compute the loss components, not the gradients dC/dz_i; the 1/T\u00b2 gradient scaling is cited but not derived here.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.limitations.1",
+      "claim": "The T\u00b2 factor is applied as a fixed multiplier on the soft cross-entropy term; the paper's argument is about gradient magnitudes, and we do not re-derive it from the gradient expression.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.misconceptions.0",
+      "claim": "That temperature changes the teacher's knowledge or the class ranking. Temperature only rescales logits before softmax; it changes the sharpness of the distribution, not the ordering of classes.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.0",
+      "claim": "T = 1 makes the soft distribution equal to the ordinary softmax and removes the T\u00b2 rescaling effect (T\u00b2 = 1).",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "science.edge_cases.1",
+      "claim": "A very large T drives both distributions toward uniform, so the soft cross-entropy approaches ln(K) and carries little class-specific signal.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.0",
+      "claim": "Inspect the inputs and equations.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.1",
+      "claim": "Change each scientific input and compare the live intermediates.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.teaching_sequence.2",
+      "claim": "Apply both exploration setups and explain the difference.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.source_grounding_plan.0",
+      "claim": "Source citations support the scientific explanation; computed values are derived from explicit toy inputs.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.0",
+      "claim": "Compute teacher and student softmax distributions at a chosen temperature T and interpret how T controls their sharpness.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.learning_objectives.1",
+      "claim": "Compute the soft-target cross-entropy H(p_T, q_T) and the T\u00b2-scaled combination with a hard-label cross-entropy.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.0",
+      "claim": "Softmax as a normalized exponential of logits.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.audience_prerequisites.1",
+      "claim": "Cross-entropy H(p,q) = -\u03a3 p_i ln q_i in nats.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.central_learning_question",
+      "claim": "Explain how a teacher's logits are turned into soft targets by a temperature-scaled softmax, how the student's soft-target cross-entropy is computed, and why the soft-loss term is multiplied by T\u00b2 when combined with a hard-label loss.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_question",
+      "claim": "How does raising T flatten the teacher's soft target distribution p compared with the student's q?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "lesson.visual_intent",
+      "claim": "Compare the computed mechanism and its intermediate values.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-1.question",
+      "claim": "How does raising T flatten the teacher's soft target distribution p compared with the student's q?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "visual-2.question",
+      "claim": "How do the T\u00b2-scaled soft term and the \u03b1-weighted hard term contribute to the combined loss as T changes?",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-teacher_logits",
+      "claim": "Logits of the cumbersome teacher model for one transfer case.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-student_logits",
+      "claim": "Logits of the distilled student model for the same transfer case.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-temperature",
+      "claim": "Softmax temperature used both to generate the teacher's soft targets and to train the student.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Edc16f7dd3b3b8f22ce68",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-hard_target",
+      "claim": "One-hot correct-label distribution over the same classes, used for the hard cross-entropy at T = 1.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-hard_weight",
+      "claim": "Weight on the hard-label cross-entropy relative to the T\u00b2-scaled soft-target term.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "var-teacher_soft",
+      "claim": "Teacher logits divided by T, then softmaxed, giving the soft target distribution p_i = e^{v_i/T} / \u03a3_j e^{v_j/T}.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Edc16f7dd3b3b8f22ce68",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": [
+        "compute-teacher_soft"
+      ]
+    },
+    {
+      "claim_id": "var-student_soft",
+      "claim": "Student logits divided by the same T, then softmaxed, giving q_i = e^{z_i/T} / \u03a3_j e^{z_j/T}.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": [
+        "compute-student_soft"
+      ]
+    },
+    {
+      "claim_id": "var-soft_ce",
+      "claim": "Soft-target cross-entropy H(p,q) = -\u03a3_i p_i ln q_i in nats, computed at the same temperature T used to make the soft targets.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-soft_ce"
+      ]
+    },
+    {
+      "claim_id": "var-student_hard",
+      "claim": "The same student logits softmaxed at temperature 1, as used for the hard-label cross-entropy.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-student_hard"
+      ]
+    },
+    {
+      "claim_id": "var-hard_ce",
+      "claim": "Hard-label cross-entropy H(y, q^(1)) = -\u03a3_i y_i ln q_i^(1) in nats, computed at temperature 1.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-hard_ce"
+      ]
+    },
+    {
+      "claim_id": "var-combined_loss",
+      "claim": "Weighted combination: the soft-target cross-entropy is multiplied by T\u00b2 to compensate the 1/T\u00b2 gradient scaling, and the hard-label cross-entropy is weighted by \u03b1.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-combined_loss"
+      ]
+    },
+    {
+      "claim_id": "eq-teacher_soft",
+      "claim": "Teacher logits divided by T, then softmaxed, giving the soft target distribution p_i = e^{v_i/T} / \u03a3_j e^{v_j/T}.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Edc16f7dd3b3b8f22ce68",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": [
+        "compute-teacher_soft"
+      ]
+    },
+    {
+      "claim_id": "eq-student_soft",
+      "claim": "Student logits divided by the same T, then softmaxed, giving q_i = e^{z_i/T} / \u03a3_j e^{z_j/T}.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": [
+        "compute-student_soft"
+      ]
+    },
+    {
+      "claim_id": "eq-soft_ce",
+      "claim": "Soft-target cross-entropy H(p,q) = -\u03a3_i p_i ln q_i in nats, computed at the same temperature T used to make the soft targets.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-soft_ce"
+      ]
+    },
+    {
+      "claim_id": "eq-student_hard",
+      "claim": "The same student logits softmaxed at temperature 1, as used for the hard-label cross-entropy.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-student_hard"
+      ]
+    },
+    {
+      "claim_id": "eq-hard_ce",
+      "claim": "Hard-label cross-entropy H(y, q^(1)) = -\u03a3_i y_i ln q_i^(1) in nats, computed at temperature 1.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-hard_ce"
+      ]
+    },
+    {
+      "claim_id": "eq-combined_loss",
+      "claim": "Weighted combination: the soft-target cross-entropy is multiplied by T\u00b2 to compensate the 1/T\u00b2 gradient scaling, and the hard-label cross-entropy is weighted by \u03b1.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-combined_loss"
+      ]
+    },
+    {
+      "claim_id": "step-teacher_soft",
+      "claim": "Teacher logits divided by T, then softmaxed, giving the soft target distribution p_i = e^{v_i/T} / \u03a3_j e^{v_j/T}.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Edc16f7dd3b3b8f22ce68",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": [
+        "compute-teacher_soft"
+      ]
+    },
+    {
+      "claim_id": "step-student_soft",
+      "claim": "Student logits divided by the same T, then softmaxed, giving q_i = e^{z_i/T} / \u03a3_j e^{z_j/T}.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": [
+        "compute-student_soft"
+      ]
+    },
+    {
+      "claim_id": "step-soft_ce",
+      "claim": "Soft-target cross-entropy H(p,q) = -\u03a3_i p_i ln q_i in nats, computed at the same temperature T used to make the soft targets.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-soft_ce"
+      ]
+    },
+    {
+      "claim_id": "step-student_hard",
+      "claim": "The same student logits softmaxed at temperature 1, as used for the hard-label cross-entropy.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-student_hard"
+      ]
+    },
+    {
+      "claim_id": "step-hard_ce",
+      "claim": "Hard-label cross-entropy H(y, q^(1)) = -\u03a3_i y_i ln q_i^(1) in nats, computed at temperature 1.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-hard_ce"
+      ]
+    },
+    {
+      "claim_id": "step-combined_loss",
+      "claim": "Weighted combination: the soft-target cross-entropy is multiplied by T\u00b2 to compensate the 1/T\u00b2 gradient scaling, and the hard-label cross-entropy is weighted by \u03b1.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-combined_loss"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-teacher_logits",
+      "claim": "Logits of the cumbersome teacher model for one transfer case.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-student_logits",
+      "claim": "Logits of the distilled student model for the same transfer case.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-temperature",
+      "claim": "Softmax temperature used both to generate the teacher's soft targets and to train the student.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Edc16f7dd3b3b8f22ce68",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-hard_target",
+      "claim": "One-hot correct-label distribution over the same classes, used for the hard cross-entropy at T = 1.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-hard_weight",
+      "claim": "Weight on the hard-label cross-entropy relative to the T\u00b2-scaled soft-target term.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "symbol.var-teacher_soft",
+      "claim": "Teacher logits divided by T, then softmaxed, giving the soft target distribution p_i = e^{v_i/T} / \u03a3_j e^{v_j/T}.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "Edc16f7dd3b3b8f22ce68",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": [
+        "compute-teacher_soft"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-student_soft",
+      "claim": "Student logits divided by the same T, then softmaxed, giving q_i = e^{z_i/T} / \u03a3_j e^{z_j/T}.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae",
+        "E1a97e7d98f4ff5d1a3b4"
+      ],
+      "computation_refs": [
+        "compute-student_soft"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-soft_ce",
+      "claim": "Soft-target cross-entropy H(p,q) = -\u03a3_i p_i ln q_i in nats, computed at the same temperature T used to make the soft targets.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-soft_ce"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-student_hard",
+      "claim": "The same student logits softmaxed at temperature 1, as used for the hard-label cross-entropy.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-student_hard"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-hard_ce",
+      "claim": "Hard-label cross-entropy H(y, q^(1)) = -\u03a3_i y_i ln q_i^(1) in nats, computed at temperature 1.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-hard_ce"
+      ]
+    },
+    {
+      "claim_id": "symbol.var-combined_loss",
+      "claim": "Weighted combination: the soft-target cross-entropy is multiplied by T\u00b2 to compensate the 1/T\u00b2 gradient scaling, and the hard-label cross-entropy is weighted by \u03b1.",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ],
+      "computation_refs": [
+        "compute-combined_loss"
+      ]
+    },
+    {
+      "claim_id": "control-teacher_logits.learning_purpose",
+      "claim": "Logits of the cumbersome teacher model for one transfer case.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-teacher_logits.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-student_logits.learning_purpose",
+      "claim": "Logits of the distilled student model for the same transfer case.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-student_logits.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-temperature.learning_purpose",
+      "claim": "Softmax temperature used both to generate the teacher's soft targets and to train the student.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-temperature.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-hard_weight.learning_purpose",
+      "claim": "Weight on the hard-label cross-entropy relative to the T\u00b2-scaled soft-target term.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "control-hard_weight.safe_range_reason",
+      "claim": "Bounded illustrative inputs; these are teaching choices, not experimental ranges.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.change",
+      "claim": "Set T to 1.0.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-1.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: p (teacher soft targets) = [0.86681333, 0.11731043, 0.01587624] (starting value: [0.66524096, 0.24472847, 0.090030573]); q (student soft predictions) = [0.73612472, 0.16425163, 0.099623648] (starting value: [0.54340561, 0.25668664, 0.19990775]); H(p, q) = 0.51407383 nats (starting value: 0.88347618 nats); q^(1) (student at T = 1) = [0.73612472, 0.16425163, 0.099623648] (starting value: [0.73612472, 0.16425163, 0.099623648]); H(y, q^(1)) = 0.30635571 nats (starting value: 0.30635571 nats); L = 0.60598055 nats (starting value: 3.6258114 nats).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-teacher_soft",
+        "compute-student_soft",
+        "compute-soft_ce",
+        "compute-student_hard",
+        "compute-hard_ce",
+        "compute-combined_loss"
+      ]
+    },
+    {
+      "claim_id": "explore-1.why",
+      "claim": "Dividing logits by a smaller T preserves larger gaps between logits, so the softmax is sharper; the soft cross-entropy then depends mostly on the top class, and the T\u00b2 rescaling is inactive.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.change",
+      "claim": "Set T to 6.0.",
+      "knowledge_class": "PEDAGOGICAL",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": []
+    },
+    {
+      "claim_id": "explore-2.observe",
+      "claim": "Calculated results for this setup, compared with the starting inputs: p (teacher soft targets) = [0.44844086, 0.32132192, 0.23023722] (starting value: [0.66524096, 0.24472847, 0.090030573]); q (student soft predictions) = [0.40074826, 0.31210306, 0.28714868] (starting value: [0.54340561, 0.25668664, 0.19990775]); H(p, q) = 1.071498 nats (starting value: 0.88347618 nats); q^(1) (student at T = 1) = [0.73612472, 0.16425163, 0.099623648] (starting value: [0.73612472, 0.16425163, 0.099623648]); H(y, q^(1)) = 0.30635571 nats (starting value: 0.30635571 nats); L = 38.665836 nats (starting value: 3.6258114 nats).",
+      "knowledge_class": "DERIVED",
+      "status": "SUPPORTED",
+      "evidence_refs": [],
+      "computation_refs": [
+        "compute-teacher_soft",
+        "compute-student_soft",
+        "compute-soft_ce",
+        "compute-student_hard",
+        "compute-hard_ce",
+        "compute-combined_loss"
+      ]
+    },
+    {
+      "claim_id": "explore-2.why",
+      "claim": "Dividing logits by a large T compresses their differences, so softmax approaches uniform and the soft targets carry less class-specific signal; the T\u00b2 factor grows quadratically, compensating the 1/T\u00b2 gradient scaling so the soft term's relative influence stays comparable when T is tuned.",
+      "knowledge_class": "SOURCE_GROUNDED",
+      "status": "SUPPORTED",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4",
+        "Edc16f7dd3b3b8f22ce68",
+        "E1e7a80ebf14f30f94aae",
+        "E45832686cb3376e40271"
+      ],
+      "computation_refs": []
+    }
+  ],
+  "focus_coverage": {
+    "focus": "Section 2: explain knowledge distillation with small teacher and student logit vectors and adjustable temperature. Show the soft probability distributions and the soft-target cross-entropy or a clearly labeled component of it. Explain the temperature effect and the T-squared factor when combining soft and hard training losses. Do not train models.",
+    "learning_objective_refs": [
+      "Compute teacher and student softmax distributions at a chosen temperature T and interpret how T controls their sharpness.",
+      "Compute the soft-target cross-entropy H(p_T, q_T) and the T\u00b2-scaled combination with a hard-label cross-entropy."
+    ],
+    "mechanism_refs": [
+      "eq-teacher_soft",
+      "eq-student_soft",
+      "eq-soft_ce",
+      "eq-student_hard",
+      "eq-hard_ce",
+      "eq-combined_loss"
+    ],
+    "control_refs": [
+      "control-teacher_logits",
+      "control-student_logits",
+      "control-temperature",
+      "control-hard_weight"
+    ],
+    "computation_refs": [
+      "compute-teacher_soft",
+      "compute-student_soft",
+      "compute-soft_ce",
+      "compute-student_hard",
+      "compute-hard_ce",
+      "compute-combined_loss"
+    ],
+    "visual_refs": [
+      "visual-1",
+      "visual-2"
+    ],
+    "exploration_refs": [
+      "explore-1",
+      "explore-2"
+    ]
+  },
+  "metadata": {
+    "audience": "second-year engineering undergraduate",
+    "audience_adaptation": "Use the stated prerequisites and a bounded worked mechanism for second-year engineering undergraduate.",
+    "defaults": {
+      "var-hard_target": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    "invariant_bindings": {
+      "teacher_soft": "var-teacher_soft",
+      "student_soft": "var-student_soft",
+      "student_hard": "var-student_hard"
+    },
+    "control_test_values": {},
+    "equation_scope": {}
+  }
+}

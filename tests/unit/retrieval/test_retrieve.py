@@ -18,6 +18,17 @@ from tests.unit.source.test_parsers import source
 
 
 class RetrievalTests(unittest.TestCase):
+    def test_large_requested_section_retains_definition_ahead_of_glyph_fragments(self):
+        definition = ('Discrete entropy measures uncertainty in a probability distribution. '
+                      'It is zero for a certain outcome and maximal for equal probabilities. ' * 3)
+        paragraphs = '<p>' + definition + '</p><p>H = -sum of p log p</p>'
+        fragments = ''.join('<p>' + fragment + '</p>' for fragment in ['p', '=', '6', 'H', 'log', 'pi'] * 5)
+        html = ('<article><h1>6. Entropy</h1>' + fragments + paragraphs + '<h1>7. Other</h1></article>').encode()
+        document = parse_html(source(html, DocumentFormat.HTML))
+        pack = retrieve_evidence(document, 'Section 6: discrete entropy, probability distribution, certain outcome', 'student')
+        self.assertTrue(any(definition.strip() == b.content for b in pack.evidence_blocks))
+        self.assertNotEqual(pack.evidence_blocks[0].content, '6. Entropy')
+
     def setUp(self):
         self.document = parse_html(source(HTML_PAPER, DocumentFormat.HTML), focus="Figure 2")
 
@@ -195,7 +206,7 @@ class RetrievalTests(unittest.TestCase):
                 + 'The gain defines the feedback coupling. ' * 250
                 + '</p><p>y = gain * x (6)</p><p>The output is a scalar.</p></html>').encode()
         doc = parse_html(source(data, DocumentFormat.HTML))
-        pack = retrieve_evidence(doc, 'Equation 6', 'student')
+        pack = retrieve_evidence(doc, 'Equation 6', 'student', settings=SourceSettings(max_evidence_tokens=8000))
         self.assertEqual(pack.retrieval_confidence, RetrievalConfidence.LOW)
         self.assertGreater(pack.retrieval_metadata['omitted_context_count'], 0)
         report = validate_source_evidence(doc, pack)
@@ -217,7 +228,7 @@ class RetrievalTests(unittest.TestCase):
         data = ('<html><title>Study</title><p>y = ' + 'x + ' * 2500
                 + 'gain (6)</p><p>We perform 6 experiments.</p></html>').encode()
         doc = parse_html(source(data, DocumentFormat.HTML))
-        pack = retrieve_evidence(doc, 'Equation 6', 'student')
+        pack = retrieve_evidence(doc, 'Equation 6', 'student', settings=SourceSettings(max_evidence_tokens=8000))
         self.assertEqual(pack.retrieval_confidence, RetrievalConfidence.LOW)
         self.assertEqual(pack.retrieval_metadata['omitted_references'], ['equation 6'])
         self.assertEqual(validate_source_evidence(doc, pack).status, ValidationStatus.FAIL)

@@ -82,7 +82,30 @@ class Orchestrator:
                     client = OpenRouterClient(self.config.model_id, budget, trace)
                     source = build_evidence(case, base_dir=self.config.input_path.parent, budget=budget,
                                             trace=trace, reranker=OpenRouterReranker(client), model_id=self.config.model_id)
-                    generated = SemanticEngine(client, enable_repairs=True).generate(source.evidence_pack)
+                    expanded_evidence = False
+                    def recover_evidence(current):
+                        nonlocal source, expanded_evidence
+                        if expanded_evidence:
+                            return current
+                        expanded_evidence = True
+                        from playground.retrieval.retrieve import retrieve_evidence
+                        from playground.source.settings import SourceSettings
+                        from playground.source.validate import validate_source_evidence
+                        settings = SourceSettings(candidate_limit=12, max_evidence_chunks=20, max_evidence_tokens=24000)
+                        enriched = retrieve_evidence(source.document, case.focus, case.audience,
+                                                     settings=settings, budget=budget, trace=trace)
+                        checked = validate_source_evidence(source.document, enriched, settings=settings)
+                        if checked.status == ValidationStatus.FAIL:
+                            trace.emit(stage='EVIDENCE_PACK', action='expand_evidence', result='fail',
+                                       details={'original_preserved': True})
+                            return current
+                        source = replace(source, evidence_pack=enriched, validation_report=checked)
+                        trace.emit(stage='EVIDENCE_PACK', action='expand_evidence', result='pass',
+                                   details={'previous_blocks': len(current.evidence_blocks),
+                                            'blocks': len(enriched.evidence_blocks), 'model_calls': 0})
+                        return enriched
+                    engine = SemanticEngine(client, enable_repairs=True)
+                    generated = engine.generate(source.evidence_pack, evidence_recovery=recover_evidence)
                     ir = generated.ir
                     if generated.risk_units:
                         verdicts = verify_units(client, source.evidence_pack, generated.risk_units)
@@ -90,8 +113,12 @@ class Orchestrator:
                                    result='fail' if any(v['status'] == 'UNSUPPORTED' for v in verdicts) else 'pass',
                                    details={'verdicts': verdicts})
                         if any(v['status'] == 'UNSUPPORTED' for v in verdicts):
-                            raise PlaygroundError(Failure(FailureCode.GROUNDING_UNSUPPORTED, 'GROUNDING_AND_COVERAGE',
-                                FailureSeverity.MAJOR, True, 'Targeted verification rejected a scientific claim or equation.'))
+                            from playground.model.draft import as_authoring
+                            generated = engine.generate(source.evidence_pack, previous=as_authoring(ir),
+                                                        evidence_recovery=recover_evidence, feedback={
+                                'message': 'Targeted verification rejected a scientific claim or equation.',
+                                'issues': [v for v in verdicts if v['status'] == 'UNSUPPORTED']})
+                            ir = generated.ir
                     ir = replace(ir, metadata={**ir.metadata, 'paper_metadata': source.evidence_pack.paper_metadata,
                                                'source_url': case.source_url, 'model_id': self.config.model_id})
                     variable_ids = {v.id for v in ir.scientific_model.variables}

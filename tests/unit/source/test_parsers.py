@@ -19,6 +19,33 @@ def source(data, fmt=DocumentFormat.PDF):
 
 
 class ParserTests(unittest.TestCase):
+    def test_numbered_list_items_do_not_override_the_requested_pdf_section(self):
+        with pymupdf.open() as pdf:
+            page = pdf.new_page()
+            page.insert_text((40, 50), '6. CHOICE AND UNCERTAINTY', fontsize=11)
+            page.insert_text((40, 90), 'A discrete probability distribution defines the uncertainty.', fontsize=11)
+            page.insert_text((40, 130), '2. If all the probabilities are equal, pi', fontsize=11)
+            page.insert_text((40, 170), '6. The entropy of a different distribution is considered later.', fontsize=11)
+            page.insert_text((40, 220), '7. NEXT SECTION', fontsize=11)
+            doc = parse_pdf(source(pdf.tobytes()))
+        self.assertEqual([s['number'] for s in doc.sections], ['6', '7'])
+        self.assertTrue(all(e.section_title == '6. CHOICE AND UNCERTAINTY'
+                            for e in doc.elements[:4]))
+
+    def test_single_column_math_is_not_split_into_false_prose_columns(self):
+        with pymupdf.open() as pdf:
+            page = pdf.new_page(width=600, height=800)
+            page.insert_text((40, 50), '1. Method', fontsize=16)
+            page.insert_text((40, 100), 'This single column paragraph defines an example mechanism and spans the page.')
+            page.insert_text((200, 150), 'H')
+            page.insert_text((260, 150), '=')
+            page.insert_text((300, 150), 'x + y')
+            page.insert_text((40, 200), 'This following paragraph describes the calculation and its assumptions.')
+            doc = parse_pdf(source(pdf.tobytes()))
+        text = [e.content for e in doc.elements]
+        equation_position = next(i for i, t in enumerate(text) if 'H' in t and '=' in t)
+        self.assertLess(equation_position, next(i for i, t in enumerate(text) if 'following paragraph' in t))
+
     def test_pdf_extracts_sections_equation_algorithm_and_provenance(self):
         doc = parse_pdf(source(paper_pdf()), focus="Equation 6")
         self.assertEqual(doc.title, "Generic Feedback Mechanism")

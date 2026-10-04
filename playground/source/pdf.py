@@ -69,15 +69,35 @@ def parse_pdf(source, *, focus: str = "", settings: SourceSettings | None = None
                 check_budget(budget)
                 blocks = []
                 # TEXTFLAGS_TEXT avoids materializing embedded image bytes.
-                for block in page.get_text("dict", flags=pymupdf.TEXTFLAGS_TEXT)["blocks"]:
+                raw_blocks = page.get_text("dict", flags=pymupdf.TEXTFLAGS_TEXT)["blocks"]
+                # Math fragments on a single-column page are not prose columns.
+                # Require actual prose lines on both sides before splitting blocks.
+                middle = page.rect.width / 2
+                prose_sides = Counter()
+                for raw_block in raw_blocks:
+                    for line in raw_block.get('lines', []):
+                        text = ''.join(s['text'] for s in line['spans'])
+                        if len(re.findall(r'[A-Za-z]{2,}', text)) < 3:
+                            continue
+                        x0, _y0, x1, _y1 = line['bbox']
+                        side = 'left' if x1 <= middle + page.rect.width * .04 else 'right' if x0 >= middle - page.rect.width * .04 else 'span'
+                        prose_sides[side] += 1
+                two_columns = bool(prose_sides['left'] and prose_sides['right'] and
+                                   prose_sides['left'] + prose_sides['right'] > prose_sides['span'])
+                for block in raw_blocks:
                     if block.get("type") != 0:
                         continue
                     # PDF text blocks can themselves merge lines from separate columns.
                     groups = {}
                     middle = page.rect.width / 2
-                    for line in block.get("lines", []):
+                    lines_in_block = block.get('lines', [])
+                    has_equation_number = any(re.fullmatch(r'\(' + NUMBER + r'\)',
+                        ''.join(s['text'] for s in line['spans']).strip()) for line in lines_in_block)
+                    for line_index, line in enumerate(lines_in_block):
                         x0, y0, x1, y1 = line["bbox"]
-                        side = "left" if x1 <= middle + page.rect.width * .04 else "right" if x0 >= middle - page.rect.width * .04 else "span"
+                        side = ("left" if x1 <= middle + page.rect.width * .04 else "right" if x0 >= middle - page.rect.width * .04 else "span") if two_columns else 'span'
+                        if has_equation_number:
+                            side = f'equation-line-{line_index}'
                         groups.setdefault(side, []).append(line)
                     for lines in groups.values():
                         text = "\n".join("".join(s["text"] for s in line["spans"]) for line in lines).strip()
@@ -90,10 +110,14 @@ def parse_pdf(source, *, focus: str = "", settings: SourceSettings | None = None
                         sizes = [s["size"] for line in lines for s in line["spans"]]
                         bbox = (min(line["bbox"][0] for line in lines), min(line["bbox"][1] for line in lines),
                                 max(line["bbox"][2] for line in lines), max(line["bbox"][3] for line in lines))
-                        blocks.append({"text": text, "bbox": bbox, "font_size": max(sizes, default=0)})
+                        bold = any(s.get('flags', 0) & 16 for line in lines for s in line['spans'])
+                        blocks.append({"text": text, "bbox": bbox, "font_size": max(sizes, default=0),
+                                       'bold': bold})
                         if bbox[1] < page.rect.height * .08 or bbox[3] > page.rect.height * .92:
                             edge_texts[text] += 1
-                page_blocks.append(reading_order(associate_equation_numbers(blocks, warnings), page.rect.width))
+                ordered = associate_equation_numbers(blocks, warnings)
+                page_blocks.append(reading_order(ordered, page.rect.width) if two_columns else
+                                   sorted(ordered, key=lambda b: (b['bbox'][1], b['bbox'][0])))
             body_size = median([b["font_size"] for blocks in page_blocks for b in blocks] or [10])
             for page_index, blocks in enumerate(page_blocks):
                 check_budget(budget)
@@ -107,8 +131,21 @@ def parse_pdf(source, *, focus: str = "", settings: SourceSettings | None = None
                     if (not meta.get("noise") and not HEADING.match(text) and not CAPTION.match(text) and len(text) < 100
                             and "\n" not in text and block["font_size"] > body_size * 1.2):
                         builder.heading(text, page_index + 1)
+                    match = HEADING.fullmatch(text)
+                    # Numbered sentences, lists and formula fragments must not
+                    # reset the section. Use typography or a short title shape.
+                    title = match.group(2) if match else ''
+                    title_words = re.findall(r'[A-Za-z]+', title)
+                    short_title = (0 < len(title_words) <= 8 and title[:1].isupper() and
+                                   not re.search(r'[.;:=!?]|\d', title) and
+                                   all(word[:1].isupper() or word.lower() in
+                                       {'a', 'an', 'the', 'of', 'and', 'or', 'in', 'on', 'for', 'to', 'with'}
+                                       for word in title_words))
+                    numbered_heading = bool(match and (title.isupper() or block.get('bold') or
+                                             block['font_size'] > body_size * 1.05 or short_title))
                     builder.add(text, page=page_index + 1, bbox=bbox, metadata=meta,
-                                recognize_heading=not meta.get("noise", False))
+                                recognize_heading=not meta.get("noise", False) and
+                                (numbered_heading or bool(re.match(r'^(References|Bibliography|Acknowledg)', text, re.I))))
                     if len(builder.elements) > settings.max_elements:
                         fail(FailureCode.PARSE_FAILED, "paper_parsing", "PDF exceeds the source element limit.")
             # Visual enrichment occurs after section assignment, allowing focus relevance gating.

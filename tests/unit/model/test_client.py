@@ -16,6 +16,15 @@ from playground.trace import TraceWriter
 TEST_KEY = "synthetic-test-credential-not-real"
 
 
+def scientific_verdict(payload, verdict=None):
+    """Populate mock audit fields; actual scientific correctness needs live tests."""
+    verdict = verdict or {'status': 'SUPPORTED', 'issues': []}
+    issues = {i['target']: i['reason'] for i in verdict['issues']}
+    targets = payload['response_format']['json_schema']['schema']['properties']['checks']['required']
+    return {**verdict, 'checks': {target: {'supported': target not in issues,
+            'reason': issues.get(target, 'Synthetic fixture verdict for this scientific claim.')} for target in targets}}
+
+
 def response(content='{"ok":true}', usage=True):
     result = {"choices": [{"message": {"content": content}, "finish_reason": "stop"}]}
     if usage:
@@ -26,6 +35,17 @@ def response(content='{"ok":true}', usage=True):
 class ClientTests(unittest.TestCase):
     def client(self, transport, budget=None, trace=None):
         return OpenRouterClient("supplied/model-id-UNCHANGED", budget or RunBudget(), trace, transport=transport)
+
+    @patch.dict(os.environ, {"OPENROUTER_API_KEY": TEST_KEY})
+    def test_deepseek_structured_stages_preserve_completion_allocation(self):
+        seen = []
+        client = OpenRouterClient('deepseek/deepseek-v4.1-flash', RunBudget(),
+                                  transport=lambda payload, *_: seen.append(payload) or response())
+        client.complete([], purpose='semantic')
+        client.complete([], purpose='semantic_verification')
+        self.assertEqual(seen[0]['reasoning'], {'enabled': False, 'exclude': True})
+        self.assertEqual(seen[1]['reasoning'], {'enabled': False, 'exclude': True})
+        self.assertTrue(all(p['model'] == client.model_id for p in seen))
 
     @patch.dict(os.environ, {"OPENROUTER_API_KEY": TEST_KEY})
     def test_model_key_and_usage(self):

@@ -1,0 +1,238 @@
+{
+  "title": "Batch Normalization of a Scalar Minibatch: Mean, Variance, Normalize, Affine",
+  "purpose": "Walk through the Batch Normalization transform of Algorithm 1 on a small scalar minibatch: compute the batch mean, the batch variance, the normalized values, and the affine output, and see how the affine scale and shift and the stabilizer epsilon change the result.",
+  "scope": "A single scalar feature over a fixed-size minibatch of four examples, evaluated in one forward pass. Only the normalization and affine transform are shown; no network layers, no loss, no backpropagation, and no training are performed.",
+  "intuition": "Batch Normalization re-centers each minibatch by subtracting its mean and re-scales it by its standard deviation, so the normalized values have roughly zero mean and unit variance. A learned scale and shift then let the layer recover any representation it needs, so normalization does not remove expressive power.",
+  "learning_objectives": [
+    "Compute the batch mean and batch variance of a scalar minibatch and use them to produce normalized values.",
+    "Explain how the affine scale, affine shift, and stabilizer epsilon change the normalized and affine outputs."
+  ],
+  "prerequisites": [
+    "Arithmetic mean and variance of a finite list of numbers.",
+    "Square root and basic algebra of scaling and shifting a variable."
+  ],
+  "assumptions": [
+    "The minibatch has four scalar activations for one feature; the same formula applies independently to each feature.",
+    "The variance is the biased (population) variance over the minibatch, matching the normalization step of Algorithm 1."
+  ],
+  "limitations": [
+    "Only one forward pass is shown; the running averages used at inference time and the gradient updates of the affine parameters are not modeled.",
+    "The minibatch is tiny and fixed in size, so the statistics are noisy and do not represent the training-set distribution."
+  ],
+  "misconception": "Normalization does not force the layer output to have zero mean and unit variance: the affine scale and shift are applied after normalization and can move and stretch the output anywhere.",
+  "edge_cases": [
+    "A constant minibatch has zero variance, so the stabilizer epsilon is the only thing preventing division by zero.",
+    "A negative affine scale flips the ordering of the normalized values, and a nonzero affine shift moves the whole output away from zero mean."
+  ],
+  "evidence_refs": [
+    "E875dd2ad00c67d852ed3",
+    "E6f0138518cc5aa7c8eaf",
+    "E7cbd10decb4f26050b5d",
+    "E08481ffd0bbf2f7140af"
+  ],
+  "inputs": [
+    {
+      "name": "x",
+      "label": "minibatch activations x",
+      "meaning": "The four scalar activations of one feature in the current minibatch, before normalization.",
+      "type": "vector",
+      "domain": "real",
+      "value": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "editable": true,
+      "minimum": null,
+      "maximum": null,
+      "step": null,
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "gamma",
+      "label": "affine scale gamma",
+      "meaning": "The learned scale applied to each normalized value; it lets the layer undo or reshape the normalization.",
+      "type": "scalar",
+      "domain": "real",
+      "value": 1.0,
+      "editable": true,
+      "minimum": -3.0,
+      "maximum": 3.0,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": [
+        "E7cbd10decb4f26050b5d"
+      ]
+    },
+    {
+      "name": "beta",
+      "label": "affine shift beta",
+      "meaning": "The learned shift added after scaling; it lets the layer set the output mean.",
+      "type": "scalar",
+      "domain": "real",
+      "value": 0.0,
+      "editable": true,
+      "minimum": -3.0,
+      "maximum": 3.0,
+      "step": 0.1,
+      "units": null,
+      "evidence_refs": [
+        "E7cbd10decb4f26050b5d"
+      ]
+    },
+    {
+      "name": "epsilon",
+      "label": "stabilizer epsilon",
+      "meaning": "A small positive constant added to the batch variance before the square root, so the denominator never becomes zero.",
+      "type": "scalar",
+      "domain": "positive",
+      "value": 0.001,
+      "editable": true,
+      "minimum": 0.0001,
+      "maximum": 0.1,
+      "step": 0.0001,
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "mu",
+      "label": "batch mean mu",
+      "expression": "mean(x)",
+      "meaning": "The arithmetic mean of the minibatch activations, the center that is subtracted from every activation.",
+      "type": "scalar",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "centered",
+      "label": "centered activations x - mu",
+      "expression": "x - mu",
+      "meaning": "Each activation with the batch mean removed, so the centered minibatch has zero mean.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "variance",
+      "label": "batch variance sigma squared",
+      "expression": "mean(centered * centered)",
+      "meaning": "The population variance of the minibatch, the mean of the squared centered activations.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "denominator",
+      "label": "sqrt(variance + epsilon)",
+      "expression": "sqrt(variance + epsilon)",
+      "meaning": "The standard deviation of the minibatch with the stabilizer epsilon added inside the square root, used as the normalizing divisor.",
+      "type": "scalar",
+      "domain": "positive",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "x_hat",
+      "label": "normalized values x hat",
+      "expression": "centered / denominator",
+      "meaning": "The centered activations divided by the stabilized standard deviation, giving the normalized minibatch.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E875dd2ad00c67d852ed3"
+      ]
+    },
+    {
+      "name": "y",
+      "label": "affine output y",
+      "expression": "gamma * x_hat + beta",
+      "meaning": "The normalized values scaled by gamma and shifted by beta, the output of the Batch Normalization transform.",
+      "type": "vector",
+      "domain": "real",
+      "units": null,
+      "evidence_refs": [
+        "E7cbd10decb4f26050b5d",
+        "E08481ffd0bbf2f7140af"
+      ]
+    }
+  ],
+  "invariants": [
+    "approx_equal(mean(centered), 0)",
+    "approx_equal(mean(x_hat * x_hat), variance / (variance + epsilon))"
+  ],
+  "visuals": [
+    {
+      "type": "bars",
+      "question": "How do the raw activations, the centered activations, the normalized values, and the affine outputs compare for the current minibatch?",
+      "refs": [
+        "x",
+        "centered",
+        "x_hat",
+        "y"
+      ]
+    },
+    {
+      "type": "scalar",
+      "question": "How do the batch mean, batch variance, and stabilized denominator change when the minibatch or epsilon changes?",
+      "refs": [
+        "mu",
+        "variance",
+        "denominator"
+      ]
+    }
+  ],
+  "explorations": [
+    {
+      "title": "Constant minibatch: epsilon is the only stabilizer",
+      "setup": {
+        "x": [
+          2.0,
+          2.0,
+          2.0,
+          2.0
+        ],
+        "gamma": 1.0,
+        "beta": 0.0,
+        "epsilon": 0.001
+      },
+      "observe": "The batch mean is 2, the batch variance is 0, and the denominator is sqrt(0.001). Every centered value is 0, so every normalized value is 0 and every affine output is 0.",
+      "why": "With a constant minibatch the centered activations are all zero, so the variance is zero and the square root would be zero without epsilon. The stabilizer keeps the denominator positive, and the normalized values collapse to zero because there is no spread to rescale."
+    },
+    {
+      "title": "Affine scale and shift reshape the normalized output",
+      "setup": {
+        "x": [
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "gamma": 2.0,
+        "beta": 1.0,
+        "epsilon": 0.001
+      },
+      "observe": "The batch mean and variance are unchanged from the baseline, so the normalized values are the same, but each affine output is now twice its normalized value plus one.",
+      "why": "The affine parameters act after normalization, so they do not change the batch statistics or the normalized values. Scaling by gamma stretches the normalized spread and shifting by beta moves the output mean, which is why normalization does not restrict what the layer can represent."
+    }
+  ]
+}

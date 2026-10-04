@@ -1,0 +1,5 @@
+{
+  "source_url": "https://arxiv.org/pdf/1502.03167",
+  "focus": "Section 3, Algorithm 1: explain batch normalization of a small scalar minibatch. Show the batch mean, population variance, normalized values and affine outputs. Let the learner change inputs and the affine scale or shift. Include epsilon and a constant batch edge case. Do not train a network.",
+  "audience": "second-year engineering undergraduate"
+}

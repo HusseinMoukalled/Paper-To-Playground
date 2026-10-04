@@ -1,0 +1,208 @@
+{
+  "title": "Discrete entropy in bits: probabilities, contributions, and the effect of outcome count",
+  "purpose": "Teach how the discrete entropy H = -sum p_i log p_i is computed in bits for a small editable probability distribution, how each outcome contributes -p_i log2 p_i, and how the total changes when the number of equally likely outcomes changes.",
+  "scope": "A bounded, single-distribution calculation of Shannon entropy in bits using natural logarithms converted by 1/log(2). The lesson covers the first n outcomes of a fixed four-outcome probability vector, individual contributions, total entropy, and the zero-probability convention 0 log 0 = 0. It does not cover joint or conditional entropy, coding theorems, or continuous distributions.",
+  "intuition": "Entropy measures how much choice or uncertainty a probability distribution represents. An outcome that is certain contributes nothing; spreading probability over more equally likely outcomes increases the total. Each outcome's contribution is its probability times the information -log2(p_i) of learning that outcome occurred.",
+  "learning_objectives": [
+    "Compute the entropy in bits of a small discrete distribution from its probabilities and individual contributions.",
+    "Explain how increasing the number of equally likely outcomes changes entropy and why a zero-probability outcome contributes zero."
+  ],
+  "prerequisites": [
+    "Basic probability: probabilities are nonnegative and sum to one.",
+    "Logarithms: log2(x) = ln(x)/ln(2), and the convention 0 log 0 = 0."
+  ],
+  "assumptions": [
+    "The active distribution is the first n entries of a fixed four-outcome probability vector, renormalized if the active entries do not sum to one.",
+    "Entropy is reported in bits, using the natural-log form converted by dividing by ln(2)."
+  ],
+  "limitations": [
+    "Only the first n outcomes of a fixed four-outcome vector are used; the lesson does not explore arbitrary distributions beyond this bounded family.",
+    "The lesson shows a single entropy calculation, not the full axiomatic derivation or coding interpretation."
+  ],
+  "misconception": "A common mistake is to think a zero-probability outcome still adds uncertainty or that entropy is the average of -log2(p_i) rather than the probability-weighted sum.",
+  "edge_cases": [
+    "If the active probabilities sum to zero, the lesson uses an explicitly explained uniform teaching fallback over the active length so the distribution remains valid.",
+    "If n = 1, the single active outcome has probability 1 and entropy is 0 bits, representing certainty."
+  ],
+  "evidence_refs": [
+    "E69a85db684aea15e6c60",
+    "Eb1855ff82142e3aaf002",
+    "E801dea2b6fdfcc4ff04d",
+    "E3de28585b51737147fb4",
+    "E5a67f67e702bbad36a32",
+    "Eaa0923866eed10f7b351",
+    "Ebf4337e0161cce3def58"
+  ],
+  "inputs": [
+    {
+      "name": "p",
+      "label": "p",
+      "meaning": "Probability vector over four possible outcomes; only the first n entries are active.",
+      "type": "distribution",
+      "domain": "probability",
+      "value": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "editable": true,
+      "minimum": null,
+      "maximum": null,
+      "step": null,
+      "units": null,
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ]
+    },
+    {
+      "name": "n",
+      "label": "n",
+      "meaning": "Number of active outcomes taken from the start of the probability vector.",
+      "type": "scalar",
+      "domain": "integer",
+      "value": 4,
+      "editable": true,
+      "minimum": 1,
+      "maximum": 4,
+      "step": 1,
+      "units": "outcomes",
+      "evidence_refs": [
+        "Eb1855ff82142e3aaf002",
+        "E5a67f67e702bbad36a32"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "p_active_raw",
+      "label": "p_active_raw",
+      "expression": "take(p, n)",
+      "meaning": "Select the first n probabilities as the active outcomes.",
+      "type": "vector",
+      "domain": "probability",
+      "units": null,
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ]
+    },
+    {
+      "name": "p_active",
+      "label": "p_active",
+      "expression": "p_active_raw / sum(p_active_raw) if sum(p_active_raw) > 0 else p_active_raw * 0 + 1 / n",
+      "meaning": "Renormalize the active probabilities to sum to one; if all active probabilities are zero, use an explicitly explained uniform teaching fallback over the active length.",
+      "type": "distribution",
+      "domain": "probability",
+      "units": null,
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d"
+      ]
+    },
+    {
+      "name": "contributions_nats",
+      "label": "contributions_nats",
+      "expression": "-xlogx(p_active)",
+      "meaning": "Each outcome's entropy contribution in nats, using the convention 0 log 0 = 0.",
+      "type": "vector",
+      "domain": "nonnegative",
+      "units": "nats",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ]
+    },
+    {
+      "name": "H_nats",
+      "label": "H_nats",
+      "expression": "sum(contributions_nats)",
+      "meaning": "Total entropy in nats as the sum of individual contributions.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": "nats",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "Eaa0923866eed10f7b351"
+      ]
+    },
+    {
+      "name": "H_bits",
+      "label": "H_bits",
+      "expression": "H_nats / log(2)",
+      "meaning": "Convert entropy from nats to bits by dividing by ln(2).",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": "bits",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ]
+    },
+    {
+      "name": "contributions_bits",
+      "label": "contributions_bits",
+      "expression": "contributions_nats / log(2)",
+      "meaning": "Each outcome's entropy contribution in bits.",
+      "type": "vector",
+      "domain": "nonnegative",
+      "units": "bits",
+      "evidence_refs": [
+        "E801dea2b6fdfcc4ff04d",
+        "E3de28585b51737147fb4"
+      ]
+    }
+  ],
+  "invariants": [
+    "approx_equal(sum(p_active), 1)"
+  ],
+  "visuals": [
+    {
+      "type": "bars",
+      "question": "How do the individual contributions -p_i log2(p_i) compare across active outcomes, and how do they sum to H_bits?",
+      "refs": [
+        "p_active",
+        "contributions_bits",
+        "H_bits"
+      ]
+    },
+    {
+      "type": "comparison",
+      "question": "How does H_bits change when n is 1 (certainty) versus n is 4 with equal probabilities?",
+      "refs": [
+        "n",
+        "p_active",
+        "H_bits"
+      ]
+    }
+  ],
+  "explorations": [
+    {
+      "title": "Certainty with one outcome",
+      "setup": {
+        "p": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "n": 1
+      },
+      "observe": "With n = 1, p_active is [1.0], contributions_bits is [0.0], and H_bits is 0.0 bits.",
+      "why": "A single certain outcome has no uncertainty, so its probability-weighted information contribution is zero."
+    },
+    {
+      "title": "Four equally likely outcomes",
+      "setup": {
+        "p": [
+          0.25,
+          0.25,
+          0.25,
+          0.25
+        ],
+        "n": 4
+      },
+      "observe": "With n = 4 and equal probabilities, p_active is [0.25, 0.25, 0.25, 0.25], each contribution is 0.5 bits, and H_bits is 2.0 bits.",
+      "why": "Spreading probability equally over four outcomes gives each outcome the same contribution, and the total is larger than in the certainty case because there is more choice."
+    }
+  ]
+}

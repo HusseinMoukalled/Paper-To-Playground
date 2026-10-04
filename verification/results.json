@@ -1,0 +1,359 @@
+{
+  "model": "deepseek/deepseek-v4.1-flash",
+  "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+  "started_utc": "2026-10-04T01:49:35.221710+00:00",
+  "note": "Local Windows practice cases, not the original VPS assessment inputs.",
+  "runs": [
+    {
+      "case": "adam",
+      "repeat": 1,
+      "input": {
+        "source_url": "https://arxiv.org/pdf/1412.6980",
+        "focus": "Section 2, Algorithm 1: explain one scalar Adam update, including first and second moment estimates, bias correction and the parameter update. Let the learner vary the gradient and learning rate and display intermediate values. Use explicit toy prior moments and a positive step count; do not train a model.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 18.062,
+      "calls": 2,
+      "prompt_tokens": 10788,
+      "completion_tokens": 4051,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/adam-1",
+      "archived_output": "verification/runs/adam-1"
+    },
+    {
+      "case": "adam",
+      "repeat": 2,
+      "input": {
+        "source_url": "https://arxiv.org/pdf/1412.6980",
+        "focus": "Section 2, Algorithm 1: explain one scalar Adam update, including first and second moment estimates, bias correction and the parameter update. Let the learner vary the gradient and learning rate and display intermediate values. Use explicit toy prior moments and a positive step count; do not train a model.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 31.375,
+      "calls": 3,
+      "prompt_tokens": 17789,
+      "completion_tokens": 7813,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/adam-2",
+      "archived_output": "verification/runs/adam-2"
+    },
+    {
+      "case": "attention",
+      "repeat": 1,
+      "input": {
+        "source_url": "https://arxiv.org/html/1706.03762v7",
+        "focus": "Section 3.2.1: explain scaled dot-product attention with small editable Q, K and V inputs. Show similarity scores, normalized attention weights and the weighted output. Include scaling on/off, equal scores and a dominant score. Verify weights sum to one.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 17.547,
+      "calls": 2,
+      "prompt_tokens": 10515,
+      "completion_tokens": 3828,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/attention-1",
+      "archived_output": "verification/runs/attention-1"
+    },
+    {
+      "case": "attention",
+      "repeat": 2,
+      "input": {
+        "source_url": "https://arxiv.org/html/1706.03762v7",
+        "focus": "Section 3.2.1: explain scaled dot-product attention with small editable Q, K and V inputs. Show similarity scores, normalized attention weights and the weighted output. Include scaling on/off, equal scores and a dominant score. Verify weights sum to one.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 21.468,
+      "calls": 2,
+      "prompt_tokens": 10350,
+      "completion_tokens": 3412,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/attention-2",
+      "archived_output": "verification/runs/attention-2"
+    },
+    {
+      "case": "batch-normalization",
+      "repeat": 1,
+      "input": {
+        "source_url": "https://arxiv.org/pdf/1502.03167",
+        "focus": "Section 3, Algorithm 1: explain batch normalization of a small scalar minibatch. Show the batch mean, population variance, normalized values and affine outputs. Let the learner change inputs and the affine scale or shift. Include epsilon and a constant batch edge case. Do not train a network.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 19.438,
+      "calls": 3,
+      "prompt_tokens": 14554,
+      "completion_tokens": 3630,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/batch-normalization-1",
+      "archived_output": "verification/runs/batch-normalization-1"
+    },
+    {
+      "case": "batch-normalization",
+      "repeat": 2,
+      "input": {
+        "source_url": "https://arxiv.org/pdf/1502.03167",
+        "focus": "Section 3, Algorithm 1: explain batch normalization of a small scalar minibatch. Show the batch mean, population variance, normalized values and affine outputs. Let the learner change inputs and the affine scale or shift. Include epsilon and a constant batch edge case. Do not train a network.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 21.266,
+      "calls": 3,
+      "prompt_tokens": 15060,
+      "completion_tokens": 3853,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/batch-normalization-2",
+      "archived_output": "verification/runs/batch-normalization-2"
+    },
+    {
+      "case": "distillation",
+      "repeat": 1,
+      "input": {
+        "source_url": "https://arxiv.org/pdf/1503.02531",
+        "focus": "Section 2: explain knowledge distillation with small teacher and student logit vectors and adjustable temperature. Show the soft probability distributions and the soft-target cross-entropy or a clearly labeled component of it. Explain the temperature effect and the T-squared factor when combining soft and hard training losses. Do not train models.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 28.407,
+      "calls": 2,
+      "prompt_tokens": 12602,
+      "completion_tokens": 5480,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/distillation-1",
+      "archived_output": "verification/runs/distillation-1"
+    },
+    {
+      "case": "distillation",
+      "repeat": 2,
+      "input": {
+        "source_url": "https://arxiv.org/pdf/1503.02531",
+        "focus": "Section 2: explain knowledge distillation with small teacher and student logit vectors and adjustable temperature. Show the soft probability distributions and the soft-target cross-entropy or a clearly labeled component of it. Explain the temperature effect and the T-squared factor when combining soft and hard training losses. Do not train models.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 31.015,
+      "calls": 3,
+      "prompt_tokens": 18471,
+      "completion_tokens": 7320,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/distillation-2",
+      "archived_output": "verification/runs/distillation-2"
+    },
+    {
+      "case": "dropout",
+      "repeat": 1,
+      "input": {
+        "source_url": "https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf",
+        "focus": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 24.469,
+      "calls": 4,
+      "prompt_tokens": 13792,
+      "completion_tokens": 5146,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/dropout-1",
+      "archived_output": "verification/runs/dropout-1"
+    },
+    {
+      "case": "dropout",
+      "repeat": 2,
+      "input": {
+        "source_url": "https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf",
+        "focus": "Explain the dropout mechanism with a small activation vector and an editable binary mask and retention probability. Distinguish training masking from the paper's test-time weight scaling convention, and label any alternative scaling convention clearly. Show original and masked activations. Do not train a network or invent random samples.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 25.437,
+      "calls": 4,
+      "prompt_tokens": 14424,
+      "completion_tokens": 5710,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/dropout-2",
+      "archived_output": "verification/runs/dropout-2"
+    },
+    {
+      "case": "entropy",
+      "repeat": 1,
+      "input": {
+        "source_url": "https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf",
+        "focus": "Section 6: explain discrete entropy in bits using a small editable probability distribution and a variable number of outcomes. Show probabilities, individual contributions and total entropy. Compare certainty with four equally likely outcomes. Handle zero probabilities correctly.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 17.344,
+      "calls": 2,
+      "prompt_tokens": 10941,
+      "completion_tokens": 3636,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/entropy-1",
+      "archived_output": "verification/runs/entropy-1"
+    },
+    {
+      "case": "entropy",
+      "repeat": 2,
+      "input": {
+        "source_url": "https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf",
+        "focus": "Section 6: explain discrete entropy in bits using a small editable probability distribution and a variable number of outcomes. Show probabilities, individual contributions and total entropy. Compare certainty with four equally likely outcomes. Handle zero probabilities correctly.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 19.578,
+      "calls": 2,
+      "prompt_tokens": 11139,
+      "completion_tokens": 3961,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/entropy-2",
+      "archived_output": "verification/runs/entropy-2"
+    },
+    {
+      "case": "logical-clocks",
+      "repeat": 1,
+      "input": {
+        "source_url": "https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/Time-Clocks-and-the-Ordering-of-Events-in-a-Distributed-System.pdf",
+        "focus": "Explain Lamport logical clocks: local events increment a clock and receiving a message updates the receiver to max(local, message timestamp) plus one for a unit-increment implementation. Use small editable integer clocks and show send/receive ordering. Explain that a smaller timestamp does not prove causality. Do not use physical wall-clock time.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 17.703,
+      "calls": 4,
+      "prompt_tokens": 14306,
+      "completion_tokens": 3510,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/logical-clocks-1",
+      "archived_output": "verification/runs/logical-clocks-1"
+    },
+    {
+      "case": "logical-clocks",
+      "repeat": 2,
+      "input": {
+        "source_url": "https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/Time-Clocks-and-the-Ordering-of-Events-in-a-Distributed-System.pdf",
+        "focus": "Explain Lamport logical clocks: local events increment a clock and receiving a message updates the receiver to max(local, message timestamp) plus one for a unit-increment implementation. Use small editable integer clocks and show send/receive ordering. Explain that a smaller timestamp does not prove causality. Do not use physical wall-clock time.",
+        "audience": "second-year engineering undergraduate"
+      },
+      "code_sha256": "7e63ae291c8d5462f8e4aecf73bfafe87640de1bea71b3bcdb4c3721de3419d7",
+      "code_changed_during_run": false,
+      "exit_code": 0,
+      "html_produced": true,
+      "elapsed_seconds": 16.5,
+      "calls": 3,
+      "prompt_tokens": 9552,
+      "completion_tokens": 3333,
+      "checks": {
+        "STATIC_VALIDATION": "pass",
+        "BROWSER_VALIDATION": "pass",
+        "FINALIZE": "pass"
+      },
+      "failures": [],
+      "output": "out/verification/20261004T014935Z-e41fc5/logical-clocks-2",
+      "archived_output": "verification/runs/logical-clocks-2"
+    }
+  ],
+  "finished_utc": "2026-10-04T01:54:45.003812+00:00"
+}

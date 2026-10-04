@@ -1,0 +1,5 @@
+{
+  "source_url": "https://arxiv.org/pdf/1503.02531",
+  "focus": "Section 2: explain knowledge distillation with small teacher and student logit vectors and adjustable temperature. Show the soft probability distributions and the soft-target cross-entropy or a clearly labeled component of it. Explain the temperature effect and the T-squared factor when combining soft and hard training losses. Do not train models.",
+  "audience": "second-year engineering undergraduate"
+}

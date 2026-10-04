@@ -41,7 +41,9 @@ def build_artifact(ir: ExplanationIR, output_directory: str | Path, *, asts: Map
     def emit(stage, action, validation):
         if trace:
             trace.emit(stage=stage, action=action, result=validation.status.value.lower(),
-                       details={'codes': [f.code for f in validation.findings]})
+                       details={'codes': [f.code for f in validation.findings],
+                                'findings': [{'code': f.code, 'target': f.target, 'message': f.message,
+                                              'details': f.details} for f in validation.findings]})
 
     try:
         output.mkdir(parents=True, exist_ok=True)

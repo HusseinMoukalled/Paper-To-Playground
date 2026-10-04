@@ -1,0 +1,273 @@
+{
+  "title": "Knowledge Distillation: Soft Targets, Temperature, and the T\u00b2 Factor",
+  "purpose": "Explain how a teacher's logits become soft targets via a temperature-scaled softmax, how the soft-target cross-entropy is computed, and why the soft loss is multiplied by T\u00b2 when combined with a hard-label loss.",
+  "scope": "A single transfer example with small teacher and student logit vectors. We compute the temperature-scaled softmax distributions, the soft-target cross-entropy component, and the T\u00b2-scaled combination with a hard-label cross-entropy. No model training, no gradient derivation, no multi-example dataset.",
+  "intuition": "A teacher's raw scores (logits) are turned into a probability distribution by a softmax. Raising the temperature T flattens that distribution, exposing relative similarities between classes that a hard label hides. The student is trained to match this soft distribution. Because the soft-target gradients shrink like 1/T\u00b2, the soft loss is multiplied by T\u00b2 so that changing T does not silently change the balance between soft and hard objectives.",
+  "learning_objectives": [
+    "Compute temperature-scaled softmax distributions for teacher and student logits and describe how increasing T softens them.",
+    "Compute the soft-target cross-entropy component and the T\u00b2-scaled weighted combination with a hard-label cross-entropy."
+  ],
+  "prerequisites": [
+    "Softmax as a normalized exponential of logits.",
+    "Cross-entropy H(p,q) = -\u03a3 p_i ln q_i in nats."
+  ],
+  "assumptions": [
+    "Teacher and student logit vectors are fixed small vectors for one transfer example; no training occurs.",
+    "The hard-label target is a one-hot distribution over the same classes, and the hard loss uses the student's T=1 softmax."
+  ],
+  "limitations": [
+    "Only one transfer example is shown; real distillation averages over a transfer set.",
+    "The gradient-scaling argument for T\u00b2 is stated from the paper but not derived here; we only apply the factor to the loss combination."
+  ],
+  "misconception": "That temperature changes the teacher's knowledge or the student's logits themselves. Temperature only rescales the logits inside the softmax, changing the sharpness of the resulting distribution; the underlying logits are unchanged.",
+  "edge_cases": [
+    "T = 1 makes the soft distribution identical to the ordinary softmax, so soft and hard targets use the same temperature.",
+    "Very large T drives the soft distribution toward uniform, so the soft cross-entropy approaches entropy of the teacher distribution and carries little class-specific signal."
+  ],
+  "evidence_refs": [
+    "E9459e999a36579d061e9",
+    "E1a97e7d98f4ff5d1a3b4",
+    "Edc16f7dd3b3b8f22ce68",
+    "E1e7a80ebf14f30f94aae",
+    "E45832686cb3376e40271"
+  ],
+  "inputs": [
+    {
+      "name": "teacher_logits",
+      "label": "v (teacher logits)",
+      "meaning": "Raw scores from the cumbersome teacher model for one transfer example, one entry per class.",
+      "type": "vector",
+      "domain": "real",
+      "value": [
+        3.0,
+        1.0,
+        -1.0
+      ],
+      "editable": true,
+      "minimum": null,
+      "maximum": null,
+      "step": null,
+      "units": null,
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae"
+      ]
+    },
+    {
+      "name": "student_logits",
+      "label": "z (student logits)",
+      "meaning": "Raw scores from the distilled student model for the same transfer example, one entry per class.",
+      "type": "vector",
+      "domain": "real",
+      "value": [
+        2.0,
+        0.5,
+        -0.5
+      ],
+      "editable": true,
+      "minimum": null,
+      "maximum": null,
+      "step": null,
+      "units": null,
+      "evidence_refs": [
+        "E1e7a80ebf14f30f94aae"
+      ]
+    },
+    {
+      "name": "temperature",
+      "label": "T",
+      "meaning": "Softmax temperature used for distillation; higher T produces a softer distribution.",
+      "type": "scalar",
+      "domain": "positive",
+      "value": 2.0,
+      "editable": true,
+      "minimum": 0.5,
+      "maximum": 10.0,
+      "step": 0.5,
+      "units": null,
+      "evidence_refs": [
+        "Edc16f7dd3b3b8f22ce68",
+        "E1a97e7d98f4ff5d1a3b4"
+      ]
+    },
+    {
+      "name": "hard_target",
+      "label": "y (hard label)",
+      "meaning": "One-hot correct-label distribution over the same classes, used for the hard cross-entropy at T=1.",
+      "type": "distribution",
+      "domain": "probability",
+      "value": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "editable": false,
+      "minimum": null,
+      "maximum": null,
+      "step": null,
+      "units": null,
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ]
+    },
+    {
+      "name": "hard_weight",
+      "label": "\u03b1 (hard-loss weight)",
+      "meaning": "Weight on the hard-label cross-entropy relative to the T\u00b2-scaled soft-target cross-entropy.",
+      "type": "scalar",
+      "domain": "unit_interval",
+      "value": 0.3,
+      "editable": true,
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "step": 0.05,
+      "units": null,
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "name": "teacher_soft",
+      "label": "p (teacher soft targets)",
+      "expression": "softmax(teacher_logits / temperature)",
+      "meaning": "Temperature-scaled softmax of the teacher logits, producing the soft target distribution the student is trained to match.",
+      "type": "distribution",
+      "domain": "probability",
+      "units": null,
+      "evidence_refs": [
+        "Edc16f7dd3b3b8f22ce68",
+        "E1a97e7d98f4ff5d1a3b4"
+      ]
+    },
+    {
+      "name": "student_soft",
+      "label": "q (student soft distribution at T)",
+      "expression": "softmax(student_logits / temperature)",
+      "meaning": "Temperature-scaled softmax of the student logits, using the same temperature as the teacher soft targets.",
+      "type": "distribution",
+      "domain": "probability",
+      "units": null,
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "E1a97e7d98f4ff5d1a3b4"
+      ]
+    },
+    {
+      "name": "soft_loss",
+      "label": "H(p, q) soft-target cross-entropy",
+      "expression": "cross_entropy(teacher_soft, student_soft)",
+      "meaning": "Cross-entropy between teacher soft targets and student soft distribution, computed at the distillation temperature.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": "nats",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ]
+    },
+    {
+      "name": "student_hard",
+      "label": "q\u2081 (student distribution at T=1)",
+      "expression": "softmax(student_logits)",
+      "meaning": "Student softmax at temperature 1, used for the hard-label cross-entropy.",
+      "type": "distribution",
+      "domain": "probability",
+      "units": null,
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ]
+    },
+    {
+      "name": "hard_loss",
+      "label": "H(y, q\u2081) hard-label cross-entropy",
+      "expression": "cross_entropy(hard_target, student_hard)",
+      "meaning": "Cross-entropy between the correct one-hot labels and the student distribution at T=1.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": "nats",
+      "evidence_refs": [
+        "E9459e999a36579d061e9"
+      ]
+    },
+    {
+      "name": "total_loss",
+      "label": "L combined loss",
+      "expression": "temperature * temperature * soft_loss + hard_weight * hard_loss",
+      "meaning": "Weighted combination of the T\u00b2-scaled soft-target cross-entropy and the hard-label cross-entropy, preserving relative contributions as T changes.",
+      "type": "scalar",
+      "domain": "nonnegative",
+      "units": "nats",
+      "evidence_refs": [
+        "E9459e999a36579d061e9",
+        "Ee0b34cddec3a4abdd441"
+      ]
+    }
+  ],
+  "invariants": [
+    "approx_equal(sum(teacher_soft), 1)",
+    "approx_equal(sum(student_soft), 1)",
+    "approx_equal(sum(student_hard), 1)"
+  ],
+  "visuals": [
+    {
+      "type": "distribution",
+      "question": "How does increasing T flatten the teacher and student soft distributions?",
+      "refs": [
+        "teacher_soft",
+        "student_soft",
+        "temperature"
+      ]
+    },
+    {
+      "type": "comparison",
+      "question": "How do the T\u00b2-scaled soft loss and the hard loss contribute to the total loss?",
+      "refs": [
+        "soft_loss",
+        "hard_loss",
+        "total_loss",
+        "temperature",
+        "hard_weight"
+      ]
+    }
+  ],
+  "explorations": [
+    {
+      "title": "Temperature softens the targets",
+      "setup": {
+        "teacher_logits": [
+          3.0,
+          1.0,
+          -1.0
+        ],
+        "student_logits": [
+          2.0,
+          0.5,
+          -0.5
+        ],
+        "temperature": 5.0,
+        "hard_weight": 0.3
+      },
+      "observe": "teacher_soft and student_soft become flatter, soft_loss changes, and total_loss changes because the T\u00b2 factor grows while the soft cross-entropy shrinks.",
+      "why": "Dividing logits by a larger T compresses their differences before the softmax, so the exponential ratios move toward uniform. The soft cross-entropy then reflects a flatter target, and the T\u00b2 multiplier compensates the 1/T\u00b2 gradient scaling so the soft objective's relative weight stays comparable."
+    },
+    {
+      "title": "Hard-loss weight changes the balance",
+      "setup": {
+        "teacher_logits": [
+          3.0,
+          1.0,
+          -1.0
+        ],
+        "student_logits": [
+          2.0,
+          0.5,
+          -0.5
+        ],
+        "temperature": 2.0,
+        "hard_weight": 0.8
+      },
+      "observe": "soft_loss and hard_loss are unchanged from the baseline, but total_loss increases because the hard-label term is weighted more heavily.",
+      "why": "The hard weight \u03b1 multiplies only the hard cross-entropy, so raising \u03b1 increases the hard objective's contribution without altering the soft-target cross-entropy or the temperature scaling."
+    }
+  ]
+}
